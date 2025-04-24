@@ -1,5 +1,5 @@
 ---
-title: Instalación (pendiente)
+title: Instalación (en construcción)
 description: A guide in my new Starlight docs site.
 ---
 

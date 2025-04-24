@@ -15,11 +15,15 @@
     --sl-text-h1: 18px;
     --sl-text-h2: 16px;
     --sl-text-h3: 15px;
-    --sl-text-h4: 15px;
+    --sl-text-h4: 14px;
 }
 
 p {
     font-size: 12px;
+}
+
+.code {
+    font-size: 11px;
 }
 
 li {

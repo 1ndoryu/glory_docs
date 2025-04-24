@@ -1,11 +1,7 @@
 ---
 title: Instalación (en construcción)
-description: A guide in my new Starlight docs site.
+description: Aún no esta listo.
 ---
 
-Guides lead a user through a specific task they want to accomplish, often with a sequence of steps.
-Writing a good guide requires thinking about what your users are trying to do.
+Aquí se explicará brevemente como instalar este framework en wordpress.
 
-## Further reading
-
-- Read [about how-to guides](https://diataxis.fr/how-to-guides/) in the Diátaxis framework

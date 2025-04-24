@@ -13,12 +13,11 @@ export default defineConfig({
                     label: 'Empezar',
                     items: [
                         {label: 'Instalación', slug: 'empezar/instalacion'}, // <-- Cambiado a minúsculas
-                        {label: 'Test', slug: 'empezar/test'} // Added new item
                     ]
                 },
                 {
-                    label: 'Reference',
-                    autogenerate: {directory: 'reference'}
+                    label: 'Basico',
+                    autogenerate: {directory: 'basico'}
                 }
             ],
             customCss: [

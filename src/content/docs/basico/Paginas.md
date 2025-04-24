@@ -57,6 +57,7 @@ Coloca las llamadas a `define()` y `register()` en un lugar que se ejecute pront
   - Si la página existe, se asegura de que tenga asignada la plantilla correcta. Nota: No actualiza el título ni el contenido de páginas existentes para evitar sobrescribir cambios manuales.
   - Marca la página con un meta campo `_page_manager_managed` para identificarla.
 
+
 - **Página de Inicio**: Si defines una página con el slug `home`, PageManager la configurará automáticamente como la página de inicio estática de WordPress en Ajustes > Lectura.
 
 - **Limpieza Automática**: PageManager también comprueba si existen páginas en la base de datos marcadas como gestionadas (`_page_manager_managed`) pero que ya no están definidas en tu código. Si encuentra alguna, la eliminará permanentemente para mantener sincronizado el código con la base de datos. ¡Ten cuidado al eliminar definiciones!

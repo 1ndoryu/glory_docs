@@ -12,7 +12,7 @@ export default defineConfig({
 				{
 					label: 'Empezar',
 					items: [
-						{ label: 'Empezar', slug: 'Empezar/Instalacion' },
+						{ label: 'Instalación', slug: 'empezar/instalacion' }, // <-- Cambiado a minúsculas
 					],
 				},
 				{

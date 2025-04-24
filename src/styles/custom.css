@@ -21,6 +21,14 @@ p {
     font-size: 12px;
 }
 
+li {
+    font-size: 11px;
+}
+
+span.link-title {
+    font-size: 13px;
+}
+
 /* Light mode colors. */
 :root[data-theme='light'] {
 	--sl-color-accent-low: #fec5d5;

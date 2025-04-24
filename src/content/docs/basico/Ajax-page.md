@@ -1,5 +1,5 @@
 ---
-title: Navegación AJAX - Carga Rápida de Páginas
+title: 3. Navegación AJAX
 description: Mejora la velocidad y la experiencia de usuario cargando contenido de páginas sin recargas completas, con opciones de configuración.
 ---
 

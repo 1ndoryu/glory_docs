@@ -1,5 +1,5 @@
 ---
-title: ScriptManager - Gestión de Scripts JS
+title: 2. ScriptManager
 description: Aprende a registrar y encolar scripts JavaScript de forma organizada con ScriptManager.
 ---
 

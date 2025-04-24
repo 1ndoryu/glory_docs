@@ -1,5 +1,5 @@
 ---
-title: PageManager - Gestionar Páginas desde Código
+title: 1. PageManager
 description: Aprende a crear y gestionar páginas de WordPress programáticamente con PageManager.
 ---
 

@@ -7,14 +7,14 @@ La Navegación AJAX intercepta los clics en enlaces internos de tu sitio. En lug
 
 ## Cómo Habilitar y Configurar
 
-Para usar esta funcionalidad, primero debes asegurarte de que el script `ajax-page.js` (ubicado en `TU_TEMA/glory/js/ajax-page.js` o donde lo hayas puesto) esté encolado correctamente en tu tema o plugin. La configuración se realiza pasando un objeto JavaScript desde PHP usando `wp_localize_script`.
+Para usar esta funcionalidad, primero debes asegurarte de que el script `ajax-page.js` (ubicado en `TU_TEMA/Glory/js/ajax-page.js` o donde lo hayas puesto) esté encolado correctamente en tu tema o plugin. La configuración se realiza pasando un objeto JavaScript desde PHP usando `wp_localize_script`.
 
 ```php
 <?php
-// En functions.php o un archivo incluido
+// /App/Glory/Config/ajaxPageSetup.php
 
 function glory_enqueue_ajax_nav_script() {
-    // Asume que el script está en TU_TEMA/glory/js/ajax-page.js
+
     $script_handle = 'glory-ajax-nav';
     $script_rel_path = '/glory/js/ajax-page.js'; // Relative to theme root
     $script_path = get_template_directory() . $script_rel_path;

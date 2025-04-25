@@ -23,7 +23,7 @@ export default defineConfig({
                     items: [
                         { label: 'PageManager', slug: 'basico/pagemanager' },
                         { label: 'ScriptManager', slug: 'basico/scriptmanager' },
-                        { label: 'Ajax Navigation', slug: 'basico/ajaxpage.md' },
+                        { label: 'Ajax Navigation', slug: 'basico/ajaxpage' },
 
                     ]
                 }

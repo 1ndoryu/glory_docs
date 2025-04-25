@@ -21,12 +21,9 @@ export default defineConfig({
                     label: 'Basico',
                     // Reemplaza 'autogenerate' con una lista manual 'items'
                     items: [
-                        // Añade aquí cada archivo de la carpeta 'basico' en el orden deseado.
-                        // El 'label' es lo que se muestra, el 'slug' es la ruta sin extensión.
-                        { label: '01 - PageManager', slug: 'basico/01-pagemanager' },
-                        { label: '02 - ScriptManager', slug: 'basico/02-scriptmanager' },
-                        // ... continúa con todos tus archivos ...
-                        { label: '03 - Ajax Navigation', slug: 'basico/03-ajaxpage.md' },
+                        { label: '01 - PageManager', slug: 'basico/pagemanager' },
+                        { label: '02 - ScriptManager', slug: 'basico/scriptmanager' },
+                        { label: '03 - Ajax Navigation', slug: 'basico/ajaxpage.md' },
 
                     ]
                 }

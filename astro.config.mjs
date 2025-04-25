@@ -21,9 +21,9 @@ export default defineConfig({
                     label: 'Basico',
                     // Reemplaza 'autogenerate' con una lista manual 'items'
                     items: [
-                        { label: '01 - PageManager', slug: 'basico/pagemanager' },
-                        { label: '02 - ScriptManager', slug: 'basico/scriptmanager' },
-                        { label: '03 - Ajax Navigation', slug: 'basico/ajaxpage.md' },
+                        { label: 'PageManager', slug: 'basico/pagemanager' },
+                        { label: 'ScriptManager', slug: 'basico/scriptmanager' },
+                        { label: 'Ajax Navigation', slug: 'basico/ajaxpage.md' },
 
                     ]
                 }

@@ -11,7 +11,7 @@ Para usar esta funcionalidad, primero debes asegurarte de que el script `ajax-pa
 
 ```php
 <?php
-// /App/Glory/Config/ajaxPageSetup.php
+# /App/Glory/Config/ajaxPageSetup.php
 
 function glory_enqueue_ajax_nav_script() {
 

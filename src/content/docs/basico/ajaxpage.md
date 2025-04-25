@@ -11,12 +11,12 @@ Para usar esta funcionalidad, primero debes asegurarte de que el script `ajax-pa
 
 ```php
 <?php
-# /App/Glory/Config/ajaxPageSetup.php
 
+# En /App/Glory/Config/ajaxPageSetup.php
 function glory_enqueue_ajax_nav_script() {
 
     $script_handle = 'glory-ajax-nav';
-    $script_rel_path = '/glory/js/ajax-page.js'; // Relative to theme root
+    $script_rel_path = '/Glory/js/ajax-page.js'; // Relative to theme root
     $script_path = get_template_directory() . $script_rel_path;
     $script_url = get_template_directory_uri() . $script_rel_path;
 

@@ -13,14 +13,15 @@ Estas funciones te permiten tener un único archivo para la cabecera y el pie de
 
 Estas dos funciones son las encargadas de buscar e incluir los archivos correspondientes del tema.
 
-* **`getHeader()`**: Busca el archivo `header.php` dentro de la carpeta `layouts` de tu tema y lo incluye.
-* **`getFooter()`**: Busca el archivo `footer.php` dentro de la carpeta `layouts` de tu tema y lo incluye.
+-   **`getHeader()`**: Busca el archivo `header.php` dentro de la carpeta `layouts` de tu tema y lo incluye.
+-   **`getFooter()`**: Busca el archivo `footer.php` dentro de la carpeta `layouts` de tu tema y lo incluye.
 
 **Uso en una plantilla:**
+
 ```php
 <?php
 // Carga /layouts/header.php
-getHeader(); 
+getHeader();
 
 ?>
 
@@ -29,9 +30,9 @@ getHeader();
 <?php
 
 // Carga /layouts/footer.php
-getFooter(); 
+getFooter();
 ?>
-````
+```
 
 ## Los Hooks Esenciales: `sw_head()` y `sw_footer()`
 
@@ -43,8 +44,8 @@ Este hook, análogo al `wp_head()` de WordPress, debe colocarse justo antes de l
 
 **Función:**
 
-  * Imprime todas las hojas de estilo (`<link rel="stylesheet">`) encoladas por el tema o los plugins.
-  * Permite a los plugins añadir meta etiquetas, scripts de seguimiento, y otro contenido necesario en la cabecera del documento.
+-   Imprime todas las hojas de estilo (`<link rel="stylesheet">`) encoladas por el tema o los plugins.
+-   Permite a los plugins añadir meta etiquetas, scripts de seguimiento, y otro contenido necesario en la cabecera del documento.
 
 **Ejemplo de `layouts/header.php`:**
 
@@ -55,10 +56,10 @@ Este hook, análogo al `wp_head()` de WordPress, debe colocarse justo antes de l
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($titulo ?? 'SwordPHP'); ?></title>
-    
+
     <?php
     // ¡Llamada crucial! No la olvides.
-    sw_head(); 
+    sw_head();
     ?>
 </head>
 <body>
@@ -72,9 +73,9 @@ Este hook, análogo al `wp_footer()` de WordPress, debe colocarse justo antes de
 
 **Función:**
 
-  * Imprime todos los archivos JavaScript (`<script src="...">`) encolados por el tema o los plugins. Esto mejora el rendimiento, ya que los scripts se cargan al final.
-  * Imprime cualquier variable de PHP pasada a JavaScript (`wp_localize_script`).
-  * Permite a los plugins añadir HTML o scripts al final de la página (ej. banners, modales, etc.).
+-   Imprime todos los archivos JavaScript (`<script src="...">`) encolados por el tema o los plugins. Esto mejora el rendimiento, ya que los scripts se cargan al final.
+-   Imprime cualquier variable de PHP pasada a JavaScript (`wp_localize_script`).
+-   Permite a los plugins añadir HTML o scripts al final de la página (ej. banners, modales, etc.).
 
 **Ejemplo de `layouts/footer.php`:**
 
@@ -84,8 +85,8 @@ Este hook, análogo al `wp_footer()` de WordPress, debe colocarse justo antes de
 
     <?php
     // ¡Llamada crucial! No la olvides.
-    sw_footer(); 
-    
+    sw_footer();
+
     // También es un buen lugar para hooks personalizados
     hacerAccion('pieDePagina');
     ?>
@@ -95,4 +96,3 @@ Este hook, análogo al `wp_footer()` de WordPress, debe colocarse justo antes de
 
 > **Referencia Técnica:** Estas funciones se definen en `swordCore/app/helpers/view.php` y `swordCore/app/helpers/theming.php`. El directorio recomendado para estas partes de plantilla es `/layouts/`.
 
-```

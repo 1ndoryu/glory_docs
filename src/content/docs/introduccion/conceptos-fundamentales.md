@@ -3,7 +3,7 @@ title: Conceptos Fundamentales
 description: Entiende la arquitectura clave de SwordPHP, la separación entre el núcleo (swordCore) y tu contenido (swordContent), y por qué es vital para la mantenibilidad.
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+
 
 # Conceptos Fundamentales: swordCore y swordContent
 
@@ -14,20 +14,15 @@ Esta separación te permite actualizar el núcleo de SwordPHP con nuevas version
 ## Estructura de Directorios
 
 A alto nivel, la estructura de un proyecto SwordPHP se ve así:
-
+---
 SwordPHP/
 ├── swordCore/ # 🧠 El cerebro de la aplicación
 └── swordContent/ # 🎨 Tu contenido personalizado
+---
+---
+**El Núcleo del Sistema.** Este directorio contiene el framework, los controladores, los servicios y toda la lógica que hace funcionar a SwordPHP. **Nunca debes modificar los archivos dentro de `swordCore` directamente.** Al actualizar el sistema, simplemente reemplazarás esta carpeta con la nueva versión.
 
-<CardGrid>
-	<Card title="swordCore" icon="rocket">
-		**El Núcleo del Sistema.** Este directorio contiene el framework, los controladores, los servicios y toda la lógica que hace funcionar a SwordPHP. **Nunca debes modificar los archivos dentro de `swordCore` directamente.** Al actualizar el sistema, simplemente reemplazarás esta carpeta con la nueva versión.
-	</Card>
-	<Card title="swordContent" icon="pencil">
-		**Tu Espacio de Trabajo.** Aquí es donde reside todo tu código y contenido personalizado. Contiene tus temas, plugins y los archivos que subes a la biblioteca de medios. Esta carpeta es tuya y no se ve afectada por las actualizaciones del núcleo.
-	</Card>
-</CardGrid>
-
+**Tu Espacio de Trabajo.** Aquí es donde reside todo tu código y contenido personalizado. Contiene tus temas, plugins y los archivos que subes a la biblioteca de medios. Esta carpeta es tuya y no se ve afectada por las actualizaciones del núcleo.
 ---
 
 ## Profundizando en los Directorios

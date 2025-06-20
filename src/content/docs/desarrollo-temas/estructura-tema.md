@@ -154,6 +154,3 @@ hacerAccion('pieDePagina'); // Hook adicional para contenido en el footer.
 
 Con estos archivos, tienes una base sólida y funcional para empezar a construir cualquier tipo de sitio web con SwordPHP.
 
-```
-
-```

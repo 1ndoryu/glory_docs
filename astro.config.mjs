@@ -20,7 +20,7 @@ export default defineConfig({
                 {
                     label: 'Desarrollo de Temas',
                     items: [
-                        {label: 'Estructura de un Tema', slug: 'desarrollo-temas/estructura-tema'}
+                        {label: 'Estructura de un Tema', slug: 'desarrollo-temas/estructura-tema'},
                         {label: 'El Loop de SwordPHP', slug: 'desarrollo-temas/el-loop'},
                         // {label: 'Plantillas de Página', slug: 'desarrollo-temas/plantillas-pagina'},
                         // {label: 'Partes de Plantilla', slug: 'desarrollo-temas/partes-plantilla'},

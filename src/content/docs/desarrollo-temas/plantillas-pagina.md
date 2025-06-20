@@ -49,7 +49,6 @@ getFooter();
 ?>
 ```
 
-
 ## ¿Cómo Funciona?
 
 Cuando el panel de administración de páginas se carga, el `TemaService` de SwordPHP escanea todos los archivos `.php` en la raíz del directorio del tema activo. Busca archivos que contengan la cabecera `/* Template Name: ... */`.

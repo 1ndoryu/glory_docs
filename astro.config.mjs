@@ -1,4 +1,4 @@
-// astro.config.mjs (o .js)
+// documentacion/astro.config.mjs
 // @ts-check
 import {defineConfig} from 'astro/config';
 import starlight from '@astrojs/starlight';
@@ -7,31 +7,40 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
     integrations: [
         starlight({
-            title: 'Glory',
-            social: [{icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight'}],
+            title: 'SwordPHP',
+            social: [{icon: 'github', label: 'GitHub', href: 'https://github.com/1ndoryu/SwordPHP'}],
             sidebar: [
                 {
-                    label: 'Empezar',
+                    label: 'Introducción',
                     items: [
-                        // Asegúrate que el slug coincida con tu ruta de archivo: src/content/docs/empezar/instalacion.md
-                        {label: 'Instalación', slug: 'empezar/instalacion'},
+                        {label: 'Bienvenida a SwordPHP', slug: 'introduccion/bienvenida'},
+                        {label: 'Conceptos Fundamentales', slug: 'introduccion/conceptos-fundamentales'}
                     ]
                 },
                 {
-                    label: 'Basico',
-                    // Reemplaza 'autogenerate' con una lista manual 'items'
+                    label: 'Desarrollo de Temas',
                     items: [
-                        { label: 'PageManager', slug: 'basico/pagemanager' },
-                        { label: 'ScriptManager', slug: 'basico/scriptmanager' },
-                        { label: 'Ajax Navigation', slug: 'basico/ajaxpage' },
-
+                        {label: 'Estructura de un Tema', slug: 'desarrollo-temas/estructura-tema'},
+                        {label: 'El Loop de SwordPHP', slug: 'desarrollo-temas/el-loop'},
+                        {label: 'Plantillas de Página', slug: 'desarrollo-temas/plantillas-pagina'},
+                        {label: 'Partes de Plantilla', slug: 'desarrollo-temas/partes-plantilla'},
+                        {label: 'Manejo de Assets', slug: 'desarrollo-temas/manejo-assets'}
                     ]
+                },
+                {
+                    label: 'Desarrollo de Plugins',
+                    items: [
+                        {label: 'Estructura de un Plugin', slug: 'desarrollo-plugins/estructura-plugin'},
+                        {label: 'Hooks: Acciones y Filtros', slug: 'desarrollo-plugins/hooks'},
+                        {label: 'Páginas de Administración', slug: 'desarrollo-plugins/paginas-admin'},
+                        {label: 'Opciones de Plugin', slug: 'desarrollo-plugins/opciones'},
+                        {label: 'Shortcodes', slug: 'desarrollo-plugins/shortcodes'}
+                    ]
+                },
+                {
+                    label: 'Guías Adicionales',
+                    items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
                 }
-                // Puedes seguir usando autogenerate para otras secciones si no necesitas un orden específico
-                // {
-                //     label: 'Avanzado',
-                //     autogenerate: { directory: 'avanzado' }
-                // }
             ],
             customCss: [
                 // Relative path to your custom CSS file

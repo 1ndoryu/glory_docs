@@ -48,7 +48,7 @@ endif;
 getFooter();
 ?>
 ```
-````
+
 
 ## ¿Cómo Funciona?
 

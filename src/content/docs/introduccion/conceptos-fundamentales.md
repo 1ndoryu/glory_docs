@@ -3,8 +3,6 @@ title: Conceptos Fundamentales
 description: Entiende la arquitectura clave de SwordPHP, la separación entre el núcleo (swordCore) y tu contenido (swordContent), y por qué es vital para la mantenibilidad.
 ---
 
-
-
 # Conceptos Fundamentales: swordCore y swordContent
 
 La decisión más importante en la arquitectura de SwordPHP es la estricta separación del proyecto en dos directorios principales: `swordCore` y `swordContent`. Comprender esta división es el primer paso para desarrollar en la plataforma.
@@ -22,7 +20,6 @@ SwordPHP/
 └── swordContent/ # 🎨 Tu contenido personalizado
 
 ```
-
 
 ## Profundizando en los Directorios
 

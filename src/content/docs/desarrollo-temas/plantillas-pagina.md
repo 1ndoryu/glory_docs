@@ -1,4 +1,3 @@
-````markdown
 ---
 title: Plantillas de Página
 description: Aprende a crear plantillas de página personalizadas para dar diseños únicos a páginas específicas en tu sitio SwordPHP.

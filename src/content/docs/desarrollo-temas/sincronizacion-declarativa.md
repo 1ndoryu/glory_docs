@@ -25,21 +25,23 @@ Esta es la función más común, un atajo para crear entradas del tipo de conten
 <?php
 // /swordContent/themes/mi-tema/functions.php
 
-// Define la página de "Inicio"
+// Define la página de "Inicio", la establece como la página principal del sitio
+// y le asigna una plantilla personalizada.
 swDefinirPagina('def-pagina-inicio', [
     'titulo'    => 'Bienvenido a Nuestro Sitio Web',
-    'slug'      => 'inicio', // La URL será /inicio
+    'slug'      => 'inicio',
     'contenido' => '<h1>Construyendo el futuro</h1><p>Este es el contenido de nuestra página principal...</p>',
+    'plantilla' => 'plantillaAnchoCompleto.php', // Asigna la plantilla.
+    'es_inicio' => true, // ¡NUEVO! Establece esta página como la página de inicio por defecto.
 ]);
 
-// Define la página "Sobre Nosotros" y le asigna una plantilla personalizada
+// Define la página "Sobre Nosotros"
 swDefinirPagina('def-pagina-nosotros', [
     'titulo'    => 'Sobre Nosotros',
     'slug'      => 'sobre-nosotros',
     'contenido' => '<p>Conoce la historia y el equipo detrás de nuestra empresa.</p>',
-    'plantilla' => 'plantillaAnchoCompleto.php' // Asigna una plantilla de página.
 ]);
-```
+````
 
   - **`$slugDefinicion` (string):** Un identificador único y permanente para esta *definición*. No es la URL. Piensa en él como un ID de referencia interno que no debe cambiar.
   - **`$argumentos` (array):** Un array con los datos:
@@ -48,6 +50,7 @@ swDefinirPagina('def-pagina-nosotros', [
       - `contenido` (string, opcional): El contenido HTML.
       - `plantilla` (string, opcional): El nombre del archivo de una [plantilla de página](https://www.google.com/search?q=/desarrollo-temas/plantillas-pagina) personalizada.
       - `estado` (string, opcional): `'publicado'` o `'borrador'`. Por defecto es `'publicado'`.
+      - `es_inicio` (bool, opcional): Si se establece en `true`, el sistema intentará configurar esta página como la página de inicio del sitio. Esto solo ocurrirá si no hay una página de inicio ya configurada o si la página de inicio configurada previamente fue eliminada (por ejemplo, al quitar su definición del código). Esto asegura que el tema pueda establecer un valor por defecto sin sobreescribir la elección manual de un usuario. Por defecto es `false`.
 
 #### `swDefinirContenido`: Para Tipos de Contenido Personalizado
 
@@ -93,6 +96,7 @@ El proceso de sincronización sigue estos pasos:
 3.  **Reconciliación:**
       - **Crear:** Si un contenido está definido en el código pero no existe en la BD, lo crea.
       - **Borrar:** Si un contenido existe en la BD como "gestionado" pero ya no está definido en el código, lo elimina.
+4.  **Ajuste de Página de Inicio:** Después de reconciliar, comprueba si debe asignar una página de inicio por defecto según las definiciones.
 
 Este ciclo asegura que el estado de la base de datos siempre refleje las definiciones del código de tu tema.
 
@@ -107,3 +111,5 @@ Al hacer clic, el sistema:
 3.  Guarda los cambios, restaurando la página al estado exacto que diseñaste en tu tema.
 
 > **Referencia Técnica:** La lógica de restauración se encuentra en el `PaginaController`, la sincronización en `ManagedContentService`, y los helpers en `swordCore/app/helpers/managedContent.php`.
+
+

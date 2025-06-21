@@ -15,7 +15,7 @@ export default defineConfig({
                     items: [
                         {label: 'Bienvenida a SwordPHP', slug: 'introduccion/bienvenida'},
                         {label: 'Conceptos Fundamentales', slug: 'introduccion/conceptos-fundamentales'},
-                        {label: 'Instalación', slug: 'introduccion/instalacion'},
+                        {label: 'Instalación', slug: 'introduccion/instalacion'}
                     ]
                 },
                 {
@@ -26,6 +26,7 @@ export default defineConfig({
                         {label: 'Plantillas de Página', slug: 'desarrollo-temas/plantillas-pagina'},
                         {label: 'Partes de Plantilla', slug: 'desarrollo-temas/partes-plantilla'},
                         {label: 'Manejo de Assets', slug: 'desarrollo-temas/manejo-assets'},
+                        {label: 'Sincronización Declarativa', slug: 'desarrollo-temas/sincronizacion-declarativa'}
                     ]
                 },
                 {
@@ -36,11 +37,11 @@ export default defineConfig({
                         {label: 'Páginas de Administración', slug: 'desarrollo-plugins/paginas-admin'},
                         {label: 'Opciones de Plugin', slug: 'desarrollo-plugins/opciones'},
                         {label: 'Shortcodes', slug: 'desarrollo-plugins/shortcodes'}
-                  ]
+                    ]
                 },
                 {
-                label: 'Guías Adicionales',
-                   items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
+                    label: 'Guías Adicionales',
+                    items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
                 }
             ],
             customCss: [

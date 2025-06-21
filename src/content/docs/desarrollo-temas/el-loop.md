@@ -63,7 +63,7 @@ Dentro del Loop, tienes acceso a un conjunto de helpers que te facilitan la vida
 
   * `theTitle()`: Muestra el título de la entrada actual.
   * `theContent()`: Muestra el contenido principal de la entrada.
-  * `getPermalink()`: Muestra la URL completa de la entrada actual.
+  * `thePermalink()`: Muestra la URL completa de la entrada actual.
   * `getTitle()`: Devuelve el título como una cadena de texto en lugar de imprimirlo.
   * `getContent()`: Devuelve el contenido como una cadena de texto.
   * `getPermalink()`: Devuelve la URL como una cadena de texto.

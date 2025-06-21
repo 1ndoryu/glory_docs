@@ -10,7 +10,7 @@ description: Documentación de la API Headless
 
 Bienvenido a la documentación de la API RESTful de SwordPHP. Esta API te permite interactuar con tu contenido, usuarios y configuraciones de forma programática, convirtiendo a SwordPHP en un CMS completamente headless.
 
-  * **URL Base:** `https://swordphp.com/api/v1`
+  * **URL Base:** `https://127.0.0.1:8787/api/v1`
   * **Formato de Datos:** Todas las peticiones y respuestas utilizan el formato `JSON`.
   * **Codificación:** Se recomienda enviar `Content-Type: application/json` en las cabeceras de las peticiones `POST` y `PUT`.
 
@@ -22,7 +22,7 @@ La mayoría de los endpoints de la API están protegidos y requieren autenticaci
 
 ### Cómo Obtener tu Token
 
-1.  Inicia sesión en tu panel de administración (`https://swordphp.com/panel`).
+1.  Inicia sesión en tu panel de administración (`https://127.0.0.1:8787/panel`).
 2.  Navega a la sección **Usuarios**.
 3.  Edita el usuario para el cual deseas generar un token.
 4.  En la sección **Acceso por API**, haz clic en el botón **`Generar / Regenerar Token`**.
@@ -63,7 +63,7 @@ Endpoints para gestionar páginas, entradas y cualquier otro tipo de contenido p
 
 ```bash
 # Obtener la segunda página de "entradas" (asumiendo que el tipo 'post' existe), 5 por página
-curl "https://swordphp.com/api/v1/content?type=post&per_page=5&page=2"
+curl "https://127.0.0.1:8787/api/v1/content?type=post&per_page=5&page=2"
 ```
 
 #### Respuesta Exitosa (200 OK)
@@ -108,7 +108,7 @@ curl "https://swordphp.com/api/v1/content?type=post&per_page=5&page=2"
 #### Ejemplo con `curl`
 
 ```bash
-curl "https://swordphp.com/api/v1/content/15"
+curl "https://127.0.0.1:8787/api/v1/content/15"
 ```
 
 -----
@@ -136,7 +136,7 @@ curl "https://swordphp.com/api/v1/content/15"
 #### Ejemplo con `curl`
 
 ```bash
-curl -X POST "https://swordphp.com/api/v1/content" \
+curl -X POST "https://127.0.0.1:8787/api/v1/content" \
 -H "Authorization: Bearer <TU_TOKEN>" \
 -H "Content-Type: application/json" \
 -d '{"titulo": "Nuevo Post...", "contenido": "...", "tipocontenido": "post", "estado": "borrador"}'
@@ -155,7 +155,7 @@ curl -X POST "https://swordphp.com/api/v1/content" \
 #### Ejemplo con `curl`
 
 ```bash
-curl -X PUT "https://swordphp.com/api/v1/content/25" \
+curl -X PUT "https://127.0.0.1:8787/api/v1/content/25" \
 -H "Authorization: Bearer <TU_TOKEN>" \
 -H "Content-Type: application/json" \
 -d '{"estado": "publicado", "subtitulo": "Un subtítulo nuevo"}'
@@ -174,7 +174,7 @@ curl -X PUT "https://swordphp.com/api/v1/content/25" \
 #### Ejemplo con `curl`
 
 ```bash
-curl -X DELETE "https://swordphp.com/api/v1/content/25" \
+curl -X DELETE "https://127.0.0.1:8787/api/v1/content/25" \
 -H "Authorization: Bearer <TU_TOKEN>"
 ```
 
@@ -191,13 +191,13 @@ Endpoints para gestionar usuarios. **Todos los endpoints de este recurso requier
 ### 1\. Listar Usuarios
 
   * `GET /users`
-  * **Ejemplo `curl`:** `curl "https://swordphp.com/api/v1/users" -H "Authorization: Bearer <TU_TOKEN>"`
+  * **Ejemplo `curl`:** `curl "https://127.0.0.1:8787/api/v1/users" -H "Authorization: Bearer <TU_TOKEN>"`
   * **Respuesta:** Devuelve un objeto paginado con la lista de usuarios. Los campos `clave` y `api_token` son excluidos automáticamente.
 
 ### 2\. Obtener un Usuario Específico
 
   * `GET /users/{id}`
-  * **Ejemplo `curl`:** `curl "https://swordphp.com/api/v1/users/1" -H "Authorization: Bearer <TU_TOKEN>"`
+  * **Ejemplo `curl`:** `curl "https://127.0.0.1:8787/api/v1/users/1" -H "Authorization: Bearer <TU_TOKEN>"`
 
 ### 3\. Crear un Usuario
 
@@ -239,7 +239,7 @@ Endpoints para gestionar las configuraciones del sitio. **Todos los endpoints de
   * **Ejemplo `curl`:**
     ```bash
     # Obtener la opción 'titulo_sitio'
-    curl "https://swordphp.com/api/v1/options/titulo_sitio" -H "Authorization: Bearer <TU_TOKEN>"
+    curl "https://127.0.0.1:8787/api/v1/options/titulo_sitio" -H "Authorization: Bearer <TU_TOKEN>"
     ```
   * **Respuesta Exitosa (200 OK):**
     ```json
@@ -264,7 +264,7 @@ Endpoints para gestionar las configuraciones del sitio. **Todos los endpoints de
     ```
   * **Ejemplo `curl`:**
     ```bash
-    curl -X POST "https://swordphp.com/api/v1/options" \
+    curl -X POST "https://127.0.0.1:8787/api/v1/options" \
     -H "Authorization: Bearer <TU_TOKEN>" \
     -H "Content-Type: application/json" \
     -d '{"key": "color_primario", "value": "#FF5733"}'

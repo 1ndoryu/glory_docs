@@ -33,7 +33,7 @@ Recupera el valor de una opción de la base de datos.
 
 Para estandarizar la apariencia de las páginas de ajustes, SwordPHP incluye un potente helper que renderiza un formulario completo con sus campos.
 
-### `renderizarFormularioAjustesPlugin(args)`
+### `renderFormPluginPanel(args)`
 
 Esta función recibe un array con la configuración del formulario y devuelve todo el HTML necesario.
 
@@ -69,7 +69,7 @@ function miPlugin_renderizarPagina()
     ];
 
     // Renderizamos el formulario completo usando el helper.
-    return renderizarFormularioAjustesPlugin([
+    return renderFormPluginPanel([
         'campos' => $campos,
         'mensajeExito' => $mensajeExito,
         'descripcionFormulario' => 'Desde aquí puedes configurar las opciones del plugin de ejemplo.',

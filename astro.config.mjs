@@ -15,6 +15,7 @@ export default defineConfig({
                     items: [
                         {label: 'Bienvenida a SwordPHP', slug: 'introduccion/bienvenida'},
                         {label: 'Conceptos Fundamentales', slug: 'introduccion/conceptos-fundamentales'}
+                        {label: 'Instalación', slug: 'introduccion/instalacion'},
                     ]
                 },
                 {

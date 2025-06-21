@@ -24,23 +24,23 @@ export default defineConfig({
                         {label: 'El Loop de SwordPHP', slug: 'desarrollo-temas/el-loop'},
                         {label: 'Plantillas de Página', slug: 'desarrollo-temas/plantillas-pagina'},
                         {label: 'Partes de Plantilla', slug: 'desarrollo-temas/partes-plantilla'},
-                        // {label: 'Manejo de Assets', slug: 'desarrollo-temas/manejo-assets'}
+                        {label: 'Manejo de Assets', slug: 'desarrollo-temas/manejo-assets'},
                     ]
+                },
+                {
+                    label: 'Desarrollo de Plugins',
+                    items: [
+                        {label: 'Estructura de un Plugin', slug: 'desarrollo-plugins/estructura-plugin'},
+                        {label: 'Hooks: Acciones y Filtros', slug: 'desarrollo-plugins/hooks'},
+                        {label: 'Páginas de Administración', slug: 'desarrollo-plugins/paginas-admin'},
+                        {label: 'Opciones de Plugin', slug: 'desarrollo-plugins/opciones'},
+                        {label: 'Shortcodes', slug: 'desarrollo-plugins/shortcodes'}
+                  ]
+                },
+                {
+                label: 'Guías Adicionales',
+                   items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
                 }
-                // {
-                //label: 'Desarrollo de Plugins',
-                // items: [
-                // {label: 'Estructura de un Plugin', slug: 'desarrollo-plugins/estructura-plugin'},
-                // {label: 'Hooks: Acciones y Filtros', slug: 'desarrollo-plugins/hooks'},
-                // {label: 'Páginas de Administración', slug: 'desarrollo-plugins/paginas-admin'},
-                // {label: 'Opciones de Plugin', slug: 'desarrollo-plugins/opciones'},
-                // {label: 'Shortcodes', slug: 'desarrollo-plugins/shortcodes'}
-                //   ]
-                // },
-                //{
-                // label: 'Guías Adicionales',
-                //   items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
-                // }
             ],
             customCss: [
                 // Relative path to your custom CSS file

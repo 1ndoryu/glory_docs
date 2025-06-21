@@ -23,7 +23,7 @@ Este es el esqueleto de un Loop de SwordPHP, tal como lo encontrarías en un arc
 
 ```php
 <?php
-// /swordContent/themes/default-theme-two/pagina.php
+// /swordContent/themes/themeDefault/pagina.php
 
 // 1. Carga la cabecera del tema
 getHeader();

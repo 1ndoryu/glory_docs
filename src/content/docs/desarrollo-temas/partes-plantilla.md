@@ -50,7 +50,7 @@ Este hook, análogo al `wp_head()` de WordPress, debe colocarse justo antes de l
 **Ejemplo de `layouts/header.php`:**
 
 ```php
-<?php // /swordContent/themes/default-theme-two/layouts/header.php ?>
+<?php // /swordContent/themes/themeDefault/layouts/header.php ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>

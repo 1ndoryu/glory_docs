@@ -56,7 +56,7 @@ Este es el cerebro de tu tema. Se carga automáticamente en cada petición del f
 
 ```php
 <?php
-// /swordContent/themes/default-theme-two/functions.php
+// /swordContent/themes/themeDefault/functions.php
 
 /**
  * Encola los assets (estilos y scripts) para el tema.
@@ -82,7 +82,7 @@ Este archivo es el responsable de implementar "El Loop" para mostrar el título 
 
 ```php
 <?php
-// /swordContent/themes/default-theme-two/pagina.php
+// /swordContent/themes/themeDefault/pagina.php
 
 // 1. Carga la cabecera del tema
 getHeader();
@@ -120,7 +120,7 @@ Contiene todo el HTML desde el `<!DOCTYPE html>` hasta el inicio del contenido p
 <!-- end list -->
 
 ```php
-<?php // /swordContent/themes/default-theme-two/layouts/header.php ?>
+<?php // /swordContent/themes/themeDefault/layouts/header.php ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -142,7 +142,7 @@ Contiene el cierre de las etiquetas HTML y, de forma muy importante, la llamada 
 <!-- end list -->
 
 ```php
-<?php // /swordContent/themes/default-theme-two/layouts/footer.php ?>
+<?php // /swordContent/themes/themeDefault/layouts/footer.php ?>
 
 <?php
 sw_footer(); // ¡Llamada crucial!

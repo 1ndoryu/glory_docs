@@ -87,8 +87,6 @@ Este documento sirve como una hoja de referencia rápida para desarrolladores fa
 
 La siguiente tabla muestra funciones clave de WordPress que aún no tienen un equivalente global directo en SwordPHP.
 
-# Identificadas, si falta, agregar
-
 | Función SwordPHP | Equivalente WordPress           |
 | :--------------- | :------------------------------ |
 | (No existe)      | `get_the_author()`              |

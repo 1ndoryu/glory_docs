@@ -88,7 +88,7 @@ Este hook, análogo al `wp_footer()` de WordPress, debe colocarse justo antes de
     sw_footer();
 
     // También es un buen lugar para hooks personalizados
-    hacerAccion('pieDePagina');
+    doAction('pieDePagina');
     ?>
 </body>
 </html>

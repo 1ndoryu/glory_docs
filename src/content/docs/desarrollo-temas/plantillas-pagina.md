@@ -25,17 +25,17 @@ Template Name: Ancho Completo
 // El resto de tu código de plantilla va aquí...
 
 // 1. Inicia el loop de SwordPHP.
-if (hayEntradas()) :
-    while (hayEntradas()) :
-        laEntrada();
-        $titulo = obtenerElTitulo();
+if (havePost()) :
+    while (havePost()) :
+        thePost();
+        $titulo = getTitle();
         getHeader();
 ?>
 
     <main style="max-width: 1200px; margin: 0 auto;">
-        <h1><?php elTitulo(); ?></h1>
+        <h1><?php theTitle(); ?></h1>
         <div>
-            <?php elContenido(); ?>
+            <?php theContent(); ?>
         </div>
         <hr>
         <p>✅ Vista cargada desde la plantilla "Ancho Completo".</p>

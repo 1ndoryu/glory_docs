@@ -82,7 +82,7 @@ function miTema_encolarAssets() {
  * es una buena práctica para asegurar que se ejecute en el momento adecuado.
  * En este caso simple, llamar a la función directamente también funciona.
  */
-agregarAccion('sw_head', 'miTema_encolarAssets');
+addAction('sw_head', 'miTema_encolarAssets');
 
 // Alternativa más simple para temas (sin hooks):
 // miTema_encolarAssets();

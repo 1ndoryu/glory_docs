@@ -32,7 +32,7 @@ Este directorio es el motor de SwordPHP. Sus subdirectorios más importantes son
 - **`/app`**: El corazón de la aplicación. Aquí viven:
     - **`/controller`**: Gestionan las peticiones HTTP y la lógica de las rutas.
     - **`/service`**: Contienen la lógica de negocio (ej. `PluginService`, `TemaService`).
-    - **`/helpers`**: Funciones globales (`elTitulo()`, `agregarAccion()`, etc.) que facilitan el desarrollo.
+    - **`/helpers`**: Funciones globales (`theTitle()`, `addAction()`, etc.) que facilitan el desarrollo.
     - **`/model`**: Modelos de base de datos Eloquent (ej. `Pagina`, `Usuario`).
     - **`/middleware`**: Lógica que se ejecuta antes o después de una petición (ej. autenticación).
 - **`/config`**: Archivos de configuración para el servidor, la base de datos, las rutas, etc.

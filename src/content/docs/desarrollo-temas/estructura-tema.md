@@ -88,14 +88,14 @@ Este archivo es el responsable de implementar "El Loop" para mostrar el título 
 getHeader();
 
 // 2. Inicia el Loop de SwordPHP
-if (hayEntradas()) :
-    while (hayEntradas()) :
-        laEntrada(); // Prepara los datos de la entrada actual
+if (havePost()) :
+    while (havePost()) :
+        thePost(); // Prepara los datos de la entrada actual
 ?>
 
-    <h1><?php elTitulo(); ?></h1>
+    <h1><?php theTitle(); ?></h1>
     <div>
-        <?php elContenido(); ?>
+        <?php theContent(); ?>
     </div>
 
 <?php
@@ -146,7 +146,7 @@ Contiene el cierre de las etiquetas HTML y, de forma muy importante, la llamada 
 
 <?php
 sw_footer(); // ¡Llamada crucial!
-hacerAccion('pieDePagina'); // Hook adicional para contenido en el footer.
+doAction('pieDePagina'); // Hook adicional para contenido en el footer.
 ?>
 </body>
 </html>

@@ -40,6 +40,12 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'API',
+                    items: [
+                        {label: 'Headless', slug: 'api/api-headless'},
+                    ]
+                },
+                {
                     label: 'Guías Adicionales',
                     items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
                 }

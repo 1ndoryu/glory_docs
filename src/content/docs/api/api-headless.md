@@ -85,43 +85,57 @@ Para garantizar la estabilidad y el uso justo, la API está protegida por un lí
 
 ## 4. Roles y Permisos
 
-| Recurso/Acción                     | `admin` | `artista`  |   `fan`    | Notas                                                      |
-| :--------------------------------- | :-----: | :--------: | :--------: | :--------------------------------------------------------- |
-| **`POST /media` (Subir archivo)**  |   Sí    |     Sí     |     Sí     | **Todos los usuarios autenticados pueden subir archivos.** |
-| **`POST /content` (Crear Sample)** |   Sí    |     Sí     |     No     | Solo artistas y admins pueden crear samples.               |
-| `PUT /content/{id}` (Actualizar)   |   Sí    | **Propio** |     No     | Admin edita todo, artista solo lo suyo.                    |
-| `DELETE /content/{id}` (Eliminar)  |   Sí    | **Propio** |     No     | Admin y el artista dueño pueden borrar.                    |
-| `PUT /users/{id}` (Actualizar)     |   Sí    | **Propio** | **Propio** | Un usuario solo puede editar su propio perfil.             |
-| **Comentarios / Likes**            |   Sí    |     Sí     |     Sí     | Todos los usuarios autenticados pueden interactuar.        |
-| **`GET / POST /options`**          |   Sí    |     No     |     No     | Solo administradores.                                      |
+La API utiliza un sistema de roles y capacidades flexible. Cada rol de usuario tiene un conjunto de capacidades que determinan las acciones que puede realizar. Los roles y sus capacidades se definen en el archivo `config/permisos.php` y pueden ser personalizados por la aplicación que consume la API.
+
+### Capacidades Predeterminadas
+
+- `manage_options`: Permite gestionar las opciones del sitio.
+- `manage_content`: Permite gestionar todo el contenido (crear, editar, eliminar).
+- `manage_users`: Permite gestionar todos los usuarios.
+- `create_content`: Permite crear nuevo contenido.
+- `edit_own_content`: Permite editar el contenido propio.
+- `delete_own_content`: Permite eliminar el contenido propio.
+- `like_content`: Permite dar "like" a contenido.
+- `comment_content`: Permite comentar en contenido.
 
 ## 5. Recursos de la API (Endpoints)
 
 ### Recurso: `/media`
 
-#### `POST /media`
+#### `POST /media/upload`
 
-Sube un archivo de audio o imagen al servidor. Este es el primer paso antes de crear un `sample`.
+Sube un archivo (imagen, audio, etc.) al proveedor de almacenamiento configurado. Este es el primer paso y es necesario para obtener un `media_id` que luego se asociará a una pieza de contenido.
 
--   **Permisos:** Cualquier usuario autenticado (`admin`, `artista`, `fan`).
--   **Petición:** `multipart/form-data` con un único campo llamado `file`.
--   **Validaciones:**
-    -   Tipo de archivo: Debe ser de tipo `image/*` o `audio/*`.
-    -   Tamaño máximo imágenes: **10MB**.
-    -   Tamaño máximo audio: **60MB**.
+-   **Permisos:** Cualquier usuario autenticado.
+-   **Petición:** `multipart/form-data` con un campo llamado `file`.
 -   **Respuesta Exitosa (201 Created):**
     ```json
     {
         "data": {
-            "id": 123,
-            "file_type": "audio",
+            "media_id": 123,
+            "url": "https://ruta.del.proveedor/archivo_unico.wav",
+            "provider": "local",
             "mime_type": "audio/wav",
-            "file_size_bytes": 45000000,
-            "url": "[https://kamples.com/content/media/2025/06/archivo_unico.wav](https://kamples.com/content/media/2025/06/archivo_unico.wav)",
-            "created_at": "2025-06-22T14:50:00.000000Z"
+            "nombre_original": "mi_sample.wav",
+            "size": 45000000
         }
     }
     ```
+
+#### `GET /media/{id}/download`
+
+Descarga el archivo original asociado a un registro de media. El comportamiento exacto depende del proveedor de almacenamiento (`storageService`) configurado en el backend:
+
+-   **Si el proveedor es un servicio en la nube (ej. S3, Casiel):** La API devolverá una redirección (`302 Found`) a una URL de descarga segura y pre-firmada. El cliente debe seguir esta redirección para obtener el archivo.
+-   **Si el proveedor es el almacenamiento local:** La API devolverá el archivo directamente en el cuerpo de la respuesta con las cabeceras `Content-Disposition` apropiadas para iniciar la descarga en el navegador.
+
+-   **Permisos:** Requiere autenticación. La lógica de negocio puede aplicar permisos adicionales (ej. solo el propietario puede descargar).
+-   **Respuesta Exitosa:**
+    -   `302 Found` con una cabecera `Location` apuntando a la URL de descarga.
+    -   `200 OK` con el contenido del archivo.
+-   **Respuestas de Error:**
+    -   `404 Not Found`: Si el `media` o el archivo físico no existen.
+    -   `501 Not Implemented`: Si el `storageService` configurado no soporta descargas directas.
 
 ### Recurso: `/content`
 
@@ -146,27 +160,6 @@ Recupera una lista paginada de contenidos con capacidades avanzadas de consulta.
         -   `order` (string, opcional): Dirección del ordenamiento. Por defecto: `desc`. Valores permitidos: `asc`, `desc`.
     -   **Optimización (Eager Loading):**
         -   `include` (string, opcional): Carga relaciones para evitar peticiones N+1. La única relación permitida actualmente es `autor`. Ej: `?include=autor`.
-        -   **Ejemplo de respuesta con `include=autor`:**
-            ```json
-            {
-                "data": {
-                    "items": [
-                        {
-                            "id": 1,
-                            "titulo": "Mi Sample",
-                            "id_autor": 2,
-                            "autor": {
-                                "id": 2,
-                                "nombre_usuario": "artista_uno",
-                                "nombre_mostrado": "Artista Uno",
-                                "rol": "artista"
-                            }
-                        }
-                    ],
-                    "pagination": {"total_items": 1, "total_pages": 1, "current_page": 1, "per_page": 10}
-                }
-            }
-            ```
 
 #### `GET /content/{id}`
 
@@ -177,10 +170,10 @@ Recupera una única pieza de contenido por su ID.
 
 #### `POST /content`
 
-Crea una nueva pieza de contenido. Para crear un `sample`, primero sube el audio a `POST /media` para obtener su `id`.
+Crea una nueva pieza de contenido. Para asociar un archivo (como un audio a un `sample`), primero debes subirlo usando `POST /media/upload` para obtener el `media_id`.
 
--   **Permisos:** `artista`, `admin` (para `sample`).
--   **Nota sobre Metadata:** El campo `metadata` contendrá un objeto JSON complejo con datos extra.
+-   **Permisos:** Requiere la capacidad `create_content` para el tipo de contenido especificado.
+-   **Nota sobre Metadata:** El campo `metadata` es un objeto JSON flexible. Para asociar un archivo subido, incluye la clave `media_id`.
 -   **Cuerpo de la Petición (ejemplo para un `sample`):**
     ```json
     {
@@ -188,7 +181,9 @@ Crea una nueva pieza de contenido. Para crear un `sample`, primero sube el audio
         "tipocontenido": "sample",
         "estado": "publicado",
         "metadata": {
-            "media_id": 123
+            "media_id": 123,
+            "bpm": 120,
+            "tonalidad": "Cm"
         }
     }
     ```
@@ -198,76 +193,33 @@ Crea una nueva pieza de contenido. Para crear un `sample`, primero sube el audio
 
 Actualiza un contenido existente. Solo necesitas enviar los campos que deseas cambiar.
 
--   **Permisos:** Ver matriz de permisos (propietario o admin).
+-   **Permisos:** Requiere la capacidad `edit_own_content` o `edit_others_content` para el tipo de contenido especificado.
 -   **Respuesta Exitosa (200 OK):** Devuelve el objeto completo del contenido actualizado.
 
 #### `DELETE /content/{id}`
 
 Elimina un contenido.
 
--   **Permisos:** Ver matriz de permisos (propietario o admin).
+-   **Permisos:** Requiere la capacidad `delete_own_content` o `delete_others_content` para el tipo de contenido especificado.
 -   **Respuesta Exitosa (204 No Content):** No devuelve cuerpo en la respuesta.
 
-### Recurso: Interacciones con Samples
+#### `POST /content/{id}/like`
 
-#### `POST /samples/upload`
-
-**RECOMENDADO:** Sube un archivo de audio y crea el `sample` en una única transacción. Este método es más simple para el cliente que el proceso en dos pasos de `POST /media` y `POST /content`.
-
--   **Permisos:** `artista`, `admin`.
--   **Petición:** `multipart/form-data`.
--   **Campos del Formulario:**
-    -   `archivoSample` (File, **obligatorio**): El archivo de audio a subir.
-    -   `titulo` (string, **obligatorio**): El título del sample.
-    -   `tipocontenido` (string, **obligatorio**): Debe ser `'sample'`.
-    -   `estado` (string, **obligatorio**): `'publicado'` o `'borrador'`.
-    -   `subtitulo` (string, opcional): Un subtítulo o descripción corta.
-    -   ... (cualquier otro campo como `bpm`, `tonalidad`, etc., se añadirá a `metadata`).
--   **Lógica del Backend:**
-    1.  Validar los permisos del usuario.
-    2.  Manejar la subida del archivo (`archivoSample`).
-    3.  Crear una nueva entrada de contenido con los datos proporcionados.
-    4.  Asociar la URL y el ID del archivo a la metadata del nuevo registro.
-    5.  Devolver el objeto completo del `sample` recién creado.
--   **Respuesta Exitosa (201 Created):**
-    ```json
-    {
-        "data": {
-            "id": 124,
-            "titulo": "Mi nuevo Sample de Guitarra",
-            "subtitulo": "Un riff de prueba",
-            "slug": "mi-nuevo-sample-de-guitarra-124",
-            "id_autor": 2,
-            "estado": "publicado",
-            "tipocontenido": "sample",
-            "metadata": {
-                "url_archivo": "[https://kamples.com/content/media/2025/06/mi-nuevo-sample-de-guitarra-2-1.wav](https://kamples.com/content/media/2025/06/mi-nuevo-sample-de-guitarra-2-1.wav)",
-                "media_id": 124,
-                "bpm": "120"
-            },
-            "created_at": "2025-06-22T15:30:00.000000Z",
-            "updated_at": "2025-06-22T15:30:00.000000Z"
-        }
-    }
-    ```
-
-#### `POST /api/v1/samples/{id}/like`
-
-Marca un sample como favorito para el usuario actual.
+Marca un contenido (como un `sample`) como favorito para el usuario actual.
 
 -   **Permisos:** Cualquier usuario autenticado.
 -   **Respuesta Exitosa:** `204 No Content`.
 
-#### `DELETE /api/v1/samples/{id}/like`
+#### `DELETE /content/{id}/like`
 
-Quita el "like" o favorito de un sample.
+Quita el "like" o favorito de un contenido.
 
 -   **Permisos:** Cualquier usuario autenticado.
 -   **Respuesta Exitosa:** `204 No Content`.
 
-#### `POST /api/v1/samples/{id}/comments`
+#### `POST /content/{id}/comments`
 
-Añade un comentario a un sample específico.
+Añade un comentario a un contenido específico.
 
 -   **Permisos:** Cualquier usuario autenticado.
 -   **Cuerpo de la Petición:**
@@ -278,9 +230,9 @@ Añade un comentario a un sample específico.
     ```
 -   **Respuesta Exitosa (201 Created):** Devuelve el objeto del comentario recién creado.
 
-#### `GET /api/v1/samples/{id}/comments`
+#### `GET /content/{id}/comments`
 
-Lista todos los comentarios públicos de un sample. Acepta los parámetros de paginación `page` y `per_page`.
+Lista todos los comentarios públicos de un contenido. Acepta los parámetros de paginación `page` y `per_page`.
 
 -   **Permisos:** Público.
 -   **Respuesta Exitosa (200 OK):** Devuelve una lista paginada de objetos de comentario.
@@ -297,10 +249,10 @@ Devuelve la información completa del usuario autenticado actualmente con el tok
     {
         "data": {
             "id": 2,
-            "nombre_usuario": "artista_uno",
-            "nombre_mostrado": "Artista Uno",
-            "correo_electronico": "artista@kamples.com",
-            "rol": "artista",
+            "nombre_usuario": "usuario_ejemplo",
+            "nombre_mostrado": "Usuario de Ejemplo",
+            "correo_electronico": "usuario@ejemplo.com",
+            "rol": "editor",
             "metadata": null,
             "created_at": "2025-06-22T10:00:00.000000Z",
             "updated_at": "2025-06-22T12:00:00.000000Z"

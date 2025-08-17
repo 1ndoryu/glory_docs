@@ -33,6 +33,46 @@ entre overrides por código y opciones de la base de datos, y patrones de uso re
 Esto permite que el desarrollador pueda forzar rápidamente comportamientos sin alterar la configuración almacenada, y al mismo
 tiempo que los administradores mantengan control desde el panel.
 
+## Modo desarrollo vs producción — detalle técnico
+
+Glory decide si está en "modo desarrollo" comprobando dos señales:
+
+- `AssetManager::isGlobalDevMode()` si el AssetManager expone un flag global (puede establecerse con `AssetManager::setGlobalDevMode(true)`).
+- La constante `WP_DEBUG` (si está definida y es `true`).
+
+En el código esto se evalúa así (simplificado):
+
+- `isDevMode = AssetManager::isGlobalDevMode() || (defined('WP_DEBUG') && WP_DEBUG)`
+
+Comportamiento dependiendo del modo:
+
+- En **modo desarrollo** (dev): el override por código tiene **máxima prioridad**. Si llamas a `GloryFeatures::enable('X')` o `disable('X')`,
+  `isActive('X')` devolverá ese valor inmediatamente y no consultará la opción en la base de datos. Esto facilita pruebas y cambios rápidos durante
+  el desarrollo.
+- En **producción** (dev mode apagado): el override por código **no fuerza** el resultado final del sistema; en su lugar actúa como **valor por defecto**.
+  Si existe una opción registrada en el `OpcionRegistry` para esa feature, `isActive` devolverá el valor almacenado por el administrador en la BD
+  (consultando `OpcionManager::get($key, $default)`), usando el override como `default` cuando está presente. Esto protege la configuración
+  del sitio en producción frente a cambios accidentales realizados por código.
+
+Flujo interno resumido de `isActive` en producción:
+
+1. Normaliza el nombre de la feature y calcula `overridden = isEnabled(...)`.
+2. Si `overridden` no es `null`, lo usa como `defaultOption`.
+3. Genera una lista de `candidateKeys` (claves de opción posibles) siguiendo convenciones como `glory_componente_xxx_activado` y variantes históricas.
+4. Busca la primera clave presente en `OpcionRegistry` y, si existe, devuelve `OpcionManager::get(key, defaultOption)`.
+5. Si ninguna clave está registrada, devuelve `defaultOption`.
+
+Implicación práctica ("protección"):
+
+- En producción, la existencia de una opción registrada en el `OpcionRegistry` garantiza que el administrador pueda controlar la feature desde el panel
+  y que un override por código no la anule silenciosamente. Para impedir que un developer cambie permanentemente una feature en producción,
+  registra la opción correspondiente en el `OpcionRegistry`/`OpcionManager`; `isActive` respetará el valor en BD.
+
+Cómo forzar comportamiento de desarrollo en un entorno local o temporalmente:
+
+- Puedes activar `WP_DEBUG` o llamar a `AssetManager::setGlobalDevMode(true)` en tu bootstrap local para que los overrides por código tengan prioridad.
+
+
 ### Integración con `AssetManager`
 
 `AssetManager` soporta la clave `feature` en la configuración de un asset. Si un asset declara `'feature' => 'miFeature'`,

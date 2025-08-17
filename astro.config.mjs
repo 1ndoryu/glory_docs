@@ -30,7 +30,8 @@ export default defineConfig({
                     items: [
                         'managers/asset-manager',
                         'managers/opcion-manager',
-                        'managers/page-manager'
+                        'managers/page-manager',
+                        'managers/default-content-manager'
                     ]
                 }
             ],

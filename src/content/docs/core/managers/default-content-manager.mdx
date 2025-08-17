@@ -1,0 +1,61 @@
+---
+title: DefaultContentManager
+description: Gestión y sincronización de contenido por defecto para tipos de post
+---
+
+`DefaultContentManager` es la fachada que facilita definir y sincronizar contenido por defecto para tipos de post. Se apoya en `DefaultContentRegistry` y `DefaultContentSynchronizer` para almacenamiento de definiciones y lógica de sincronización.
+
+## Propósito
+
+- Permitir declarar contenido por defecto (entradas/páginas) que deben existir en un sitio según definiciones del código.
+- Proveer mecanismos para sincronizar esas definiciones con la base de datos y detectar ediciones manuales.
+
+## API pública
+
+- `DefaultContentManager::define(string $tipoPost, array $postsDefault, string $modoActualizacion = 'smart', bool $permitirEliminacion = false): void`
+  - `tipoPost`: slug del post type (ej. `page`, `post`, `mi_tipo`).
+  - `postsDefault`: array con definiciones de posts (title, content, meta, etc.).
+  - `modoActualizacion`: `'none'|'force'|'smart'` — controla cómo se aplican cambios en la definición sobre la BD.
+  - `permitirEliminacion`: si se deben eliminar posts obsoletos.
+
+- `DefaultContentManager::register(): void`
+  - Engancha la inicialización al hook `init` donde instancia el sincronizador y registra hooks para detección de cambios.
+
+- `DefaultContentManager::procesarDefinicionesYRegistrarHooks(): void`
+  - Callback para `init`: instancia el sincronizador, evita sincronizar en contextos de front-end no admin y registra `save_post_{tipo}` hooks para detectar ediciones manuales.
+
+- `DefaultContentManager::detectarEdicionManualHook(int $idPost, WP_Post $objetoPost, bool $esActualizacion): void`
+  - Callback intermedio que delega en la instancia del sincronizador el manejo de ediciones manuales.
+
+## Comportamiento y consideraciones
+
+- El manager usa un singleton para la instancia del synchronizer por petición para evitar instancias múltiples.
+- Evita ejecutar sincronización automática en el front-end para no impactar rendimiento; la sincronización se prepara para ejecutarse en entornos admin o CLI.
+- Tras sincronizar, el manager registra hooks `save_post_{tipo}` para los tipos gestionados y así detectar cambios manuales y actualizar el estado interno si es necesario.
+- `modoActualizacion` controla la estrategia: `'force'` reemplaza contenido, `'smart'` intenta aplicar cambios solo cuando es seguro y `'none'` desactiva sincronización.
+
+## Ejemplo
+
+```php
+use Glory\Manager\DefaultContentManager;
+
+$posts = [
+    [
+        'post_title' => 'Página de ejemplo',
+        'post_content' => 'Contenido por defecto',
+        'post_status' => 'publish',
+        'post_name' => 'pagina-ejemplo',
+    ],
+];
+
+DefaultContentManager::define('page', $posts, 'smart', false);
+DefaultContentManager::register();
+```
+
+## Buenas prácticas
+
+- Define contenido por defecto en un archivo centralizado (`App/Config/default-content.php`) para poder versionarlo y sincronizarlo en despliegues.
+- Usa `modoActualizacion` apropiado según tu flujo de despliegue: `force` para entornos controlados, `smart` para producción.
+- Ten cuidado con `permitirEliminacion` — evita borrar contenido valioso por error.
+
+---

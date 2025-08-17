@@ -28,7 +28,8 @@ export default defineConfig({
                 {
                     label: 'Managers',
                     items: [
-                        'managers/asset-manager'
+                        'managers/asset-manager',
+                        'managers/opcion-manager'
                     ]
                 }
             ],

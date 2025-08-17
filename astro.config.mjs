@@ -11,15 +11,15 @@ export default defineConfig({
             social: [{icon: 'github', label: 'GitHub', href: 'https://github.com/1ndoryu/Glory'}],
             sidebar: [
                 {
-                    text: 'Introducción',
+                    label: 'Introducción',
                     items: [
-                        { text: 'Bienvenida', link: '/introduccion/bienvenida/' }
+                        '/introduccion/bienvenida/'
                     ]
                 },
                 {
-                    text: 'Managers',
+                    label: 'Managers',
                     items: [
-                        { text: 'AssetManager', link: '/managers/asset-manager/' }
+                        '/managers/asset-manager/'
                     ]
                 }
             ],

@@ -1,0 +1,148 @@
+---
+title: gloryRealtime
+description: Realtime por polling: arquitectura, uso y buenas prácticas
+---
+
+Esta página explica en detalle el sistema `gloryRealtime` del framework: qué es, cómo funciona,
+qué componentes intervienen y cómo integrarlo en un tema usando ejemplos claros y prácticos.
+
+## ¿Qué es `gloryRealtime`?
+
+`gloryRealtime` es una solución liviana para detectar cambios en el servidor desde el cliente sin usar
+websockets: se basa en polling periódico a un endpoint que devuelve la "versión" actual de uno o varios
+canales. Cuando la versión de un canal cambia, el cliente recibe una notificación y puede refrescar
+la parte de la UI que corresponda.
+
+## Componentes principales
+
+- **EventBus (PHP)**: pequeña utilidad en el servidor que guarda/incrementa la versión de un canal cuando
+  ocurre un evento (ej. se guarda un post). Normalmente se llama `EventBus::emit('mi_canal')`.
+- **RealtimeAjaxHandler (PHP)**: endpoint AJAX (`glory_realtime_versions`) que, dado un listado de canales,
+  devuelve las versiones actuales de cada uno. El cliente lo consulta periódicamente.
+- **Client JS (`gloryRealtime.js`)**: función `gloryRealtimePoll(channels, options)` que hace polling al
+  endpoint, compara versiones y dispara eventos DOM (p. ej. `gloryRealtime:update`) cuando detecta cambios.
+- **gloryAjax (JS)**: utilidad AJAX recomendada para solicitar los datos o HTML actualizado cuando el cliente
+  recibe la notificación de cambio.
+
+## Flujo de funcionamiento (paso a paso)
+
+1. En el servidor, cuando ocurre un cambio relevante (p. ej. una reserva se crea/actualiza), tu código llama:
+
+```php
+use Glory\Services\EventBus;
+
+// Tras guardar o actualizar un recurso
+EventBus::emit('reservas_canal');
+```
+
+2. `EventBus` incrementa la versión asociada al canal `reservas_canal` (internamente puede usar transients, opciones o DB).
+
+3. En el cliente, `gloryRealtimePoll(['reservas_canal'], { intervalMs: 3000 })` solicita periódicamente al endpoint
+   las versiones actuales de los canales.
+
+4. Cuando la versión recibida para `reservas_canal` difiere de la versión local conocida, el cliente dispara un evento
+   personalizado `gloryRealtime:update` con `detail` que incluye `{ channel, version }`.
+
+5. El listener del lado del cliente reacciona (por ejemplo, mediante `gloryAjax`) y actualiza el DOM o recarga datos.
+
+## Uso práctico: ejemplos
+
+### Emisión desde servidor (ejemplo en un handler o after-save)
+
+```php
+use Glory\Services\EventBus;
+
+// Después de guardar la reserva
+EventBus::emit('reservas_canal');
+```
+
+### Suscripción en cliente y refresco parcial
+
+```javascript
+// Inicia polling para uno o varios canales
+const stopPolling = await window.gloryRealtimePoll(['reservas_canal'], { intervalMs: 3000 });
+
+// Escuchar notificaciones
+document.addEventListener('gloryRealtime:update', (e) => {
+  const { channel } = e.detail;
+  if (channel === 'reservas_canal') {
+    // Solicita HTML actualizado y reemplaza la sección afectada
+    gloryAjax('tema_render_reservas_parcial', { /* filtros */ })
+      .then(resp => {
+        if (resp.success) {
+          document.querySelector('#lista-reservas').innerHTML = resp.data.html;
+        }
+      });
+  }
+});
+
+// Para detener el polling cuando quieras
+// stopPolling();
+```
+
+> Nota: `gloryAjax` es la utilidad recomendada para todas las llamadas AJAX en temas — maneja nonces y FormData correctamente.
+
+## API cliente (resumen)
+
+- `gloryRealtimePoll(channels: string[], options?: { intervalMs?: number })` — inicia el polling y devuelve
+  una promesa que resuelve con una función `stop()` para detener el polling.
+- Evento disparado por el sistema: `gloryRealtime:update` — detail: `{ channel: string, version: string|number }`.
+
+Si necesitas una API distinta (ej. callback en lugar de evento), revisa la implementación de `gloryRealtime.js` y
+extiende según tus necesidades, pero mantener la convención de evento facilita integración con múltiples módulos.
+
+## Seguridad
+
+- El endpoint de versiones (`glory_realtime_versions`) debe protegerse con nonces cuando realiza acciones sensibles;
+  para solo consultar versiones públicas suele ser suficiente exponer un endpoint read-only, pero sigue usando nonces
+  si el mismo endpoint devuelve datos sensibles.
+- Evita exponer información privada en la respuesta del endpoint de versiones; devuelve solo versiones/identificadores.
+
+## Rendimiento y límites
+
+- El polling implica más peticiones al servidor que una arquitectura push (websockets). Para minimizar impacto:
+  - Aumenta `intervalMs` en páginas con poco cambio.
+  - Agrupa canales relacionados para reducir número de consultas.
+  - Usa TTL y caché en el servidor para responder rápidamente.
+- Para altas tasas de actualización o millones de usuarios simultáneos, considera migrar a WebSockets o servicios push.
+
+## Nombres de canales y convención
+
+- Usa nombres de canal claros y sin espacios, por ejemplo: `reservas_canal`, `post_123_comments`, `user_45_notifications`.
+- Si tu canal es específico de una entidad, incluye el tipo y el ID: `post_123`.
+- Prefija canales compartidos por el tema con `tema-` si hay riesgo de colisión con otros plugins.
+
+## Buenas prácticas
+
+- Emite desde el servidor solo cuando realmente haya cambios relevantes.
+- Desde el cliente, evita redibujar toda la página: solicita y reemplaza solo la parte afectada (fragmentos HTML o JSON).
+- Documenta en `glory_docs` los canales que usa tu tema y el formato esperado de las respuestas cuando el cliente solicite datos.
+
+## Ejemplo avanzado: emitir con payload y re-render selectivo
+
+En el servidor puedes emitir un evento y, opcionalmente, devolver un identificador del recurso que cambió.
+
+```php
+use Glory\Services\EventBus;
+
+// Emite indicando qué ID cambió (opcional)
+EventBus::emit('reservas_canal', ['id' => $reservaId]);
+```
+
+En el cliente puedes usar ese `id` para solicitar únicamente la plantilla parcial necesaria.
+
+## Alternativas y cuando preferir websockets
+
+- Usa polling (`gloryRealtime`) cuando:
+  - No necesitas latencia subsegundo.
+  - Quieres una solución simple sin infra adicional.
+  - La carga esperada es moderada.
+- Considera WebSockets cuando:
+  - Necesitas actualizaciones en tiempo real con latencia mínima.
+  - Tienes infraestructura para manejar conexiones persistentes.
+
+---
+
+Si quieres, creo ahora la página de ejemplo práctica para `reservas` en `glory_docs` con código real de server+client adaptado a tu tema. ¿Lo creo y subo? 
+
+

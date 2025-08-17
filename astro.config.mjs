@@ -13,13 +13,13 @@ export default defineConfig({
                 {
                     label: 'Introducción',
                     items: [
-                        '/introduccion/bienvenida/'
+                        'introduccion/bienvenida'
                     ]
                 },
                 {
                     label: 'Managers',
                     items: [
-                        '/managers/asset-manager/'
+                        'managers/asset-manager'
                     ]
                 }
             ],

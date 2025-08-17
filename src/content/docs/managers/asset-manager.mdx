@@ -4,8 +4,11 @@ description: Registro y gestión de scripts y estilos en Glory
 ---
 
 `AssetManager` unifica la gestión de scripts (JS) y estilos (CSS) para el framework y los temas.
-Permite definir assets individuales o cargar carpetas enteras, manejar dependencias, localizar datos
-de PHP a JavaScript y gestionar versionado para evitar problemas de caché.
+Permite definir assets individuales o auto-descubrir carpetas enteras, manejar dependencias,
+localizar datos de PHP a JavaScript y gestionar versionado para evitar problemas de caché.
+
+En esta documentación se explica tanto la API pública (`define`, `defineFolder`, `register`) como
+las decisiones de resolución de rutas y comportamiento recomendado al definir assets desde un tema.
 
 ## Principales métodos y opciones
 
@@ -16,6 +19,7 @@ de PHP a JavaScript y gestionar versionado para evitar problemas de caché.
   - `$config`: array con opciones (ver abajo).
 
 - `defineFolder($type, $carpeta, $config, $prefijoHandle = '')` — Auto-descubre archivos en una carpeta y registra handles con un prefijo.
+ - `defineFolder($type, $carpeta, $config, $prefijoHandle = '')` — Auto-descubre archivos en una carpeta y registra handles con un prefijo.
 
 ### Opciones comunes en `$config`
 
@@ -27,11 +31,19 @@ de PHP a JavaScript y gestionar versionado para evitar problemas de caché.
 - `dev_mode`: si es `true`, evita usar versiones cacheadas y carga la versión de desarrollo.
 - `ver`: string para forzar versionado si es necesario.
 
+Nota: no todos los keys son obligatorios; AssetManager ignora keys desconocidas, lo que permite
+extensiones futuras sin romper configuraciones existentes.
+
 ### Buenas prácticas
 
 - Define assets del framework dentro de `Glory/` y assets específicos del tema en `App/Config/assets.php`.
 - Usa `defineFolder` para evitar listar manualmente muchos archivos y permitir búsqueda automática de `.min.js/.min.css` en producción.
 - Localiza únicamente los datos necesarios: `nonce`, `ajaxUrl`, `idUsuario`, etc.
+
+- **Prefijos en handles**: cuando uses `defineFolder` en un tema, proporciona un `prefijoHandle` para evitar colisiones
+  entre handles de distintos paquetes o plugins (ej. `tema-`).
+- **Dónde definir assets**: define assets específicos del proyecto en `App/Config/assets.php`. El framework (`Glory/`)
+  solo debe incluir assets reutilizables y agnósticos.
 
 ### Ejemplo: registrar un script con localize
 
@@ -68,6 +80,56 @@ AssetManager::defineFolder(
     'tema-' // Prefijo para los handles
 );
 ```
+
+### Cómo resuelve rutas y versiones
+
+- Las rutas pasadas a `define`/`defineFolder` son relativas al directorio del tema o del framework según el contexto
+  (internamente se usa la ruta del template con `get_template_directory()` o equivalente).
+- Cuando no está en `dev_mode`, el manager buscará automáticamente versiones minificadas (`.min.js` / `.min.css`) y las
+  usará si existen. Esto permite mantener versiones de desarrollo sin cambiar la configuración en producción.
+- `ver` puede usarse para forzar una versión (cache-busting) cuando sea necesario.
+
+### Comportamiento de `defineFolder`
+
+- `defineFolder` explora la carpeta indicada y registra cada archivo como un asset separado usando el `prefijoHandle`.
+- Fuera de `dev_mode` los resultados pueden ser cacheados para mejorar rendimiento; dentro de `dev_mode` se fuerza
+  la lectura directa para facilitar el desarrollo.
+
+### Localize: formato y buenas prácticas
+
+- El key `localize` debe incluir `nombreObjeto` y `datos`. AssetManager llama internamente a `wp_localize_script` o
+  su equivalente, creando un objeto global en JavaScript accesible por los scripts dependientes.
+- Evita exponer datos sensibles. Localiza solo identificadores, nonces y endpoints necesarios.
+
+Ejemplo mínimo:
+
+```php
+'localize' => [
+    'nombreObjeto' => 'gloryData',
+    'datos' => [
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('glory_nonce'),
+    ],
+]
+```
+
+### `area` y diferencias de encolado
+
+- `area` controla dónde se encola el asset: `frontend`, `admin` o `both`. `AssetManager::register()` se encarga
+  de enganchar los assets en los hooks adecuados (`wp_enqueue_scripts` y `admin_enqueue_scripts`).
+
+### Atributos adicionales de script
+
+- `defer` (bool) permite añadir el atributo `defer` al script para mejorar la carga. En general es recomendable
+  usar `defer` para scripts que no necesitan ejecutarse antes del parseo del HTML.
+
+### Consideraciones finales y errores comunes
+
+- No encole manualmente assets que ya estén definidos con AssetManager: usa los handles definidos para dependencias.
+- Si necesitas forzar el registro/encolado manualmente, llama a `AssetManager::register()` antes de los hooks de enqueue
+  o revisa la configuración de `Setup` del tema (normalmente ya lo hace por ti).
+- Mantén los assets específicos del tema dentro de `App/Config/assets.php` y evita poner lógica de negocio dentro de los
+  scripts del framework.
 
 ## Notas
 

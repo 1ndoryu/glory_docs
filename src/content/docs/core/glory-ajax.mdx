@@ -1,0 +1,131 @@
+---
+title: gloryAjax
+description: Utilidad AJAX centralizada del framework Glory (cliente y buenas prácticas)
+---
+
+Esta página documenta la función `gloryAjax` incluida en Glory (`Glory/assets/js/genericAjax/gloryAjax.js`),
+su API cliente, los modos de envío (objeto vs FormData), el manejo de respuestas (JSON/attachments) y
+ejemplos de uso tanto en JS como en el servidor (WordPress AJAX handlers).
+
+## ¿Qué es `gloryAjax`?
+
+`gloryAjax` es la función recomendada para todas las llamadas AJAX en el tema. Proporciona:
+
+- Soporte nativo para `FormData` (subida de archivos).
+- Manejo automático de `Content-Type` según el tipo de payload.
+- Detección de attachments (CSV, blobs) y retorno del `blob` con `filename` cuando procede.
+- Normalización de respuestas JSON y manejo de errores HTTP/Red.
+
+Usar `gloryAjax` evita duplicar lógica de fetch/fetch-polyfill, gestión de headers y parsing en múltiples scripts.
+
+## API cliente
+
+- `async function gloryAjax(action = '', data = {})` — devuelve siempre un objeto con la forma esperada por los scripts del tema.
+
+Parámetros:
+- `action` (string): nombre de la acción AJAX (el valor que en WP se recibirá en `$_POST['action']`).
+- `data` (object | FormData): si es `FormData`, `gloryAjax` lo envía tal cual (ideal para archivos); si es objeto, lo convierte a `application/x-www-form-urlencoded`.
+
+Ejemplo básico:
+
+```javascript
+const resp = await gloryAjax('mi_accion_ajax', { id: 123, filtro: 'activo' });
+if (resp.success) { console.log(resp.data); }
+```
+
+### Envío de archivos (FormData)
+
+```javascript
+const form = new FormData();
+form.append('file', input.files[0]);
+form.append('otro', 'valor');
+
+const resp = await gloryAjax('subir_archivo', form);
+if (resp.success && resp.blob) {
+  // manejo de descarga/archivo si el servidor devuelve attachment
+}
+```
+
+Nota: cuando `data` es `FormData`, `gloryAjax` no establece manualmente `Content-Type` para que el navegador gestione el boundary.
+
+## Manejo de respuestas
+
+- Si la respuesta HTTP contiene cabeceras que indican attachment (Content-Disposition con filename) o tipos binarios,
+  `gloryAjax` retorna `{ success: true, blob, filename }`.
+- Si la respuesta es texto que contiene JSON, intenta parsearlo y devolver el objeto JSON resultante.
+- Si el parseo falla pero la respuesta fue 200, devuelve `{ success: true, message: 'La respuesta del servidor no es un JSON válido.', data: responseText }`.
+- En errores de red o HTTP no ok, devuelve `{ success: false, message: '...' }`.
+
+## Seguridad y nonces
+
+- `gloryAjax` envía la petición al `ajaxUrl` configurado (por defecto `admin-ajax.php`). Asegúrate de localizar `ajax_params.ajax_url` y nonces
+  desde PHP cuando registres tus scripts con `AssetManager`.
+- En las handlers del servidor, valida nonces y capacidades antes de procesar la petición para evitar CSRF.
+
+Ejemplo de localize en `App/Config/assets.php`:
+
+```php
+AssetManager::define(
+    'script',
+    'mi-script',
+    '/assets/js/mi-script.js',
+    [
+        'localize' => [
+            'nombreObjeto' => 'ajax_params',
+            'datos' => [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('mi_nonce_action'),
+            ]
+        ]
+    ]
+);
+```
+
+## Ejemplo servidor (WordPress AJAX handler)
+
+```php
+add_action('wp_ajax_mi_accion_ajax', 'mi_accion_ajax_callback');
+add_action('wp_ajax_nopriv_mi_accion_ajax', 'mi_accion_ajax_callback');
+
+function mi_accion_ajax_callback() {
+    check_ajax_referer('mi_nonce_action', 'nonce'); // si envías nonce en request
+
+    $id = intval($_POST['id'] ?? 0);
+    // ... lógica ...
+    wp_send_json_success(['html' => '<div>...</div>']);
+}
+```
+
+Para enviar un archivo y devolverlo como attachment (CSV generado):
+
+```php
+function exportar_csv_ajax() {
+    // generar CSV en memoria
+    $csv = "id,nombre\n1,Juan\n";
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="export.csv"');
+    echo $csv;
+    exit;
+}
+```
+
+`gloryAjax` detectará esto y devolverá `{ success: true, blob, filename }` al cliente.
+
+## Buenas prácticas
+
+- Siempre validar `nonce` y capacidades en las handlers.
+- No confiar en datos enviados por el cliente; sanear y validar en servidor.
+- Usar `FormData` para uploads y evitar establecer `Content-Type` manualmente.
+- Localizar `ajax_url` y `nonce` con `AssetManager::localize` (ver ejemplo arriba).
+
+## Errores comunes
+
+- Enviar objetos complejos que no serializan bien en URLSearchParams: cuando necesites estructuras complejas, usa `FormData` o serializa JSON y decodifica en servidor.
+- Olvidar validar nonces en el servidor.
+- Confiar en que todo será JSON: `gloryAjax` maneja respuestas no JSON, revisa `resp.success` y `resp.data`.
+
+---
+
+¿Quieres que añada ejemplos concretos del tema (ej. `tema-exportar-reservas.js` y `visualizacionPorFechaCallback`) y los enlace desde aquí? Si confirmas, los incluyo y subo.
+
+

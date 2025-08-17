@@ -17,6 +17,13 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'Core',
+                    items: [
+                        'core/glory-features',
+                        'core/features/glory-realtime'
+                    ]
+                },
+                {
                     label: 'Managers',
                     items: [
                         'managers/asset-manager'

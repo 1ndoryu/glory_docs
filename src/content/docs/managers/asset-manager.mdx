@@ -31,6 +31,16 @@ las decisiones de resolución de rutas y comportamiento recomendado al definir a
 - `dev_mode`: si es `true`, evita usar versiones cacheadas y carga la versión de desarrollo.
 - `ver`: string para forzar versionado si es necesario.
 
+- `feature`: string o array — indica que el asset depende de una *feature* controlada por `GloryFeatures`.
+  - Si se pasa una `string` (ej. `'gloryAjax'`), AssetManager verificará `GloryFeatures::isActive('gloryAjax')` y
+    omitirá el asset si la feature está desactivada.
+  - Si se pasa un `array`, puede incluir `name` y `option` para mapear una `optionKey` distinta:
+    `['name' => 'gloryAjax', 'option' => 'mi_opcion_ajax']`.
+  - Compatibilidad: también se soporta la llave antigua `feature_option` junto con `feature`.
+
+Nota: gracias a esta opción puedes simplificar la definición de assets sin envolver tu código con condicionales
+`if (GloryFeatures::isActive(...))` — basta con declarar `'feature' => 'miFeature'` en la configuración del asset.
+
 Nota: no todos los keys son obligatorios; AssetManager ignora keys desconocidas, lo que permite
 extensiones futuras sin romper configuraciones existentes.
 

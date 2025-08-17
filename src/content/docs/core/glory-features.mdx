@@ -33,6 +33,37 @@ entre overrides por código y opciones de la base de datos, y patrones de uso re
 Esto permite que el desarrollador pueda forzar rápidamente comportamientos sin alterar la configuración almacenada, y al mismo
 tiempo que los administradores mantengan control desde el panel.
 
+### Integración con `AssetManager`
+
+`AssetManager` soporta la clave `feature` en la configuración de un asset. Si un asset declara `'feature' => 'miFeature'`,
+el manager comprobará internamente `GloryFeatures::isActive('miFeature')` y **omitirá** la definición/encolado del asset cuando la
+feature esté desactivada. Esto permite simplificar la declaración de assets en `App/Config/assets.php` sin envolver el código
+con condicionales.
+
+Formato aceptado:
+
+- `feature` (string): nombre de la feature, p. ej. `'gloryAjax'`.
+- `feature` (array): `['name' => 'gloryAjax', 'option' => 'clave_opcion_en_bd']` para mapear una opción distinta.
+
+Ejemplo rápido:
+
+```php
+AssetManager::define(
+    'script',
+    'glory-realtime-core',
+    '/Glory/assets/js/Core/gloryRealtime.js',
+    [
+        'deps'    => [],
+        'in_footer'=> true,
+        'area'    => 'both',
+        'feature' => 'gloryAjax', // el asset solo se definirá/encolará si la feature gloryAjax está activa
+    ]
+);
+```
+
+Con esta integración, no necesitas envolver la llamada a `AssetManager::define()` en un `if (GloryFeatures::isActive(...))` —
+AssetManager se encarga de respetar la configuración de features automáticamente.
+
 ## Ejemplos de uso
 
 ### Forzar una feature desde código (override)
@@ -84,12 +115,5 @@ GloryFeatures::isActive('gloryRealtime', 'mi_plugin_realtime_enabled');
 - No comprobar `isActive()` antes de registrar assets o hooks: puede provocar que assets innecesarios se registren en entornos donde la feature debe estar desactivada.
 - Confundir `isEnabled()` con `isActive()` y depender únicamente de `isEnabled()` en código que debe respetar la configuración del panel.
 
-## Migración desde README
-
-Si actualmente tienes secciones en `Glory/readme.md` relacionadas con features específicas, muévelas aquí y crea una subpágina por feature si la explicación es amplia (ej. `glory_docs/src/content/docs/core/features/css-critico.mdx`).
-
----
-
-¿Quieres que documente ahora una feature concreta (p. ej. `cssCritico` o `gloryRealtime`)? Si confirmas, la creo y la subo.
 
 

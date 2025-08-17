@@ -1,0 +1,95 @@
+---
+title: GloryFeatures
+description: Control de features y overrides en Glory
+---
+
+`GloryFeatures` centraliza el control de funcionalidades (features) que pueden activarse/desactivarse
+mediante código o mediante opciones en el panel. Esta página documenta la API pública, la precedencia
+entre overrides por código y opciones de la base de datos, y patrones de uso recomendados.
+
+## Concepto
+
+- Una *feature* es una funcionalidad opcional del framework (p. ej. `gloryRealtime`, `cssCritico`).
+- Glory permite controlar el estado de una feature desde dos fuentes principales:
+  1. **Override por código**: el desarrollador puede forzar la activación/desactivación en tiempo de ejecución.
+  2. **Opción en la base de datos**: una opción gestionada por `OpcionManager` que el administrador puede cambiar desde el panel.
+
+## API principal
+
+- `GloryFeatures::enable(string $feature): void` — Activa permanentemente la feature en el runtime.
+- `GloryFeatures::disable(string $feature): void` — Desactiva permanentemente la feature en el runtime.
+- `GloryFeatures::isEnabled(string $feature): ?bool` — Devuelve el override por código: `true`, `false` o `null` si no hay override.
+- `GloryFeatures::isActive(string $feature, ?string $optionKey = null, bool $default = true): bool` — Decide si la feature está activa combinando override y opción en BD.
+
+> Nota: `isActive` es la llamada que normalmente debes usar cuando registras assets, hooks o funcionalidades dependientes de la configuración.
+
+## Precedencia y comportamiento
+
+1. `isEnabled` comprueba si hay un override aplicado por código y devuelve `true`, `false` o `null`.
+2. `isActive` hace lo siguiente internamente:
+   - Si `isEnabled` devuelve `true` o `false`, `isActive` respeta ese valor (override por código tiene prioridad).
+   - Si no hay override (`null`), `isActive` consulta la opción en la base de datos indicada por `optionKey`. Si la opción no existe, aplica `default`.
+
+Esto permite que el desarrollador pueda forzar rápidamente comportamientos sin alterar la configuración almacenada, y al mismo
+tiempo que los administradores mantengan control desde el panel.
+
+## Ejemplos de uso
+
+### Forzar una feature desde código (override)
+
+```php
+use Glory\Core\GloryFeatures;
+
+// Forzar activación
+GloryFeatures::enable('gloryRealtime');
+
+// Forzar desactivación
+GloryFeatures::disable('cssCritico');
+```
+
+### Comprobar si una feature está activa (modo recomendado al registrar assets)
+
+```php
+use Glory\Manager\AssetManager;
+use Glory\Core\GloryFeatures;
+
+if (GloryFeatures::isActive('gloryRealtime')) {
+    AssetManager::define('script', 'glory-gloryrealtime', '/assets/js/gloryRealtime.js', [
+        'deps' => ['glory-ajax'],
+        'in_footer' => true,
+        'area' => 'frontend',
+    ]);
+}
+```
+
+### `isActive` con `optionKey`
+
+Si la opción en BD usa una clave personalizada diferente al nombre de la feature, pásala como segundo parámetro:
+
+```php
+// Si la opción real en BD es 'mi_plugin_realtime_enabled'
+GloryFeatures::isActive('gloryRealtime', 'mi_plugin_realtime_enabled');
+```
+
+## Buenas prácticas
+
+- Usa `isActive()` siempre que el comportamiento deba depender de la configuración del sitio o de un override por código.
+- Reserva `isEnabled()` para casos en los que exclusivamente quieras comprobar si existe un override por código.
+- Evita usar valores por defecto inconsistentes: cuando definas una feature documenta el `optionKey` y el `default` esperado.
+- Para assets que solo deberían cargarse en admin o frontend, define `area` en el `AssetManager` y consulta `isActive()` antes de definir el asset.
+- Documenta en `glory_docs` cada feature nueva con su `optionKey`, `valorDefault`, y ejemplos de uso (enable/disable/isActive).
+
+## Errores comunes
+
+- No comprobar `isActive()` antes de registrar assets o hooks: puede provocar que assets innecesarios se registren en entornos donde la feature debe estar desactivada.
+- Confundir `isEnabled()` con `isActive()` y depender únicamente de `isEnabled()` en código que debe respetar la configuración del panel.
+
+## Migración desde README
+
+Si actualmente tienes secciones en `Glory/readme.md` relacionadas con features específicas, muévelas aquí y crea una subpágina por feature si la explicación es amplia (ej. `glory_docs/src/content/docs/core/features/css-critico.mdx`).
+
+---
+
+¿Quieres que documente ahora una feature concreta (p. ej. `cssCritico` o `gloryRealtime`)? Si confirmas, la creo y la subo.
+
+

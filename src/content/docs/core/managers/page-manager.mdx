@@ -1,0 +1,78 @@
+---
+title: PageManager
+description: Gestión programática de páginas: definir, sincronizar y controlar plantillas/roles
+---
+
+`PageManager` facilita definir páginas desde código y sincronizarlas con WordPress: crea/actualiza páginas, asigna plantillas, controla acceso por roles y permite usar una plantilla central para funciones de renderizado.
+
+## Propósito
+
+- Permitir declarar páginas manejadas por el tema desde código con un slug único, un handler (función o plantilla) y roles opcionales.
+- Sincronizar esas definiciones con la base de datos (crear o actualizar páginas) y limpiar páginas obsoletas gestionadas anteriormente.
+- Soportar una plantilla central (`TemplateGlory.php`) que delega el renderizado a una función definida en el handler.
+
+## API pública
+
+- `PageManager::define(string $slug, ?string $handler = null, ?string $plantilla = null, array $roles = []): void`
+  - `slug`: identificador amigable (solo `a-z0-9-`).
+  - `handler`: puede ser el nombre de una función de renderizado o el nombre de un archivo `.php` de plantilla.
+  - `plantilla`: si `handler` es un título y quieres especificar plantilla distinta.
+  - `roles`: array opcional de roles que requieren estar autenticados y tener dichos roles para ver la página.
+
+- `PageManager::register(): void`
+  - Engancha un filtro para interceptar la carga de plantillas y, cuando corresponde, redirige a la plantilla central si la definición usa una función.
+
+- `PageManager::procesarPaginasDefinidas(): void`
+  - Recorre las páginas definidas y crea o actualiza las entradas `page` en la BD según la configuración. Marca las páginas creadas/gestionadas con meta `_page_manager_managed`.
+
+- `PageManager::reconciliarPaginasGestionadas(): void`
+  - Busca páginas en la BD marcadas como gestionadas pero que ya no están definidas en el código y las elimina (salvo la página frontal o la de entradas).
+
+- `PageManager::getFuncionParaRenderizar(): ?string`
+  - Devuelve el nombre de la función que la plantilla central debe invocar para renderizar el contenido.
+
+## Comportamiento y consideraciones
+
+- Validación de `slug`: solo acepta slugs con `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Si el slug es inválido, registra un error y no define la página.
+- Si `handler` termina en `.php`, se asume que es una plantilla; si se pasa un `handler` que no termina en `.php` y no se especifica `plantilla`, la plantilla por defecto será `TemplateGlory.php` y se espera que la función indicada exista y sea llamada por la plantilla central.
+- Control de roles: si se especifican roles, al interceptar la plantilla el manager obliga a login y valida roles usando `UserUtility::tieneRoles`. Si falla, redirige a login o muestra 403.
+- Marcas en BD: las páginas creadas o gestionadas se marcan con meta `_page_manager_managed` para poder reconciliarlas y limpiar obsoletos.
+- Al crear páginas, el manager intenta publicar la página (`post_status => 'publish'`) y actualiza `_wp_page_template` con la plantilla configurada.
+- Evita eliminar la página frontal (`page_on_front`) o la página de entradas (`page_for_posts`) al reconciliar.
+
+## Ejemplos
+
+- Definir una página que usa una función de renderizado (usada por la plantilla central `TemplateGlory.php`):
+
+```php
+use Glory\Manager\PageManager;
+
+PageManager::define('home', 'home_func');
+
+// En algún bootstrap, registrar interceptación
+PageManager::register();
+
+// Luego, en un hook de activación o inicialización puedes sincronizar:
+PageManager::procesarPaginasDefinidas();
+```
+
+- Definir una página que usa una plantilla específica:
+
+```php
+PageManager::define('contacto', 'Contacto', 'TemplateContacto.php');
+```
+
+- Definir una página accesible solo para administradores:
+
+```php
+PageManager::define('panel-privado', 'panel_privado_func', null, ['administrator']);
+```
+
+## Buenas prácticas
+
+- Define páginas en `App/Config` o en bootstrap del tema para tener todo centralizado.
+- Evita usar slugs que puedan colisionar con otras páginas creadas manualmente, o controla esas colisiones manualmente.
+- Revisa `TemplateGlory.php` si usas funciones como handlers: debe llamar a `PageManager::getFuncionParaRenderizar()` y ejecutar la función si existe.
+- Ejecuta `PageManager::procesarPaginasDefinidas()` en hooks de activación o deployment para sincronizar la BD.
+
+---

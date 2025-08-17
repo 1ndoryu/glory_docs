@@ -1,0 +1,77 @@
+---
+title: AssetManager
+description: Registro y gestión de scripts y estilos en Glory
+---
+
+`AssetManager` unifica la gestión de scripts (JS) y estilos (CSS) para el framework y los temas.
+Permite definir assets individuales o cargar carpetas enteras, manejar dependencias, localizar datos
+de PHP a JavaScript y gestionar versionado para evitar problemas de caché.
+
+## Principales métodos y opciones
+
+- `define($type, $handle, $ruta, $config)` — Registrar un asset individual.
+  - `$type`: `'script'` o `'style'`.
+  - `$handle`: identificador del asset.
+  - `$ruta`: ruta relativa al tema/framework (p. ej. `/assets/js/mi-script.js`).
+  - `$config`: array con opciones (ver abajo).
+
+- `defineFolder($type, $carpeta, $config, $prefijoHandle = '')` — Auto-descubre archivos en una carpeta y registra handles con un prefijo.
+
+### Opciones comunes en `$config`
+
+- `deps`: array de handles de los que depende el asset (p. ej. `['jquery']`).
+- `in_footer`: (bool) encolar el script en el footer. Por defecto en scripts se usa `true` cuando corresponde.
+- `localize`: array con `nombreObjeto` y `datos` para pasar variables de PHP a JS (similar a `wp_localize_script`).
+- `area`: `'frontend'|'admin'|'both'` para controlar dónde se encola el asset.
+- `defer`: (bool) si se añade el atributo `defer` al script (true por defecto en muchos casos).
+- `dev_mode`: si es `true`, evita usar versiones cacheadas y carga la versión de desarrollo.
+- `ver`: string para forzar versionado si es necesario.
+
+### Buenas prácticas
+
+- Define assets del framework dentro de `Glory/` y assets específicos del tema en `App/Config/assets.php`.
+- Usa `defineFolder` para evitar listar manualmente muchos archivos y permitir búsqueda automática de `.min.js/.min.css` en producción.
+- Localiza únicamente los datos necesarios: `nonce`, `ajaxUrl`, `idUsuario`, etc.
+
+### Ejemplo: registrar un script con localize
+
+```php
+use Glory\Manager\AssetManager;
+
+AssetManager::define(
+    'script',
+    'mi-script-personalizado',
+    '/assets/js/mi-script.js',
+    [
+        'deps'      => ['jquery'],
+        'in_footer' => true,
+        'localize'  => [
+            'nombreObjeto' => 'misDatos',
+            'datos'        => [
+                'idUsuario' => get_current_user_id(),
+                'nonce'     => wp_create_nonce('mi_nonce_seguridad'),
+            ],
+        ]
+    ]
+);
+```
+
+### Ejemplo: definir una carpeta completa de estilos
+
+```php
+use Glory\Manager\AssetManager;
+
+AssetManager::defineFolder(
+    'style',
+    '/assets/css/',
+    ['deps' => [], 'media' => 'all'],
+    'tema-' // Prefijo para los handles
+);
+```
+
+## Notas
+
+- `AssetManager::register()` se encarga de enganchar los assets a `wp_enqueue_scripts` y `admin_enqueue_scripts` respetando la opción `area`.
+- El sistema busca `.min.js`/`.min.css` cuando no está en `dev_mode` para servir los archivos optimizados.
+
+

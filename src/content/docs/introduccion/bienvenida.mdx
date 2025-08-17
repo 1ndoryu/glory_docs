@@ -1,0 +1,49 @@
+---
+title: Bienvenida
+description: Introducción a Glory — qué es, filosofía y primeros pasos
+---
+
+Glory es un framework ligero para acelerar el desarrollo de temas y funcionalidades sobre WordPress. Su objetivo es ofrecer
+herramientas reutilizables (managers, componentes y utilidades) que fomenten código limpio, modular y fácil de mantener.
+
+## Filosofía
+
+- Separación clara entre framework (`Glory/`) y código específico del proyecto (`App/`).
+- Reutilización: componentes y managers pensados para evitar repetición.
+- Agnosticismo: el framework no debe contener lógica de negocio del proyecto.
+
+## Requisitos mínimos
+
+- WordPress (versión según tu entorno de desarrollo).
+- PHP 7.4+ (o la versión requerida por tu proyecto).
+
+## Primeros pasos rápidos
+
+1. Clona el tema base en `wp-content/themes`:
+
+```bash
+git clone https://github.com/user/glorytemplate.git
+```
+
+2. Entra en la carpeta del tema e instala dependencias de Composer:
+
+```bash
+cd glorytemplate
+composer install
+```
+
+3. Clona el framework Glory dentro del tema:
+
+```bash
+git clone https://github.com/user/glory.git
+```
+
+4. Activa el tema desde el administrador de WordPress (`Apariencia → Temas`).
+
+## Estructura relevante (rápida)
+
+- `Glory/` — código del framework (agnóstico).
+- `App/` — funciones y configuraciones específicas del tema.
+- `App/Config/` — donde defines assets, páginas, post types y opciones.
+
+

@@ -7,51 +7,23 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
     integrations: [
         starlight({
-            title: 'SwordPHP',
-            social: [{icon: 'github', label: 'GitHub', href: 'https://github.com/1ndoryu/SwordPHP'}],
+            title: 'Glory',
+            social: [{icon: 'github', label: 'GitHub', href: 'https://github.com/1ndoryu/Glory'}],
             sidebar: [
                 {
-                    label: 'Introducción',
+                    text: 'Introducción',
                     items: [
-                        {label: 'Bienvenida a SwordPHP', slug: 'introduccion/bienvenida'},
-                        {label: 'Conceptos Fundamentales', slug: 'introduccion/conceptos-fundamentales'},
-                        {label: 'Instalación', slug: 'introduccion/instalacion'}
+                        { text: 'Bienvenida', link: '/introduccion/bienvenida/' }
                     ]
                 },
                 {
-                    label: 'Desarrollo de Temas',
+                    text: 'Managers',
                     items: [
-                        {label: 'Estructura de un Tema', slug: 'desarrollo-temas/estructura-tema'},
-                        {label: 'El Loop de SwordPHP', slug: 'desarrollo-temas/el-loop'},
-                        {label: 'Plantillas de Página', slug: 'desarrollo-temas/plantillas-pagina'},
-                        {label: 'Partes de Plantilla', slug: 'desarrollo-temas/partes-plantilla'},
-                        {label: 'Manejo de Assets', slug: 'desarrollo-temas/manejo-assets'},
-                        {label: 'Sincronización Declarativa', slug: 'desarrollo-temas/sincronizacion-declarativa'}
+                        { text: 'AssetManager', link: '/managers/asset-manager/' }
                     ]
-                },
-                {
-                    label: 'Desarrollo de Plugins',
-                    items: [
-                        {label: 'Estructura de un Plugin', slug: 'desarrollo-plugins/estructura-plugin'},
-                        {label: 'Hooks: Acciones y Filtros', slug: 'desarrollo-plugins/hooks'},
-                        {label: 'Páginas de Administración', slug: 'desarrollo-plugins/paginas-admin'},
-                        {label: 'Opciones de Plugin', slug: 'desarrollo-plugins/opciones'},
-                        {label: 'Shortcodes', slug: 'desarrollo-plugins/shortcodes'}
-                    ]
-                },
-                {
-                    label: 'API',
-                    items: [
-                        {label: 'Headless', slug: 'api/api-headless'},
-                    ]
-                },
-                {
-                    label: 'Guías Adicionales',
-                    items: [{label: 'Equivalencias con WordPress', slug: 'guias/equivalencias-wordpress'}]
                 }
             ],
             customCss: [
-                // Relative path to your custom CSS file
                 './src/styles/custom.css'
             ]
         })

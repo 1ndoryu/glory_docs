@@ -20,7 +20,9 @@ export default defineConfig({
                     label: 'Core',
                     items: [
                         'core/glory-features',
-                        'core/features/glory-realtime'
+                        'core/glory-ajax',
+                        'core/features/glory-realtime',
+                        'core/features/available-features'
                     ]
                 },
                 {

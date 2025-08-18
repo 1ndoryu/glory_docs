@@ -51,6 +51,60 @@ if (option_exists('optionKey')) return get_option('optionKey');
 return $default;
 ```
 
+## Ejemplos extras
+
+1) Dev ON — el dev forzó activar
+
+```php
+// dev mode = true
+GloryFeatures::enable('X'); // override = true
+GloryFeatures::isActive('X') // -> true
+```
+
+2) Dev ON — el dev forzó desactivar
+
+```php
+// dev mode = true
+GloryFeatures::disable('X'); // override = false
+GloryFeatures::isActive('X') // -> false
+```
+
+3) Dev ON — no hay override, la BD tiene la opción
+
+```php
+// dev mode = true
+// override = null
+// DB: optionKey = true
+GloryFeatures::isActive('X', 'mi_opcion') // -> true
+```
+
+4) Prod (dev OFF) — el dev forzó activar pero el admin dijo false en BD
+
+```php
+// dev mode = false
+GloryFeatures::enable('X'); // override = true
+// DB: optionKey = false
+GloryFeatures::isActive('X', 'mi_opcion') // -> false
+```
+
+5) Prod (dev OFF) — el dev forzó activar y NO existe opción en BD
+
+```php
+// dev mode = false
+GloryFeatures::enable('X'); // override = true
+// DB: optionKey NO existe
+GloryFeatures::isActive('X', 'mi_opcion', true) // -> true
+```
+
+6) Prod (dev OFF) — no override y la BD tiene false
+
+```php
+// dev mode = false
+// override = null
+// DB: optionKey = false
+GloryFeatures::isActive('X', 'mi_opcion') // -> false
+```
+
 ## ¿Por qué existen las dos funciones? ¿Tiene que ver con el modo dev?
 
 - `isEnabled` sirve para que un desarrollador pueda **forzar** algo desde el código (útil en desarrollo o pruebas). Es temporal y local al código.

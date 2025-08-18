@@ -33,7 +33,7 @@ entre overrides por código y opciones de la base de datos, y patrones de uso re
 - `isActive('feature', $optionKey, $default)` — devuelve si la feature está realmente activa en el sitio. Reglas simples:
   1. Si `isEnabled` devuelve `true` o `false`, `isActive` devuelve ese valor (el override por código manda).
   2. Si `isEnabled` devuelve `null`, `isActive` mira la opción en la base de datos (`optionKey`):
-     - Si la opción existe en BD, devuelve ese valor (lo que configuró el administrador).
+     - Si la opción existe en BD, devuelve ese valor (lo que configuró el cliente final / administrador del sitio desde el panel).
      - Si la opción no existe, devuelve `default` (valor por defecto que tú pases).
 
 Ejemplos rápidos:
@@ -110,12 +110,12 @@ GloryFeatures::isActive('X', 'mi_opcion') // -> false
 - `isEnabled` sirve para que un desarrollador pueda **forzar** algo desde el código (útil en desarrollo o pruebas). Es temporal y local al código.
 - `isActive` es la **decisión final** que usa el sistema: combina override, configuración del admin y un valor por defecto.
 - En **modo desarrollo** los overrides por código suelen tener prioridad absoluta (para facilitar pruebas).
-- En **producción** el override actúa como **valor por defecto**: si el admin ya configuró la opción en BD, la opción del admin gana.
+- En **producción** el override actúa como **valor por defecto**: si el cliente final / administrador del sitio cambió la opción desde el panel, ese valor guardado en la BD prevalece.
 
 Ejemplo práctico para entenderlo:
 
 - Estás desarrollando y quieres probar una feature sin tocar el panel: `GloryFeatures::enable('miFeature')` → `isActive('miFeature')` devolverá `true` en tu entorno local.
-- En producción, si el admin ya decidió que la feature esté `false` en el panel, `isActive` devolverá `false` aunque el código llame a `enable()` (el admin tiene la última palabra en producción).
+- En producción, si el cliente final configuró la feature como `false` en el panel, `isActive` devolverá `false` aunque el código llame a `enable()` (el cliente final tiene la última palabra en producción).
 
 ---
 

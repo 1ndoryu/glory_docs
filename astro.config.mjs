@@ -51,16 +51,8 @@ export default defineConfig({
                         {
                             label: 'Renderers',
                             items: [
-                                'componentes/renderers/content-render',
-                                'componentes/renderers/term-render',
-                                'componentes/renderers/busqueda-renderer',
-                                'componentes/renderers/logo-renderer',
                                 'componentes/renderers/data-grid-renderer',
-                                'componentes/renderers/pagination-renderer',
-                                'componentes/renderers/scheduler-renderer',
-                                'componentes/renderers/perfil-renderer',
-                                'componentes/renderers/barra-filtros-renderer',
-                                'componentes/renderers/header-renderer'
+                                'componentes/renderers/pagination-renderer'
                             ]
                         }
                     ]

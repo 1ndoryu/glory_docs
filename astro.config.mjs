@@ -83,6 +83,7 @@ export default defineConfig({
                         'servicios/query-profiler',
                         'servicios/performance-profiler',
                         'servicios/token-manager',
+                        'servicios/manejador-git',
                         'servicios/analytics-engine',
                         'servicios/busqueda-service',
                         'servicios/license-manager',

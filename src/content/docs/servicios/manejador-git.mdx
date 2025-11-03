@@ -1,0 +1,627 @@
+---
+title: ManejadorGit
+description: Servicio para gestión completa de repositorios Git con operaciones avanzadas
+sidebar:
+  label: ManejadorGit
+  order: 6
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# ManejadorGit
+
+El **ManejadorGit** es un servicio avanzado para gestión completa de repositorios Git en PHP. Proporciona una interfaz segura y robusta para ejecutar comandos Git, gestionar repositorios remotos, hacer commits, push y operaciones de sincronización. Está diseñado específicamente para entornos WordPress donde la seguridad y el manejo de errores son críticos.
+
+## Filosofía
+
+ManejadorGit está diseñado para ser:
+- **Seguro**: Ejecuta comandos con validación estricta y manejo de errores
+- **Robusto**: Maneja diferentes sistemas operativos (Windows/Linux)
+- **Completo**: Soporta todas las operaciones Git comunes
+- **Logged**: Registra todas las operaciones para debugging
+
+## Características Principales
+
+- **Ejecución multiplataforma**: Soporte nativo para Windows y Linux/Unix
+- **Gestión de remotos**: Configuración automática de URLs de remotos
+- **Operaciones completas**: Clone, fetch, checkout, commit, push, reset
+- **Manejo de ramas**: Creación y cambio entre ramas de trabajo
+- **Sincronización segura**: Operaciones atómicas con rollback
+- **Logging integrado**: Todas las operaciones se registran con GloryLogger
+
+## Inicialización
+
+### Uso Básico
+
+```php
+use Glory\Services\ManejadorGit;
+
+$manejador = new ManejadorGit();
+
+// Verificar estado de un repositorio
+$estado = $manejador->obtenerArchivosModificados('/ruta/al/repo');
+```
+
+### Configuración por Defecto
+
+El servicio no requiere configuración inicial específica. Todas las operaciones se ejecutan con parámetros seguros por defecto.
+
+## Operaciones Básicas
+
+### Verificar Estado del Repositorio
+
+```php
+// Obtener archivos modificados
+$archivosModificados = $manejador->obtenerArchivosModificados('/path/to/repo');
+
+if (!empty($archivosModificados)) {
+    echo "Archivos modificados:\n";
+    foreach ($archivosModificados as $archivo) {
+        echo "- $archivo\n";
+    }
+} else {
+    echo "Repositorio limpio, no hay cambios.\n";
+}
+```
+
+### Configurar URL de Remoto
+
+```php
+$repoUrl = 'https://github.com/usuario/proyecto.git';
+$rutaLocal = '/var/www/html/proyecto';
+
+// Configurar o actualizar remote 'origin'
+$exito = $manejador->establecerUrlRemota('origin', $repoUrl, $rutaLocal);
+
+if ($exito) {
+    echo "Remote 'origin' configurado correctamente.\n";
+} else {
+    echo "Error al configurar el remote.\n";
+}
+```
+
+### Clonar o Actualizar Repositorio
+
+```php
+$repoUrl = 'https://github.com/usuario/proyecto.git';
+$rutaLocal = '/var/www/html/proyecto';
+$ramaTrabajo = 'main'; // o 'master' para repos antiguos
+
+// Clonar si no existe, o actualizar si existe
+$exito = $manejador->clonarOActualizarRepo($repoUrl, $rutaLocal, $ramaTrabajo);
+
+if ($exito) {
+    echo "Repositorio listo en: $rutaLocal\n";
+} else {
+    echo "Error al gestionar el repositorio.\n";
+}
+```
+
+## Operaciones Avanzadas
+
+### Hacer Commit de Cambios
+
+```php
+$rutaRepo = '/var/www/html/proyecto';
+$mensaje = 'feat: agregar nueva funcionalidad
+
+- Implementar feature X
+- Corregir bug Y
+- Actualizar documentación';
+
+$exito = $manejador->hacerCommit($rutaRepo, $mensaje);
+
+if ($exito) {
+    echo "Commit realizado correctamente.\n";
+} else {
+    echo "Error al hacer commit o no hay cambios para commitear.\n";
+}
+```
+
+### Push a Remoto
+
+```php
+$rutaRepo = '/var/www/html/proyecto';
+$rama = 'main';
+$establecerUpstream = true; // Configurar tracking automático
+
+$exito = $manejador->hacerPush($rutaRepo, $rama, $establecerUpstream);
+
+if ($exito) {
+    echo "Push realizado correctamente a rama '$rama'.\n";
+} else {
+    echo "Error al hacer push.\n";
+}
+```
+
+### Descartar Cambios Locales
+
+```php
+// ⚠️ ATENCIÓN: Esto eliminará todos los cambios locales no commiteados
+$rutaRepo = '/var/www/html/proyecto';
+
+$exito = $manejador->descartarCambiosLocales($rutaRepo);
+
+if ($exito) {
+    echo "Cambios locales descartados. Repositorio en estado limpio.\n";
+} else {
+    echo "Error al descartar cambios locales.\n";
+}
+```
+
+## Flujo de Trabajo Completo
+
+### Sincronización de Proyecto
+
+```php
+class SincronizadorProyecto
+{
+    private ManejadorGit $git;
+
+    public function __construct()
+    {
+        $this->git = new ManejadorGit();
+    }
+
+    public function sincronizarDesdeRemoto(string $repoUrl, string $rutaLocal): bool
+    {
+        // Paso 1: Clonar o actualizar repositorio
+        if (!$this->git->clonarOActualizarRepo($repoUrl, $rutaLocal, 'main')) {
+            return false;
+        }
+
+        // Paso 2: Verificar si hay cambios locales
+        $cambios = $this->git->obtenerArchivosModificados($rutaLocal);
+
+        if (!empty($cambios)) {
+            echo "Hay cambios locales pendientes. ¿Qué deseas hacer?\n";
+            echo "Cambios encontrados:\n";
+            foreach ($cambios as $cambio) {
+                echo "- $cambio\n";
+            }
+            return false; // No continuar automáticamente
+        }
+
+        echo "Repositorio sincronizado correctamente.\n";
+        return true;
+    }
+
+    public function publicarCambios(string $rutaLocal, string $mensaje): bool
+    {
+        // Paso 1: Hacer commit
+        if (!$this->git->hacerCommit($rutaLocal, $mensaje)) {
+            echo "No hay cambios para commitear.\n";
+            return true; // No es error, simplemente no hay cambios
+        }
+
+        // Paso 2: Hacer push
+        if (!$this->git->hacerPush($rutaLocal, 'main')) {
+            return false;
+        }
+
+        echo "Cambios publicados correctamente.\n";
+        return true;
+    }
+}
+
+// Uso
+$sincronizador = new SincronizadorProyecto();
+
+// Sincronizar proyecto
+$sincronizador->sincronizarDesdeRemoto(
+    'https://github.com/miuser/miproyecto.git',
+    '/var/www/html/miproyecto'
+);
+
+// Publicar cambios
+$sincronizador->publicarCambios(
+    '/var/www/html/miproyecto',
+    'feat: implementar nueva funcionalidad'
+);
+```
+
+## Gestión de Ramas
+
+### Cambiar a Rama Específica
+
+```php
+class GestorRamas
+{
+    private ManejadorGit $git;
+
+    public function __construct()
+    {
+        $this->git = new ManejadorGit();
+    }
+
+    public function cambiarARama(string $rutaRepo, string $nombreRama): bool
+    {
+        // El método clonarOActualizarRepo ya maneja el cambio de ramas
+        // Pero podemos crear un método específico si necesitamos más control
+
+        $ramaActual = $this->obtenerRamaActual($rutaRepo);
+
+        if ($ramaActual === $nombreRama) {
+            echo "Ya estás en la rama '$nombreRama'.\n";
+            return true;
+        }
+
+        // Usar checkout directo
+        $resultado = $this->ejecutarComandoGit(['checkout', $nombreRama], $rutaRepo);
+
+        if ($resultado['exito']) {
+            echo "Cambiado a rama '$nombreRama'.\n";
+            return true;
+        } else {
+            echo "Error al cambiar a rama '$nombreRama': " . $resultado['error'] . "\n";
+            return false;
+        }
+    }
+
+    private function obtenerRamaActual(string $rutaRepo): ?string
+    {
+        $resultado = $this->ejecutarComandoGit(['branch', '--show-current'], $rutaRepo);
+        return $resultado['exito'] ? trim($resultado['salida']) : null;
+    }
+
+    private function ejecutarComandoGit(array $comando, string $rutaRepo): array
+    {
+        // Nota: Este es un ejemplo simplificado.
+        // En la implementación real, usarías los métodos del ManejadorGit
+        return ['exito' => false, 'salida' => '', 'error' => 'Implementación pendiente'];
+    }
+}
+```
+
+## Manejo de Errores y Logging
+
+### Sistema de Logging Integrado
+
+Todas las operaciones del ManejadorGit se registran automáticamente:
+
+```php
+// Los logs aparecen en debug.log cuando WP_DEBUG está activo
+// Ejemplo de logs generados:
+
+// [INFO] Intentando ejecutar comando: git status --porcelain
+// [INFO] Comando 'git status --porcelain' ejecutado (código 0)
+// [ERROR] Comando 'git push origin main' falló con código 128. Error: Repository not found
+```
+
+### Manejo de Errores Robusto
+
+```php
+try {
+    $exito = $manejador->clonarOActualizarRepo($repoUrl, $rutaLocal, 'main');
+
+    if (!$exito) {
+        // El error ya fue logged por el ManejadorGit
+        // Tomar acción correctiva
+        $this->notificarAdministrador('Error de sincronización Git');
+        return false;
+    }
+
+} catch (ExcepcionComandoFallido $e) {
+    // Error grave que impidió la ejecución
+    error_log('Error crítico en Git: ' . $e->getMessage());
+    $this->notificarAdministrador('Error crítico de Git: ' . $e->getMessage());
+}
+```
+
+## Consideraciones de Seguridad
+
+### Validación de Rutas
+
+```php
+// ✅ Validar rutas antes de usar
+function validarRutaGit(string $ruta): bool
+{
+    // Verificar que la ruta existe
+    if (!is_dir($ruta)) {
+        return false;
+    }
+
+    // Verificar que es un repositorio Git
+    if (!is_dir($ruta . '/.git')) {
+        return false;
+    }
+
+    // Verificar permisos de escritura
+    if (!is_writable($ruta)) {
+        return false;
+    }
+
+    return true;
+}
+
+// ❌ No usar rutas sin validar
+$manejador->hacerCommit($_POST['ruta']); // PELIGROSO
+```
+
+### Sanitización de Entradas
+
+```php
+// ✅ Sanitizar mensajes de commit
+function sanitizarMensajeCommit(string $mensaje): string
+{
+    // Remover caracteres de control
+    $mensaje = filter_var($mensaje, FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
+
+    // Limitar longitud
+    if (strlen($mensaje) > 5000) {
+        $mensaje = substr($mensaje, 0, 5000) . '...';
+    }
+
+    return $mensaje;
+}
+
+// ✅ Sanitizar URLs de repositorio
+function sanitizarUrlRepo(string $url): string
+{
+    // Solo permitir protocolos seguros
+    if (!preg_match('/^https?:\/\//', $url)) {
+        throw new Exception('Solo se permiten URLs HTTP/HTTPS');
+    }
+
+    // Validar formato básico de URL
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        throw new Exception('URL inválida');
+    }
+
+    return $url;
+}
+```
+
+## Casos de Uso Avanzados
+
+### Sistema de Despliegue Automático
+
+```php
+class DesplegadorAutomatico
+{
+    private ManejadorGit $git;
+
+    public function __construct()
+    {
+        $this->git = new ManejadorGit();
+    }
+
+    public function desplegarVersion(string $version): bool
+    {
+        $repoUrl = 'https://github.com/empresa/proyecto.git';
+        $rutaDespliegue = '/var/www/html/proyecto-live';
+
+        // Paso 1: Sincronizar con rama específica
+        if (!$this->git->clonarOActualizarRepo($repoUrl, $rutaDespliegue, 'main')) {
+            return false;
+        }
+
+        // Paso 2: Checkout a tag específico
+        $tag = "v$version";
+        $resultado = $this->ejecutarGit(['checkout', $tag], $rutaDespliegue);
+
+        if (!$resultado['exito']) {
+            // Si el tag no existe, intentar con commit hash
+            if (!$this->ejecutarGit(['checkout', $version], $rutaDespliegue)['exito']) {
+                error_log("Tag o commit '$version' no encontrado");
+                return false;
+            }
+        }
+
+        // Paso 3: Ejecutar tareas de post-despliegue
+        $this->postDespliegue($rutaDespliegue);
+
+        return true;
+    }
+
+    private function postDespliegue(string $ruta): void
+    {
+        // Instalar dependencias, migrar BD, limpiar cache, etc.
+        // ... lógica específica del proyecto
+    }
+}
+```
+
+### Backup Automático con Git
+
+```php
+class BackupGit
+{
+    private ManejadorGit $git;
+
+    public function __construct()
+    {
+        $this->git = new ManejadorGit();
+    }
+
+    public function crearBackup(string $rutaProyecto, string $rutaBackup): bool
+    {
+        $timestamp = date('Y-m-d_H-i-s');
+        $mensaje = "Backup automático - $timestamp";
+
+        // Crear copia del repositorio
+        if (!$this->git->clonarOActualizarRepo($rutaProyecto, $rutaBackup, 'main')) {
+            return false;
+        }
+
+        // Hacer commit de cualquier cambio pendiente
+        $this->git->hacerCommit($rutaBackup, $mensaje);
+
+        // Crear tag para este backup
+        $tag = "backup-$timestamp";
+        $this->ejecutarGit(['tag', $tag], $rutaBackup);
+
+        return true;
+    }
+
+    public function listarBackups(string $rutaBackup): array
+    {
+        $resultado = $this->ejecutarGit(['tag', '--list', 'backup-*'], $rutaBackup);
+
+        if (!$resultado['exito']) {
+            return [];
+        }
+
+        return array_filter(explode("\n", trim($resultado['salida'])));
+    }
+}
+```
+
+## Solución de Problemas
+
+### Error: "Repository not found"
+
+**Causa:** URL del repositorio incorrecta o sin permisos
+**Solución:**
+```php
+// Verificar URL
+$urlActual = $manejador->obtenerUrlRemota('origin', $rutaRepo);
+echo "URL actual: $urlActual\n";
+
+// Corregir URL si es necesario
+$nuevaUrl = 'https://github.com/correcto/proyecto.git';
+$manejador->establecerUrlRemota('origin', $nuevaUrl, $rutaRepo);
+```
+
+### Error: "Permission denied"
+
+**Causa:** Problemas de autenticación SSH o HTTPS
+**Solución:**
+```php
+// Para HTTPS: verificar credenciales
+// Para SSH: verificar clave SSH configurada
+
+// Verificar conexión
+$resultado = $manejador->ejecutarComando(['git', 'ls-remote', $repoUrl], $rutaRepo, false);
+
+if (!$resultado['exito']) {
+    echo "Error de conexión: " . $resultado['error'] . "\n";
+
+    // Posibles soluciones:
+    // 1. Configurar credenciales HTTPS
+    // 2. Configurar clave SSH
+    // 3. Verificar permisos del repositorio
+}
+```
+
+### Error: "Already up-to-date"
+
+**Significado:** No hay cambios nuevos para actualizar
+**Solución:** Es un mensaje informativo, no un error. El repositorio ya está sincronizado.
+
+### Repositorio en estado "detached HEAD"
+
+**Causa:** HEAD apunta a un commit específico en lugar de una rama
+**Solución:**
+```php
+// Verificar estado
+$resultado = $manejador->ejecutarComando(['git', 'branch'], $rutaRepo, false);
+
+// Si estamos en detached HEAD, hacer checkout a una rama
+$manejador->ejecutarComando(['git', 'checkout', 'main'], $rutaRepo, false);
+```
+
+## API de Referencia
+
+### Métodos Públicos
+
+#### `obtenerUrlRemota(string $nombreRemoto, string $rutaRepo): ?string`
+Obtiene la URL configurada para un remoto específico.
+
+#### `establecerUrlRemota(string $nombreRemoto, string $nuevaUrl, string $rutaRepo): bool`
+Configura o actualiza la URL de un remoto.
+
+#### `clonarOActualizarRepo(string $repoUrl, string $rutaLocal, string $ramaTrabajo): bool`
+Clona un repositorio si no existe, o lo actualiza si existe.
+
+#### `hacerCommit(string $rutaRepo, string $mensaje): bool`
+Hace commit de todos los cambios en el repositorio.
+
+#### `hacerPush(string $rutaRepo, string $rama, bool $establecerUpstream = false): bool`
+Hace push de una rama específica al remoto.
+
+#### `descartarCambiosLocales(string $rutaRepo): bool`
+Descarta todos los cambios locales no commiteados.
+
+#### `obtenerArchivosModificados(string $rutaRepo): ?array`
+Retorna la lista de archivos modificados en el repositorio.
+
+## Mejores Prácticas
+
+### Manejo Seguro de Credenciales
+
+```php
+// ✅ Usar variables de entorno para tokens
+$repoUrl = getenv('GIT_REPO_URL') ?: 'https://github.com/default/repo.git';
+
+// ✅ No hardcodear credenciales
+// ❌ $repoUrl = 'https://user:password@github.com/repo.git';
+// ✅ Usar SSH o tokens de acceso
+```
+
+### Validación Exhaustiva
+
+```php
+function validarOperacionGit(string $rutaRepo, string $operacion): bool
+{
+    // Verificar que existe el directorio
+    if (!is_dir($rutaRepo)) {
+        throw new Exception("Directorio no existe: $rutaRepo");
+    }
+
+    // Verificar que es un repositorio Git
+    if (!is_dir($rutaRepo . '/.git')) {
+        throw new Exception("No es un repositorio Git: $rutaRepo");
+    }
+
+    // Verificar permisos
+    if (!is_readable($rutaRepo) || !is_writable($rutaRepo)) {
+        throw new Exception("Permisos insuficientes en: $rutaRepo");
+    }
+
+    // Operaciones específicas requieren permisos adicionales
+    if ($operacion === 'push' && !is_executable($rutaRepo . '/.git')) {
+        throw new Exception("No se puede hacer push: permisos insuficientes");
+    }
+
+    return true;
+}
+```
+
+### Logging y Monitoreo
+
+```php
+class GitMonitor
+{
+    public static function logOperacion(string $operacion, string $rutaRepo, bool $exito, string $detalles = ''): void
+    {
+        $mensaje = sprintf(
+            '[GitMonitor] %s | Repo: %s | Exito: %s | %s',
+            $operacion,
+            basename($rutaRepo),
+            $exito ? 'SI' : 'NO',
+            $detalles
+        );
+
+        error_log($mensaje);
+
+        // Notificar a administradores en caso de errores críticos
+        if (!$exito && self::esOperacionCritica($operacion)) {
+            self::notificarAdministrador($mensaje);
+        }
+    }
+
+    private static function esOperacionCritica(string $operacion): bool
+    {
+        return in_array($operacion, ['push', 'commit', 'clone']);
+    }
+}
+```
+
+<Aside type="caution">
+⚠️ **Importante**: El ManejadorGit ejecuta comandos del sistema. Asegúrate de validar todas las entradas y usar en entornos confiables. Nunca permitas rutas o URLs arbitrarias de usuarios no confiables.
+</Aside>
+
+<Aside type="tip">
+💡 **Tip**: Para operaciones complejas, considera usar el patrón Command para encapsular operaciones Git complejas y hacerlas más testeables.
+</Aside>

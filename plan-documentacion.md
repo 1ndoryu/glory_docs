@@ -202,8 +202,8 @@ glory_docs/src/content/docs/
 - [x] Documentar PostTypeManager
 - [x] Documentar managers faltantes: AdminPageManager, MenuManager ✅ (Revisados)
 - [x] Continuar con componentes (BadgeList, Modal, DataGridRenderer, PaginationRenderer)
-- [x] Documentar utilidades faltantes (ImageUtility, TemplateRegistry)
-- [ ] Crear sección de integraciones
+- [ ] Documentar utilidades faltantes
+- [NO DOCUMENTAR NADA SOBRE INTEGRACONES] Crear sección de integraciones
 - [ ] Documentar sistema administrativo
 - [ ] Crear guías de desarrollo
 - [ ] Revisar y validar toda la documentación

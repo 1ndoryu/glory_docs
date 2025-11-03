@@ -69,21 +69,6 @@ export default defineConfig({
                     ]
                 },
                 {
-                    label: 'Utilidades',
-                    items: [
-                        'utilidades/image-utility',
-                        'utilidades/template-registry'
-                    ]
-                },
-                {
-                    label: 'Integraciones',
-                    items: [
-                        'integraciones/integrations-manager',
-                        'integraciones/avada',
-                        'integraciones/elementor'
-                    ]
-                },
-                {
                     label: 'Administración',
                     items: [
                         'administracion/sync-manager'

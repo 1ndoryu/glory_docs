@@ -32,7 +32,9 @@ export default defineConfig({
                         'managers/opcion-manager',
                         'managers/page-manager',
                         'managers/default-content-manager',
-                        'managers/post-type-manager'
+                        'managers/post-type-manager',
+                        'managers/admin-page-manager',
+                        'managers/menu-manager'
                     ]
                 },
                 {

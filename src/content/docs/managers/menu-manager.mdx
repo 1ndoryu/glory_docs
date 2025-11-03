@@ -1,0 +1,356 @@
+---
+title: MenuManager
+description: Gestión automática de menús de navegación en WordPress
+---
+
+# MenuManager
+
+El `MenuManager` es un componente avanzado de Glory que automatiza la gestión de menús de navegación en WordPress. Proporciona sincronización automática entre definiciones de código y menús de WordPress, gestión de placeholders, y soporte para múltiples ubicaciones de menú.
+
+## Funcionalidades principales
+
+- **Sincronización automática**: Mantiene menús sincronizados con definiciones de código
+- **Modo desarrollo**: Soporte para definir menús programáticamente durante desarrollo
+- **Placeholders inteligentes**: Sistema de placeholders que se preservan durante personalizaciones
+- **Múltiples ubicaciones**: Soporte para diferentes ubicaciones de menú
+- **Detección de cambios**: Detecta cuando los menús han sido modificados manualmente
+
+## Configuración básica
+
+### Activación del componente
+
+El MenuManager se activa automáticamente cuando la feature 'menu' está habilitada:
+
+```php
+// En las opciones de Glory o configuración del tema
+'glory_componente_menu_activado' => true
+```
+
+### Registro del manager
+
+```php
+use Glory\Manager\MenuManager;
+
+// Registrar el manager (normalmente se hace automáticamente en Setup)
+MenuManager::register();
+```
+
+## Definición de menús por código (Modo desarrollo)
+
+En modo desarrollo (`LOCAL = true`), puedes definir menús directamente desde código:
+
+### Archivo de definición: `/App/Content/menu.php`
+
+```php
+<?php
+// /App/Content/menu.php
+
+return [
+    // Definición del menú principal
+    'main_navigation' => [
+        [
+            'title' => 'Inicio',
+            'url' => home_url('/'),
+            'children' => []
+        ],
+        [
+            'title' => 'Productos',
+            'url' => '/productos',
+            'children' => [
+                [
+                    'title' => 'Categoría 1',
+                    'url' => '/productos/categoria-1'
+                ],
+                [
+                    'title' => 'Categoría 2',
+                    'url' => '/productos/categoria-2'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Marcas',
+            'url' => '/marcas',
+            'children' => [
+                [
+                    'title' => 'Marca A',
+                    'url' => '/marcas/marca-a'
+                ],
+                [
+                    'title' => 'Marca B',
+                    'url' => '/marcas/marca-b'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Contacto',
+            'url' => '/contacto',
+            'children' => []
+        ]
+    ]
+];
+```
+
+### Definición múltiple de ubicaciones
+
+```php
+<?php
+return [
+    'main_navigation' => [
+        // ítems del menú principal...
+    ],
+    'footer_navigation' => [
+        [
+            'title' => 'Política de privacidad',
+            'url' => '/privacidad'
+        ],
+        [
+            'title' => 'Términos y condiciones',
+            'url' => '/terminos'
+        ]
+    ],
+    'brands_navigation' => [
+        // Si no se define, se deriva automáticamente de 'Marcas' en el menú principal
+    ]
+];
+```
+
+## Sistema de placeholders
+
+Cuando no hay definición de código, MenuManager crea un menú por defecto con placeholders que se pueden personalizar:
+
+```php
+// Placeholders por defecto (si no hay definición de código)
+[
+    ['title' => 'Inicio', 'url' => home_url('/')],
+    ['title' => 'example', 'url' => '#'],
+    ['title' => 'example', 'url' => '#'],
+    ['title' => 'example', 'url' => '#'],
+    ['title' => 'example', 'url' => '#'],
+]
+```
+
+### Comportamiento de placeholders
+
+- **Preservación**: Los placeholders se mantienen cuando el usuario edita el menú
+- **Normalización**: Se asegura que siempre haya la cantidad correcta de cada placeholder
+- **Orden**: Los placeholders se mantienen en el orden definido
+- **Detección**: El sistema detecta cuando se han agregado elementos personalizados
+
+## Métodos principales
+
+### `register()`
+
+Registra todos los hooks necesarios para el funcionamiento del MenuManager.
+
+```php
+MenuManager::register();
+```
+
+### `restablecerMenusDesdeCodigo()`
+
+Restaura todos los menús a su definición de código, ignorando personalizaciones.
+
+```php
+// Útil para botones "Restablecer a default" o mantenimiento
+MenuManager::restablecerMenusDesdeCodigo();
+```
+
+## Estados de sincronización
+
+El MenuManager maneja diferentes estados de sincronización usando metadata:
+
+- **`glory_seeded`**: Indica que el menú fue inicializado con placeholders
+- **`glory_customized`**: Indica que el menú fue personalizado por el usuario
+- **`glory_menu_desync`**: Indica que el menú está desincronizado del código
+- **`glory_code_hash`**: Hash de la definición de código actual
+- **`glory_seeded_from_code`**: Indica que el menú fue creado desde código
+
+## Modo desarrollo vs producción
+
+### Modo desarrollo (`LOCAL = true`)
+
+- **Sincronización automática**: Los cambios en el código se aplican automáticamente
+- **Múltiples ubicaciones**: Se pueden definir varias ubicaciones de menú
+- **Derivación automática**: Menús de marcas y productos se derivan del menú principal
+- **Ignora personalizaciones**: Aplica cambios de código incluso si el menú fue editado
+
+### Modo producción (`LOCAL = false` o no definido)
+
+- **Preserva personalizaciones**: No modifica menús que han sido editados manualmente
+- **Solo menú principal**: Solo gestiona la ubicación `main_navigation`
+- **Placeholders legacy**: Usa el sistema de placeholders heredado
+
+## Ubicaciones de menú
+
+### Ubicaciones estándar
+
+- **`main_navigation`**: Menú principal (siempre registrado)
+- **`brands_navigation`**: Menú de marcas (opcional, se deriva automáticamente)
+- **`products_navigation`**: Menú de productos (opcional, se deriva automáticamente)
+
+### Registro automático
+
+```php
+// Se registra automáticamente en after_setup_theme
+register_nav_menu('main_navigation', __('Main Navigation', 'glory'));
+```
+
+## Integración con temas
+
+### En functions.php
+
+```php
+<?php
+// functions.php
+
+// Asegurar que Glory esté cargado
+require_once get_template_directory() . '/Glory/load.php';
+
+// El MenuManager se registra automáticamente si la feature está activada
+```
+
+### En plantillas de tema
+
+```php
+// En header.php o donde se renderice el menú
+wp_nav_menu([
+    'theme_location' => 'main_navigation',
+    'container' => 'nav',
+    'container_class' => 'main-navigation',
+    'menu_class' => 'nav-menu',
+    'fallback_cb' => false
+]);
+```
+
+## Resolución de URLs
+
+El MenuManager resuelve automáticamente diferentes tipos de URLs:
+
+```php
+// URLs absolutas se mantienen como están
+'url' => 'https://ejemplo.com/pagina'
+
+// URLs relativas se convierten a absolutas
+'url' => '/productos' // → https://sitio.com/productos
+
+// URLs especiales
+'url' => '#' // Se mantiene como ancla
+```
+
+## Manejo de jerarquía
+
+Los menús soportan jerarquía completa con hijos ilimitados:
+
+```php
+[
+    'title' => 'Productos',
+    'url' => '/productos',
+    'children' => [
+        [
+            'title' => 'Electrónicos',
+            'url' => '/productos/electronicos',
+            'children' => [
+                [
+                    'title' => 'Teléfonos',
+                    'url' => '/productos/electronicos/telefonos'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Ropa',
+            'url' => '/productos/ropa'
+        ]
+    ]
+]
+```
+
+## Sistema de logging
+
+El MenuManager registra eventos importantes usando GloryLogger:
+
+```php
+// Advertencias cuando hay problemas de configuración
+GloryLogger::warning("MenuManager: Problema detectado");
+```
+
+## Consideraciones de rendimiento
+
+- **Transients**: Usa transients para evitar operaciones duplicadas
+- **Hashing**: Compara hashes para detectar cambios en definiciones
+- **Lazy loading**: Solo procesa menús cuando es necesario
+- **Cache de assets**: Se integra con el sistema de cache de Glory
+
+## Troubleshooting
+
+### El menú no se actualiza
+
+1. Verificar que `LOCAL = true` en modo desarrollo
+2. Comprobar que el archivo `/App/Content/menu.php` existe y es válido
+3. Revisar logs de Glory para mensajes de error
+4. Intentar `MenuManager::restablecerMenusDesdeCodigo()`
+
+### Los cambios manuales se pierden
+
+1. En producción, los menús personalizados se preservan
+2. En desarrollo, los cambios de código tienen prioridad
+3. Verificar flags de metadata en el menú
+
+### Ubicaciones de menú no aparecen
+
+1. Asegurar que están definidas en `/App/Content/menu.php`
+2. Verificar que `LOCAL = true`
+3. Comprobar que `register_nav_menu()` se ejecutó correctamente
+
+## Mejores prácticas
+
+1. **Usar modo desarrollo**: Define menús en código durante desarrollo
+2. **URLs relativas**: Usa URLs que empiecen con `/` para portabilidad
+3. **Estructura clara**: Mantén jerarquías lógicas y no demasiado profundas
+4. **Nombres descriptivos**: Usa títulos claros para navegación intuitiva
+5. **Testing**: Prueba cambios de menú en un entorno de desarrollo primero
+6. **Backup**: Haz backup de personalizaciones antes de cambios mayores
+
+## Ejemplo completo
+
+```php
+<?php
+// /App/Content/menu.php - Definición completa
+
+return [
+    'main_navigation' => [
+        [
+            'title' => 'Inicio',
+            'url' => home_url('/'),
+            'children' => []
+        ],
+        [
+            'title' => 'Empresa',
+            'url' => '/empresa',
+            'children' => [
+                ['title' => 'Sobre nosotros', 'url' => '/empresa/sobre-nosotros'],
+                ['title' => 'Equipo', 'url' => '/empresa/equipo'],
+                ['title' => 'Carreras', 'url' => '/empresa/carreras']
+            ]
+        ],
+        [
+            'title' => 'Servicios',
+            'url' => '/servicios',
+            'children' => [
+                ['title' => 'Consultoría', 'url' => '/servicios/consultoria'],
+                ['title' => 'Desarrollo', 'url' => '/servicios/desarrollo'],
+                ['title' => 'Soporte', 'url' => '/servicios/soporte']
+            ]
+        ],
+        [
+            'title' => 'Contacto',
+            'url' => '/contacto',
+            'children' => []
+        ]
+    ],
+    'footer_navigation' => [
+        ['title' => 'Política de privacidad', 'url' => '/privacidad'],
+        ['title' => 'Términos de servicio', 'url' => '/terminos'],
+        ['title' => 'Mapa del sitio', 'url' => '/sitemap']
+    ]
+];
+```

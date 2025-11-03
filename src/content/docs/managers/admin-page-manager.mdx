@@ -1,0 +1,160 @@
+---
+title: AdminPageManager
+description: Gestión de páginas de administración en WordPress
+---
+
+# AdminPageManager
+
+El `AdminPageManager` es un componente de Glory que simplifica la creación y gestión de páginas de administración en WordPress. Permite definir páginas de nivel superior y submenús de manera programática y centralizada.
+
+## Funcionalidades principales
+
+- **Definición de páginas de nivel superior**: Crear páginas principales en el menú de administración
+- **Submenús**: Agregar subpáginas a páginas existentes
+- **Registro automático**: Integración automática con el sistema de menús de WordPress
+
+## Uso básico
+
+### Definir una página de nivel superior
+
+```php
+use Glory\Manager\AdminPageManager;
+
+// Definir una página principal en el admin
+AdminPageManager::defineTopLevel(
+    page_title: 'Mi Plugin',           // Título de la página
+    menu_title: 'Mi Plugin',           // Texto del menú
+    capability: 'manage_options',      // Capacidad requerida
+    menu_slug: 'mi-plugin',            // Slug único del menú
+    function: 'mi_plugin_page_callback', // Función callback (opcional)
+    icon_url: 'dashicons-admin-generic', // Icono del menú (opcional)
+    position: 30                       // Posición en el menú (opcional)
+);
+```
+
+### Definir un submenú
+
+```php
+// Agregar un submenú a una página existente
+AdminPageManager::defineSubmenu(
+    parent_slug: 'mi-plugin',          // Slug del menú padre
+    page_title: 'Configuración',       // Título de la subpágina
+    menu_title: 'Configuración',       // Texto del submenú
+    capability: 'manage_options',      // Capacidad requerida
+    menu_slug: 'mi-plugin-config',     // Slug único del submenú
+    function: 'mi_plugin_config_callback', // Función callback (opcional)
+    position: 1                        // Posición en el submenú (opcional)
+);
+```
+
+### Registrar las páginas
+
+```php
+// Registrar todas las páginas definidas
+AdminPageManager::register();
+```
+
+## Parámetros de configuración
+
+### defineTopLevel()
+
+| Parámetro | Tipo | Descripción | Requerido |
+|-----------|------|-------------|-----------|
+| `page_title` | string | Título que aparece en la etiqueta `<title>` de la página | ✅ |
+| `menu_title` | string | Texto que aparece en el menú | ✅ |
+| `capability` | string | Capacidad de WordPress requerida para acceder | ✅ |
+| `menu_slug` | string | Identificador único del menú | ✅ |
+| `function` | callable\|null | Función que renderiza el contenido de la página | ❌ |
+| `icon_url` | string | URL del icono o clase Dashicon | ❌ |
+| `position` | int\|null | Posición en el menú de administración | ❌ |
+
+### defineSubmenu()
+
+| Parámetro | Tipo | Descripción | Requerido |
+|-----------|------|-------------|-----------|
+| `parent_slug` | string | Slug del menú padre | ✅ |
+| `page_title` | string | Título que aparece en la etiqueta `<title>` | ✅ |
+| `menu_title` | string | Texto que aparece en el submenú | ✅ |
+| `capability` | string | Capacidad de WordPress requerida | ✅ |
+| `menu_slug` | string | Identificador único del submenú | ✅ |
+| `function` | callable\|null | Función que renderiza el contenido | ❌ |
+| `position` | int\|null | Posición en el submenú | ❌ |
+
+## Ejemplo completo
+
+```php
+<?php
+// En functions.php o un archivo de configuración
+
+use Glory\Manager\AdminPageManager;
+
+// Página principal del plugin
+AdminPageManager::defineTopLevel(
+    'Panel de Control',
+    'Mi Panel',
+    'manage_options',
+    'mi-panel',
+    'render_panel_principal',
+    'dashicons-dashboard',
+    25
+);
+
+// Submenús
+AdminPageManager::defineSubmenu(
+    'mi-panel',
+    'Configuración General',
+    'General',
+    'manage_options',
+    'mi-panel-general',
+    'render_config_general'
+);
+
+AdminPageManager::defineSubmenu(
+    'mi-panel',
+    'Configuración Avanzada',
+    'Avanzado',
+    'manage_options',
+    'mi-panel-avanzado',
+    'render_config_avanzada'
+);
+
+// Registrar todo
+AdminPageManager::register();
+
+// Funciones callback
+function render_panel_principal() {
+    echo '<div class="wrap">';
+    echo '<h1>Panel de Control</h1>';
+    echo '<p>Bienvenido al panel de administración.</p>';
+    echo '</div>';
+}
+
+function render_config_general() {
+    echo '<div class="wrap">';
+    echo '<h1>Configuración General</h1>';
+    echo '<form method="post" action="options.php">';
+    // Contenido del formulario...
+    echo '</form>';
+    echo '</div>';
+}
+
+function render_config_avanzada() {
+    echo '<div class="wrap">';
+    echo '<h1>Configuración Avanzada</h1>';
+    echo '<p>Opciones avanzadas aquí...</p>';
+    echo '</div>';
+}
+```
+
+## Características especiales
+
+- **Prevención de duplicados**: Si intentas definir una página con un slug que ya existe, se registra una advertencia en el log
+- **Integración automática**: Se registra automáticamente con el hook `admin_menu` de WordPress
+- **Compatibilidad**: Funciona con todas las capacidades estándar de WordPress y plugins de gestión de roles
+
+## Notas importantes
+
+- Las funciones callback deben ser definidas antes de llamar a `register()`
+- Los slugs deben ser únicos en todo el sistema de menús
+- Las posiciones se refieren al orden en el menú de administración de WordPress
+- Para iconos, puedes usar clases de [Dashicons](https://developer.wordpress.org/resource/dashicons/) o URLs absolutas de imágenes

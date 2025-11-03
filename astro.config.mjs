@@ -85,6 +85,7 @@ export default defineConfig({
                         'servicios/token-manager',
                         'servicios/manejador-git',
                         'servicios/gestor-css-critico',
+                        'servicios/local-critical-css',
                         'servicios/analytics-engine',
                         'servicios/busqueda-service',
                         'servicios/license-manager',

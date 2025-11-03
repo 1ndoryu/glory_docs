@@ -14,7 +14,8 @@ export default defineConfig({
                     label: 'Introducción',
                     items: [
                         'introduccion/bienvenida',
-                        'introduccion/instalacion'
+                        'introduccion/instalacion',
+                        'introduccion/primeros-pasos'
                     ]
                 },
                 {

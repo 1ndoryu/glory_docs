@@ -1,0 +1,538 @@
+---
+title: Eventos y Hooks
+description: Sistema de eventos, hooks AJAX y puntos de extensión del framework Glory
+sidebar:
+  label: Eventos y Hooks
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# Eventos y Hooks del Sistema Glory
+
+Glory implementa un sistema completo de hooks y eventos que permiten extender y personalizar su funcionalidad. Estos incluyen hooks AJAX, filtros de contenido, eventos del sistema y puntos de extensión programática.
+
+## Filosofía de Hooks en Glory
+
+Los hooks de Glory siguen estos principios:
+- **Agnosticismo**: Los hooks no asumen lógica específica del proyecto
+- **Extensibilidad**: Múltiples puntos de entrada para personalización
+- **Consistencia**: Nombres descriptivos y convenciones claras
+- **Seguridad**: Validación de datos y sanitización incluida
+
+## Hooks AJAX
+
+### Formularios (`FormHandler`)
+
+```php
+// Hook principal para manejo de formularios
+add_action('wp_ajax_gloryFormHandler', 'mi_manejador_formulario');
+add_action('wp_ajax_nopriv_gloryFormHandler', 'mi_manejador_formulario');
+
+function mi_manejador_formulario() {
+    // Procesar datos del formulario
+    $datos = $_POST;
+
+    // Lógica personalizada
+    $resultado = procesar_formulario_personalizado($datos);
+
+    // Responder
+    wp_send_json_success($resultado);
+}
+```
+
+**Características:**
+- Endpoint: `gloryFormHandler`
+- Disponible para usuarios logueados y no logueados
+- Integrado con sistema de validación y sanitización
+
+### Paginación AJAX
+
+```php
+// Hook para solicitudes de paginación
+add_action('wp_ajax_glory_pagination', 'manejar_paginacion_personalizada');
+add_action('wp_ajax_nopriv_glory_pagination', 'manejar_paginacion_personalizada');
+
+function manejar_paginacion_personalizada() {
+    $pagina = intval($_POST['page'] ?? 1);
+    $tipo_contenido = sanitize_text_field($_POST['content_type'] ?? 'post');
+
+    // Lógica personalizada de paginación
+    $contenido = get_contenido_personalizado($pagina, $tipo_contenido);
+
+    wp_send_json_success([
+        'content' => $contenido,
+        'has_more' => tiene_mas_contenido($pagina + 1)
+    ]);
+}
+```
+
+### Acciones de Contenido
+
+```php
+// Hook para acciones sobre contenido (eliminar, actualizar, etc.)
+add_action('wp_ajax_glory_content_action', 'manejar_accion_contenido');
+add_action('wp_ajax_nopriv_glory_content_action', 'manejar_accion_contenido');
+
+function manejar_accion_contenido() {
+    $accion = sanitize_text_field($_POST['action_type']);
+    $post_id = intval($_POST['post_id']);
+
+    switch ($accion) {
+        case 'custom_like':
+            agregar_like_personalizado($post_id);
+            break;
+        case 'custom_bookmark':
+            agregar_marcador_personalizado($post_id);
+            break;
+    }
+
+    wp_send_json_success(['mensaje' => 'Acción procesada']);
+}
+```
+
+### Realtime/Versions
+
+```php
+// Hook para obtener versiones de datos en tiempo real
+add_action('wp_ajax_glory_realtime_versions', 'obtener_versiones_personalizadas');
+add_action('wp_ajax_nopriv_glory_realtime_versions', 'obtener_versiones_personalizadas');
+
+function obtener_versiones_personalizadas() {
+    $canales = $_POST['channels'] ?? [];
+
+    // Obtener versiones de tus propios canales
+    $versiones = [
+        'mi_canal_personalizado' => [
+            'version' => get_transient('mi_canal_version'),
+            'updatedAt' => get_transient('mi_canal_timestamp')
+        ]
+    ];
+
+    wp_send_json_success(['versions' => $versiones]);
+}
+```
+
+## Hooks de CSS Crítico
+
+### Generación de CSS Crítico
+
+```php
+// Hook para generar CSS crítico personalizado
+add_action('wp_ajax_glory_generar_css_critico', 'generar_css_critico_personalizado');
+
+// Hook para generar CSS crítico para todas las páginas
+add_action('wp_ajax_glory_generar_css_critico_all', 'generar_css_critico_todas_paginas');
+
+// Hook programado para regeneración automática
+add_action('glory_generate_critical_css_event', 'regenerar_css_critico_programado', 10, 1);
+
+function regenerar_css_critico_programado($url) {
+    // Lógica para regenerar CSS crítico para una URL específica
+    $css_critico = generar_css_critico_para_url($url);
+
+    // Guardar el CSS crítico
+    guardar_css_critico($url, $css_critico);
+}
+```
+
+### Limpieza de Cache
+
+```php
+add_action('wp_ajax_glory_limpiar_css_critico', 'limpiar_cache_css_critico');
+
+function limpiar_cache_css_critico() {
+    // Limpiar cache de CSS crítico
+    delete_transient('glory_critical_css_cache');
+    wp_cache_flush();
+
+    wp_send_json_success(['mensaje' => 'Cache limpiado']);
+}
+```
+
+## Hooks de Búsqueda
+
+### Filtro de Imágenes en Resultados de Búsqueda
+
+```php
+add_filter('glory_busqueda_imagen_post', 'personalizar_imagen_busqueda', 10, 3);
+
+function personalizar_imagen_busqueda($imagen_url, $post_id, $meta_claves_imagen) {
+    // Lógica personalizada para determinar la imagen de búsqueda
+    if (has_post_thumbnail($post_id)) {
+        return get_the_post_thumbnail_url($post_id, 'thumbnail');
+    }
+
+    // Fallback a imagen personalizada
+    $imagen_personalizada = get_post_meta($post_id, '_imagen_busqueda_personalizada', true);
+    if ($imagen_personalizada) {
+        return $imagen_personalizada;
+    }
+
+    return $imagen_url; // Retornar URL original si no hay cambios
+}
+```
+
+## Hooks de Opciones
+
+### Registro de Opciones
+
+```php
+add_action('glory_opcion_registered', 'procesar_opcion_registrada', 10, 2);
+
+function procesar_opcion_registrada($opcion_key, $definicion) {
+    // Lógica cuando se registra una nueva opción
+    // Útil para integraciones con otros sistemas
+
+    if (strpos($opcion_key, 'mi_opcion') === 0) {
+        // Procesar opciones específicas de mi integración
+        actualizar_configuracion_externa($opcion_key, $definicion);
+    }
+}
+```
+
+### Filtro del Registry de Opciones
+
+```php
+add_filter('glory_opcion_manager_registry', 'extender_opcion_manager_registry');
+
+function extender_opcion_manager_registry($registry) {
+    // Modificar o extender el registry de opciones
+    // Útil para integraciones avanzadas
+
+    if ($registry === null) {
+        $registry = [];
+    }
+
+    // Agregar opciones personalizadas
+    $registry['mi_opcion_personalizada'] = [
+        'tipo' => 'text',
+        'titulo' => 'Mi Opción Personalizada',
+        'descripcion' => 'Descripción de mi opción',
+        'default' => 'valor_por_defecto'
+    ];
+
+    return $registry;
+}
+```
+
+## Hooks de Post Types Personalizados
+
+### Glory Link Post Type
+
+```php
+// Hook para guardar meta data de Glory Link
+add_action('save_post_glory_link', 'procesar_guardado_glory_link', 10, 2);
+
+function procesar_guardado_glory_link($post_id, $post) {
+    // Lógica adicional al guardar un Glory Link
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+
+    // Procesar URL adicional o validaciones
+    $url = get_post_meta($post_id, '_glory_url', true);
+    if ($url) {
+        // Validar URL, actualizar cache, etc.
+        validar_y_procesar_url_glory_link($url, $post_id);
+    }
+}
+
+// Hook para columnas personalizadas en lista de Glory Links
+add_filter('manage_glory_link_posts_columns', 'agregar_columnas_glory_link');
+
+function agregar_columnas_glory_link($columns) {
+    $columns['url_status'] = 'Estado URL';
+    $columns['clicks'] = 'Clicks';
+    return $columns;
+}
+
+add_action('manage_glory_link_posts_custom_column', 'renderizar_columnas_glory_link', 10, 2);
+
+function renderizar_columnas_glory_link($column, $post_id) {
+    switch ($column) {
+        case 'url_status':
+            $url = get_post_meta($post_id, '_glory_url', true);
+            $status = verificar_estado_url($url);
+            echo $status ? '✅ Activa' : '❌ Inactiva';
+            break;
+        case 'clicks':
+            $clicks = get_post_meta($post_id, '_glory_clicks', true) ?: 0;
+            echo number_format($clicks);
+            break;
+    }
+}
+```
+
+### Glory Header Post Type
+
+```php
+// Hook para guardar meta data de Glory Header
+add_action('save_post_glory_header', 'procesar_guardado_glory_header', 10, 2);
+
+function procesar_guardado_glory_header($post_id, $post) {
+    // Lógica adicional al guardar un Glory Header
+    // Similar al Glory Link pero para headers
+}
+
+// Hook para columnas personalizadas en lista de Glory Headers
+add_filter('manage_glory_header_posts_columns', 'agregar_columnas_glory_header');
+add_action('manage_glory_header_posts_custom_column', 'renderizar_columnas_glory_header', 10, 2);
+```
+
+## Hooks AJAX de GBN
+
+### Gestión de Biblioteca
+
+```php
+// Crear Glory Link vía AJAX
+add_action('wp_ajax_create_glory_link', 'mi_creador_glory_link');
+
+// Actualizar Glory Link vía AJAX
+add_action('wp_ajax_update_glory_link', 'mi_actualizador_glory_link');
+
+// Crear Glory Header vía AJAX
+add_action('wp_ajax_create_glory_header', 'mi_creador_glory_header');
+
+// Actualizar Glory Header vía AJAX
+add_action('wp_ajax_update_glory_header', 'mi_actualizador_glory_header');
+```
+
+## Sistema de Features (GloryFeatures)
+
+### Control Programático de Features
+
+```php
+use Glory\Core\GloryFeatures;
+
+// Desactivar una feature programáticamente
+GloryFeatures::disable('modales');
+
+// Activar una feature programáticamente
+GloryFeatures::enable('navegacionAjax');
+
+// Verificar si una feature está activa
+if (GloryFeatures::isActive('gloryLogger')) {
+    // Lógica condicional
+}
+
+// Verificar si una feature está configurada explícitamente
+if (GloryFeatures::isSet('cssCritico')) {
+    // La feature tiene un override programático
+}
+```
+
+## Eventos del Sistema
+
+### Eventos de EventBus
+
+```php
+use Glory\Services\EventBus;
+
+// Escuchar eventos del EventBus (requiere implementación personalizada)
+add_action('glory_event_emitted', 'procesar_evento_emitted', 10, 2);
+
+function procesar_evento_emitted($channel, $payload) {
+    // Procesar evento emitido en un canal específico
+    switch ($channel) {
+        case 'contenido_actualizado':
+            limpiar_cache_contenido($payload['post_id']);
+            break;
+        case 'usuario_registrado':
+            enviar_email_bienvenida($payload['user_id']);
+            break;
+    }
+}
+```
+
+## Hooks de Assets
+
+### Modificación de Assets
+
+```php
+// Hook para modificar tags de script antes de imprimir
+add_filter('script_loader_tag', 'modificar_script_tags', 10, 2);
+
+function modificar_script_tags($tag, $handle) {
+    // Modificar solo scripts de Glory
+    if (strpos($handle, 'glory-') === 0) {
+        // Agregar atributos personalizados
+        $tag = str_replace('<script ', '<script data-glory="true" ', $tag);
+    }
+    return $tag;
+}
+
+// Hook para modificar tags de CSS
+add_filter('style_loader_tag', 'modificar_style_tags', 10, 2);
+
+function modificar_style_tags($tag, $handle) {
+    // Modificar estilos de Glory
+    if (strpos($handle, 'glory-') === 0) {
+        // Agregar atributos personalizados
+        $tag = str_replace('<link ', '<link data-glory="true" ', $tag);
+    }
+    return $tag;
+}
+```
+
+## Hooks de WordPress Extendidos
+
+### Hooks de Setup y Inicialización
+
+```php
+// Hook que se ejecuta durante la inicialización de Glory
+add_action('after_setup_theme', 'mi_setup_glory', 15); // Después de MenuManager (prioridad 20)
+
+function mi_setup_glory() {
+    // Configuraciones que requieren que Glory esté inicializado
+    // pero antes de que se complete el setup completo
+}
+
+// Hook que se ejecuta al finalizar la carga de plugins
+add_action('plugins_loaded', 'mi_plugins_loaded_glory', 15);
+
+function mi_plugins_loaded_glory() {
+    // Configuraciones que requieren que todos los plugins estén cargados
+    // pero antes de que Glory complete su inicialización
+}
+```
+
+## Mejores Prácticas para Hooks
+
+### 1. Nombres Descriptivos
+
+```php
+// ✅ Bueno
+add_action('glory_formulario_procesado', 'enviar_notificacion_admin');
+add_filter('glory_contenido_filtrado', 'aplicar_filtros_seguridad');
+
+// ❌ Evitar
+add_action('my_hook', 'my_function');
+add_filter('custom_filter', 'custom_func');
+```
+
+### 2. Validación y Sanitización
+
+```php
+add_action('wp_ajax_mi_accion_personalizada', 'procesar_accion_personalizada');
+
+function procesar_accion_personalizada() {
+    // Validar nonce
+    if (!wp_verify_nonce($_POST['nonce'], 'mi_accion_nonce')) {
+        wp_send_json_error(['mensaje' => 'Nonce inválido']);
+        return;
+    }
+
+    // Sanitizar datos
+    $user_id = intval($_POST['user_id'] ?? 0);
+    $accion = sanitize_text_field($_POST['accion'] ?? '');
+
+    // Validar permisos
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['mensaje' => 'Permisos insuficientes']);
+        return;
+    }
+
+    // Procesar
+    $resultado = procesar_accion_segura($user_id, $accion);
+    wp_send_json_success($resultado);
+}
+```
+
+### 3. Manejo de Errores
+
+```php
+add_filter('glory_mi_filtro', 'mi_funcion_filtro');
+
+function mi_funcion_filtro($valor) {
+    try {
+        // Lógica que puede fallar
+        $resultado = procesar_valor($valor);
+
+        // Loggear éxito si es relevante
+        GloryLogger::info('Filtro procesado exitosamente', [
+            'filtro' => 'glory_mi_filtro',
+            'valor_original' => $valor
+        ]);
+
+        return $resultado;
+    } catch (Exception $e) {
+        // Loggear error
+        GloryLogger::error('Error en filtro personalizado', [
+            'filtro' => 'glory_mi_filtro',
+            'error' => $e->getMessage(),
+            'valor' => $valor
+        ]);
+
+        // Retornar valor original como fallback
+        return $valor;
+    }
+}
+```
+
+### 4. Prioridades Adecuadas
+
+```php
+// Ejecutar temprano en el proceso
+add_action('wp_loaded', 'mi_inicializacion_temprana', 5);
+
+// Ejecutar después de Glory pero antes de otros plugins
+add_action('after_setup_theme', 'mi_configuracion_glory', 15);
+
+// Ejecutar muy tarde para sobrescribir otros
+add_filter('glory_mi_filtro', 'mi_sobrescritura_final', 999);
+```
+
+### 5. Documentación
+
+```php
+/**
+ * Filtra el contenido antes de mostrarlo
+ *
+ * @param string $contenido El contenido HTML
+ * @param int $post_id ID del post
+ * @return string Contenido filtrado
+ */
+add_filter('glory_contenido_filtrado', 'filtrar_contenido_personalizado', 10, 2);
+
+function filtrar_contenido_personalizado($contenido, $post_id) {
+    // Documentar parámetros y retorno
+    // ...
+}
+```
+
+## Lista Completa de Hooks Principales
+
+### AJAX Hooks
+- `wp_ajax_gloryFormHandler` / `wp_ajax_nopriv_gloryFormHandler`
+- `wp_ajax_glory_pagination` / `wp_ajax_nopriv_glory_pagination`
+- `wp_ajax_glory_content_action` / `wp_ajax_nopriv_glory_content_action`
+- `wp_ajax_glory_realtime_versions` / `wp_ajax_nopriv_glory_realtime_versions`
+- `wp_ajax_glory_generar_css_critico`
+- `wp_ajax_glory_limpiar_css_critico`
+- `wp_ajax_create_glory_link`
+- `wp_ajax_update_glory_link`
+- `wp_ajax_create_glory_header`
+- `wp_ajax_update_glory_header`
+
+### Filtros
+- `glory_busqueda_imagen_post`
+- `glory_opcion_manager_registry`
+- `script_loader_tag` (extendido)
+- `style_loader_tag` (extendido)
+
+### Acciones Personalizadas
+- `glory_opcion_registered`
+- `glory_generate_critical_css_event`
+- `save_post_glory_link`
+- `save_post_glory_header`
+
+### Acciones WordPress Extendidas
+- `manage_glory_link_posts_columns`
+- `manage_glory_link_posts_custom_column`
+- `manage_glory_header_posts_columns`
+- `manage_glory_header_posts_custom_column`
+
+<Aside type="tip">
+Los hooks de Glory están diseñados para ser extensibles y seguros. Siempre valida y sanitiza los datos, maneja errores apropiadamente y documenta tus implementaciones personalizadas.
+</Aside>

@@ -91,6 +91,12 @@ export default defineConfig({
                         'administracion/seo-metabox',
                         'administracion/page-content-mode-metabox'
                     ]
+                },
+                {
+                    label: 'Desarrollo',
+                    items: [
+                        'desarrollo/eventos-hooks'
+                    ]
                 }
             ],
             customCss: [

@@ -1,0 +1,492 @@
+---
+title: GloryImage
+description: Gestión avanzada de imágenes con optimización automática, responsive design y CDN integrada
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+## GloryImage
+
+El componente `GloryImage` proporciona una solución completa para la gestión y renderizado de imágenes en WordPress, con optimización automática, soporte responsive y integración con CDN de Jetpack Photon.
+
+### Características principales
+
+- **Optimización automática** con Jetpack Photon CDN
+- **Múltiples fuentes** (attachment ID o URL directa)
+- **Responsive design** con aspect ratio y object fit
+- **Lazy loading** integrado para performance
+- **Estilos CSS avanzados** (alineación, tamaños, títulos)
+- **Sanitización completa** para seguridad
+- **Alt text automático** desde metadatos de WordPress
+
+### Parámetros de configuración
+
+#### Fuentes de imagen
+- `attachment_id` (int): ID del attachment de WordPress
+- `image_url` (string): URL directa de la imagen
+- `image_size` (string): Tamaño de imagen de WordPress ('full', 'large', 'medium', etc.)
+
+#### Optimización
+- `quality` (int): Calidad de compresión (1-100, defecto: 70)
+- `strip` (string): Metadatos a remover ('all' por defecto)
+
+#### Estilos y layout
+- `aspect_ratio` (string): Relación de aspecto CSS (ej: '16/9', '4/3')
+- `object_fit` (string): Comportamiento del object-fit ('cover', 'contain', 'fill', etc.)
+- `height` (string): Altura CSS específica
+- `min_width` (string): Ancho mínimo CSS
+- `full_width` (string): Ancho completo ('yes'/'no', defecto: 'no')
+- `align` (string): Alineación ('left', 'right', 'center', 'none')
+
+#### Contenido adicional
+- `alt` (string): Texto alternativo (auto-generado si está vacío)
+- `title_text` (string): Texto del título a mostrar
+- `show_title` (string): Mostrar título ('yes'/'no')
+- `instance_class` (string): Clase CSS adicional única
+
+### Uso básico
+
+```php
+<?php
+use Glory\Components\GloryImage;
+
+// Desde attachment ID
+echo GloryImage::render([
+    'attachment_id' => 123,
+    'image_size' => 'large'
+]);
+
+// Desde URL directa
+echo GloryImage::render([
+    'image_url' => 'https://ejemplo.com/imagen.jpg',
+    'alt' => 'Descripción de la imagen'
+]);
+?>
+```
+
+### Ejemplos avanzados
+
+#### Imagen responsive con aspect ratio
+
+```php
+<?php
+// Imagen 16:9 con object-fit cover
+echo GloryImage::render([
+    'attachment_id' => 456,
+    'aspect_ratio' => '16/9',
+    'object_fit' => 'cover',
+    'alt' => 'Imagen panorámica'
+]);
+?>
+```
+
+#### Imagen con título y alineación
+
+```php
+<?php
+// Imagen centrada con título
+echo GloryImage::render([
+    'attachment_id' => 789,
+    'align' => 'center',
+    'title_text' => 'Fotografía principal',
+    'show_title' => 'yes',
+    'full_width' => 'yes'
+]);
+?>
+```
+
+#### Galería de imágenes optimizadas
+
+```php
+<?php
+$imagenes = [123, 456, 789];
+
+echo '<div class="galeria-imagenes">';
+foreach ($imagenes as $attachmentId) {
+    echo GloryImage::render([
+        'attachment_id' => $attachmentId,
+        'image_size' => 'medium',
+        'aspect_ratio' => '1/1', // Cuadradas
+        'object_fit' => 'cover',
+        'instance_class' => 'galeria-item'
+    ]);
+}
+echo '</div>';
+?>
+```
+
+### Optimización automática
+
+GloryImage optimiza automáticamente las imágenes usando Jetpack Photon cuando está disponible:
+
+```php
+<?php
+// Optimización de calidad personalizada
+echo GloryImage::render([
+    'attachment_id' => 123,
+    'quality' => 85, // Mayor calidad que el defecto (70)
+    'image_size' => 'full'
+]);
+?>
+```
+
+### Estructura HTML generada
+
+```html
+<!-- Imagen básica -->
+<div class="glory-image glory-image-abc123def" style="text-align:center;">
+    <img class="glory-image__image"
+         src="https://i0.wp.com/sitio.com/wp-content/uploads/imagen.jpg?quality=70&amp;strip=all&amp;resize=800%2C600"
+         alt="Texto alternativo descriptivo"
+         loading="lazy"
+         style="max-width:100%; aspect-ratio:16/9; object-fit:cover; height:auto;" />
+</div>
+
+<!-- Con título -->
+<div class="glory-image glory-image-def456ghi">
+    <img class="glory-image__image" src="..." alt="..." loading="lazy" style="..." />
+    <div class="glory-image__title">Título de la imagen</div>
+</div>
+```
+
+### Estilos CSS recomendados
+
+```css
+/* Contenedor principal */
+.glory-image {
+    display: inline-block;
+    max-width: 100%;
+    margin-bottom: 1rem;
+}
+
+/* Imagen */
+.glory-image__image {
+    display: block;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.glory-image__image:hover {
+    transform: scale(1.02);
+}
+
+/* Título */
+.glory-image__title {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Alineaciones */
+.glory-image[style*="text-align:left"] {
+    float: left;
+    margin-right: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.glory-image[style*="text-align:right"] {
+    float: right;
+    margin-left: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.glory-image[style*="text-align:center"] {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Galerías */
+.galeria-imagenes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.galeria-item {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.galeria-item:hover .glory-image__image {
+    transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .galeria-imagenes {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .glory-image[style*="text-align:left"],
+    .glory-image[style*="text-align:right"] {
+        float: none;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* Estados de carga */
+.glory-image__image[loading="lazy"] {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.glory-image__image[loading="lazy"].loaded {
+    opacity: 1;
+}
+```
+
+### JavaScript para mejoras
+
+```javascript
+// Lazy loading mejorado y efectos
+document.addEventListener('DOMContentLoaded', function() {
+    const gloryImages = document.querySelectorAll('.glory-image__image[loading="lazy"]');
+
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.classList.add('loaded');
+                observer.unobserve(img);
+            }
+        });
+    });
+
+    gloryImages.forEach(img => {
+        imageObserver.observe(img);
+    });
+
+    // Efectos hover para galerías
+    const galleryItems = document.querySelectorAll('.galeria-item');
+    galleryItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        });
+
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        });
+    });
+});
+```
+
+### Integración con WordPress
+
+#### Uso en themes
+
+```php
+<?php
+// En functions.php - helper function
+function mostrar_imagen_destacada($postId = null, $config = []) {
+    $postId = $postId ?? get_the_ID();
+    $thumbnailId = get_post_thumbnail_id($postId);
+
+    if (!$thumbnailId) {
+        return '';
+    }
+
+    $defaultConfig = [
+        'attachment_id' => $thumbnailId,
+        'image_size' => 'large',
+        'aspect_ratio' => '16/9',
+        'object_fit' => 'cover',
+        'alt' => get_the_title($postId)
+    ];
+
+    return GloryImage::render(array_merge($defaultConfig, $config));
+}
+
+// En template
+echo mostrar_imagen_destacada();
+?>
+```
+
+#### ACF Integration
+
+```php
+<?php
+// Para campos de imagen de ACF
+function render_acf_image($fieldName, $config = []) {
+    $image = get_field($fieldName);
+
+    if (!$image) {
+        return '';
+    }
+
+    // ACF puede retornar array o ID
+    $attachmentId = is_array($image) ? $image['ID'] : $image;
+
+    $defaultConfig = [
+        'attachment_id' => $attachmentId,
+        'image_size' => 'large',
+        'alt' => is_array($image) ? ($image['alt'] ?? '') : ''
+    ];
+
+    return GloryImage::render(array_merge($defaultConfig, $config));
+}
+
+// Uso
+echo render_acf_image('imagen_principal', [
+    'aspect_ratio' => '4/3',
+    'show_title' => 'yes',
+    'title_text' => get_field('titulo_imagen')
+]);
+?>
+```
+
+### Consideraciones de performance
+
+- **Lazy loading automático** reduce carga inicial
+- **Optimización CDN** cuando Jetpack está activo
+- **Compresión inteligente** (70% calidad por defecto)
+- **Strip de metadatos** reduce tamaño de archivo
+- **Resize automático** según tamaño solicitado
+
+### Casos de uso comunes
+
+#### Hero images
+
+```php
+<?php
+// Imagen principal de página
+echo GloryImage::render([
+    'attachment_id' => get_post_thumbnail_id(),
+    'image_size' => 'full',
+    'full_width' => 'yes',
+    'aspect_ratio' => '21/9', // Formato cine
+    'object_fit' => 'cover',
+    'height' => '60vh',
+    'alt' => get_the_title()
+]);
+?>
+```
+
+#### Avatares de usuario
+
+```php
+<?php
+function get_user_avatar_glory($userId, $size = 100) {
+    $avatarUrl = get_avatar_url($userId, ['size' => $size]);
+
+    if (!$avatarUrl) {
+        return '';
+    }
+
+    return GloryImage::render([
+        'image_url' => $avatarUrl,
+        'aspect_ratio' => '1/1', // Cuadrado
+        'object_fit' => 'cover',
+        'min_width' => $size . 'px',
+        'height' => $size . 'px',
+        'alt' => 'Avatar de ' . get_the_author_meta('display_name', $userId),
+        'instance_class' => 'user-avatar'
+    ]);
+}
+
+echo get_user_avatar_glory(get_current_user_id());
+?>
+```
+
+#### Carrusel de imágenes
+
+```php
+<?php
+$imagenesCarrusel = get_post_meta(get_the_ID(), 'galeria_imagenes', true);
+
+if ($imagenesCarrusel) {
+    echo '<div class="carrusel-imagenes">';
+    foreach ($imagenesCarrusel as $attachmentId) {
+        echo GloryImage::render([
+            'attachment_id' => $attachmentId,
+            'aspect_ratio' => '16/10',
+            'object_fit' => 'cover',
+            'instance_class' => 'carrusel-slide'
+        ]);
+    }
+    echo '</div>';
+}
+?>
+```
+
+### Solución de problemas
+
+#### Imagen no aparece
+
+```php
+<?php
+// Verificar que existe el attachment
+$attachmentId = 123;
+if (wp_get_attachment_image_src($attachmentId, 'full')) {
+    echo GloryImage::render(['attachment_id' => $attachmentId]);
+} else {
+    echo '<p>Imagen no encontrada</p>';
+}
+?>
+```
+
+#### Problemas de optimización
+
+```php
+<?php
+// Desactivar optimización si causa problemas
+add_filter('jetpack_photon_skip_image', function($skip, $image_url) {
+    // Lógica para determinar cuándo saltar optimización
+    return $skip;
+}, 10, 2);
+?>
+```
+
+#### Alt text vacío
+
+```php
+<?php
+// Forzar alt text personalizado
+echo GloryImage::render([
+    'attachment_id' => $id,
+    'alt' => 'Descripción alternativa obligatoria'
+]);
+?>
+```
+
+### Mejores prácticas
+
+1. **Usa attachment IDs** cuando sea posible para metadatos automáticos
+2. **Configura alt texts descriptivos** para accesibilidad
+3. **Aprovecha aspect ratios** para layouts consistentes
+4. **Optimiza tamaños** según uso (thumbnails, hero images, etc.)
+5. **Considera lazy loading** para galerías grandes
+6. **Prueba diferentes calidades** según tipo de imagen
+
+### Comparación con funciones nativas
+
+```php
+<?php
+// ❌ wp_get_attachment_image() - limitado
+echo wp_get_attachment_image(123, 'large', false, [
+    'class' => 'mi-imagen',
+    'alt' => 'Texto alternativo'
+]);
+
+// ✅ GloryImage - optimización completa
+echo GloryImage::render([
+    'attachment_id' => 123,
+    'image_size' => 'large',
+    'aspect_ratio' => '16/9',
+    'object_fit' => 'cover',
+    'quality' => 85,
+    'show_title' => 'yes',
+    'title_text' => get_the_title(123)
+]);
+?>
+```
+
+GloryImage combina la simplicidad de uso con características avanzadas de optimización y diseño responsive, convirtiéndolo en la solución ideal para gestión de imágenes en proyectos WordPress modernos.

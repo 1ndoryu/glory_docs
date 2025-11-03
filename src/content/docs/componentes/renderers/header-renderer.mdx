@@ -1,0 +1,165 @@
+---
+title: HeaderRenderer
+description: Componente para renderizar headers dinámicos con navegación responsive y compatibilidad con Avada
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+## HeaderRenderer
+
+El componente `HeaderRenderer` proporciona un sistema completo para renderizar headers dinámicos con navegación responsive, compatible con diferentes temas y con integración especial para Avada.
+
+### Características principales
+
+- **Navegación responsive** con menú hamburguesa
+- **Múltiples modos de logo** (imagen, texto, ninguno)
+- **Integración con Avada** automática
+- **Compatibilidad con MenuWalker** personalizado
+- **Soporte para ThemeToggle** (comentado por defecto)
+
+### Parámetros de configuración
+
+```php
+$config = [
+    'modoLogo'     => 'image',        // 'image', 'text', 'none', 'default'
+    'textoLogo'    => 'Mi Sitio',     // Texto alternativo para el logo
+    'logoImageId'  => 123,            // ID de la imagen del logo
+    'idMenu'       => 'mainMenu',     // ID del menú de navegación
+    'claseHeader'  => 'mi-header'     // Clases CSS adicionales
+];
+```
+
+### Uso básico
+
+```php
+<?php
+use Glory\Components\HeaderRenderer;
+
+// Renderizar header con configuración por defecto
+HeaderRenderer::render();
+
+// Renderizar header con configuración personalizada
+HeaderRenderer::render([
+    'modoLogo' => 'text',
+    'textoLogo' => 'Mi Aplicación',
+    'claseHeader' => 'header-personalizado'
+]);
+?>
+```
+
+### Modos de logo
+
+#### Modo 'image' (por defecto)
+Renderiza el logo usando el componente `LogoRenderer` con imagen.
+
+#### Modo 'text'
+Muestra el texto del sitio como logo, útil para diseños minimalistas.
+
+```php
+HeaderRenderer::render([
+    'modoLogo' => 'text',
+    'textoLogo' => 'Mi Marca'
+]);
+```
+
+#### Modo 'none'
+Oculta completamente el logo, útil para páginas específicas.
+
+```php
+HeaderRenderer::render([
+    'modoLogo' => 'none'
+]);
+```
+
+#### Modo 'default' (Avada)
+Modo especial cuando Avada está activo, usa la configuración nativa de Avada.
+
+### Estructura HTML generada
+
+```html
+<header class="siteMenuW header-logo-text-mode" role="banner">
+    <div class="siteMenuContainer">
+        <div class="siteMenuLogo">
+            <!-- Logo renderizado por LogoRenderer -->
+        </div>
+
+        <nav class="siteMenuNav" role="navigation">
+            <div class="navTitle">Navigation</div>
+            <ul id="mainMenu" class="menu menu-level-1">
+                <!-- Items del menú -->
+            </ul>
+        </nav>
+
+        <button aria-label="Toggle menu" class="burger" type="button">
+            <span></span>
+            <span></span>
+        </button>
+
+        <button class="background" aria-label="Close menu"></button>
+    </div>
+</header>
+```
+
+### Dependencias
+
+- **GloryFeatures**: Para verificar si el menú está activo
+- **LogoRenderer**: Para renderizar el logo
+- **MenuWalker**: Para navegación personalizada
+- **Compatibility**: Para integración con Avada
+
+### Consideraciones de accesibilidad
+
+- Rol `banner` en el header
+- Rol `navigation` en el nav
+- Etiquetas `aria-label` en botones
+- Navegación por teclado soportada
+
+### Integración con Avada
+
+El componente detecta automáticamente si Avada está activo y ajusta su comportamiento:
+
+- Usa modo 'default' cuando Avada está presente
+- Se integra con el sistema de navegación de Avada
+- Mantiene compatibilidad con configuraciones existentes
+
+### CSS personalizado
+
+Para personalizar el aspecto visual, puedes añadir clases CSS adicionales:
+
+```php
+HeaderRenderer::render([
+    'claseHeader' => 'header-sticky header-transparent'
+]);
+```
+
+### Ejemplo completo
+
+```php
+<?php
+// En functions.php o archivo de configuración
+function render_custom_header() {
+    HeaderRenderer::render([
+        'modoLogo' => 'image',
+        'idMenu' => 'primary-navigation',
+        'claseHeader' => 'header-main'
+    ]);
+}
+
+// En template
+render_custom_header();
+?>
+```
+
+### Solución de problemas
+
+#### El menú no aparece
+- Verifica que la ubicación del menú `main_navigation` esté registrada
+- Confirma que `GloryFeatures::isActive('menu')` retorne `true`
+
+#### Logo no se muestra
+- Verifica la configuración en `LogoRenderer`
+- Confirma que el modo de logo sea válido
+
+#### Conflicto con Avada
+- El componente es compatible con Avada por defecto
+- Si hay conflictos, usa el modo 'default'

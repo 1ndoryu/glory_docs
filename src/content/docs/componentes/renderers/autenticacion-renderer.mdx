@@ -1,0 +1,355 @@
+---
+title: AutenticacionRenderer
+description: Sistema completo de autenticación con formularios de login y registro integrados
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+## AutenticacionRenderer
+
+El componente `AutenticacionRenderer` proporciona un sistema completo de autenticación que incluye formularios de login y enlaces de registro, manteniendo la compatibilidad con el sistema nativo de WordPress.
+
+### Características principales
+
+- **Formulario de login nativo** de WordPress con validación automática
+- **Sistema de redirección** configurable tras login
+- **Opción "Recuérdame"** personalizable
+- **Enlaces de registro** seguros y agnósticos
+- **Compatibilidad con accesibilidad** y estándares web
+- **Componente completamente agnóstico** del tema
+
+### Métodos disponibles
+
+#### renderLogin(array $opciones = []): string
+
+Renderiza un formulario completo de inicio de sesión.
+
+**Parámetros:**
+- `redirectTo` (string): URL de redirección tras login exitoso. Por defecto: home_url('/')
+- `mostrarRecordarme` (bool): Mostrar checkbox "Recuérdame". Por defecto: true
+- `claseWrapper` (string): Clases CSS adicionales para el contenedor
+
+**Retorna:** HTML del formulario como string
+
+#### renderRegistroEnlace(string $texto = 'Crear cuenta'): string
+
+Renderiza un enlace seguro al formulario de registro de WordPress.
+
+**Parámetros:**
+- `texto` (string): Texto del enlace. Por defecto: 'Crear cuenta'
+
+**Retorna:** HTML del enlace como string (o vacío si registro está deshabilitado)
+
+### Uso básico
+
+```php
+<?php
+use Glory\Components\AutenticacionRenderer;
+
+// Formulario de login simple
+echo AutenticacionRenderer::renderLogin();
+
+// Formulario con opciones personalizadas
+echo AutenticacionRenderer::renderLogin([
+    'redirectTo' => '/dashboard',
+    'mostrarRecordarme' => false,
+    'claseWrapper' => 'login-form-custom'
+]);
+
+// Enlace de registro
+echo AutenticacionRenderer::renderRegistroEnlace('Regístrate aquí');
+?>
+```
+
+### Ejemplos avanzados
+
+#### Formulario de login con redirección personalizada
+
+```php
+<?php
+// Redirigir a la página actual tras login
+$currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http")
+              . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+
+echo AutenticacionRenderer::renderLogin([
+    'redirectTo' => $currentUrl,
+    'claseWrapper' => 'login-modal'
+]);
+?>
+```
+
+#### Formulario integrado en template
+
+```php
+<?php
+// En tu archivo de template (page-login.php, etc.)
+get_header();
+
+if (!is_user_logged_in()) {
+    echo '<div class="login-container">';
+    echo '<h2>Iniciar Sesión</h2>';
+
+    echo AutenticacionRenderer::renderLogin([
+        'redirectTo' => home_url('/dashboard'),
+        'claseWrapper' => 'login-page-form'
+    ]);
+
+    echo '<div class="registro-section">';
+    echo '<p>¿No tienes cuenta?</p>';
+    echo AutenticacionRenderer::renderRegistroEnlace('Crear cuenta nueva');
+    echo '</div>';
+
+    echo '</div>';
+} else {
+    echo '<p>Ya estás conectado. <a href="' . wp_logout_url() . '">Cerrar sesión</a></p>';
+}
+
+get_footer();
+?>
+```
+
+### Estructura HTML generada
+
+#### Formulario de login
+
+```html
+<div class="gloryAuthForm custom-class">
+    <form method="post" action="https://sitio.com/wp-login.php" class="gloryForm formularioLogin">
+        <div class="formCampo">
+            <label for="user_login" class="etiquetaCampo">Usuario o email</label>
+            <input type="text" name="log" id="user_login" required autocomplete="username" />
+        </div>
+        <div class="formCampo">
+            <label for="user_pass" class="etiquetaCampo">Contraseña</label>
+            <input type="password" name="pwd" id="user_pass" required autocomplete="current-password" />
+        </div>
+        <div class="formCampo">
+            <label for="rememberme" class="etiquetaCheckbox" style="font-weight:400; display:flex; gap:10px; align-items:center;">
+                <input type="checkbox" name="rememberme" id="rememberme" value="forever" />
+                Recuérdame
+            </label>
+        </div>
+        <input type="hidden" name="redirect_to" value="https://sitio.com/" />
+        <button type="submit" class="button button-primary" style="margin-top:10px;">Iniciar sesión</button>
+    </form>
+</div>
+```
+
+#### Enlace de registro
+
+```html
+<div class="gloryAuthRegistro">
+    <a class="button" href="https://sitio.com/wp-login.php?action=register">Crear cuenta</a>
+</div>
+```
+
+### Consideraciones de seguridad
+
+- **Campos sanitizados** con `esc_attr()`, `esc_url()`, `esc_html()`
+- **Autocompletado HTML5** configurado correctamente
+- **Campos required** para validación básica
+- **URLs de redirección** validadas
+- **Compatible con WordPress nonces** (se puede extender)
+
+### Estilos CSS recomendados
+
+```css
+/* Contenedor principal */
+.gloryAuthForm {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+/* Campos del formulario */
+.formCampo {
+    margin-bottom: 15px;
+}
+
+.etiquetaCampo {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.formCampo input[type="text"],
+.formCampo input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Checkbox "Recuérdame" */
+.etiquetaCheckbox {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Botón de submit */
+.button-primary {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.button-primary:hover {
+    background: #005a87;
+}
+
+/* Enlace de registro */
+.gloryAuthRegistro {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.gloryAuthRegistro .button {
+    background: #28a745;
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.gloryAuthRegistro .button:hover {
+    background: #218838;
+}
+```
+
+### Integración con JavaScript
+
+```javascript
+// Validación adicional del formulario (opcional)
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.querySelector('.formularioLogin');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            const username = document.getElementById('user_login').value;
+            const password = document.getElementById('user_pass').value;
+
+            if (!username || !password) {
+                e.preventDefault();
+                alert('Por favor, completa todos los campos.');
+                return false;
+            }
+        });
+    }
+});
+```
+
+### Solución de problemas
+
+#### El formulario no aparece
+```php
+// Verificar si el usuario ya está logueado
+if (is_user_logged_in()) {
+    echo 'Usuario ya conectado';
+} else {
+    echo AutenticacionRenderer::renderLogin();
+}
+```
+
+#### Redirección no funciona
+```php
+// Asegurar que la URL de redirección sea válida
+$redirectUrl = filter_var($_GET['redirect_to'] ?? home_url('/'), FILTER_SANITIZE_URL);
+echo AutenticacionRenderer::renderLogin(['redirectTo' => $redirectUrl]);
+```
+
+#### Registro deshabilitado
+```php
+// Verificar si el registro está habilitado
+if (get_option('users_can_register')) {
+    echo AutenticacionRenderer::renderRegistroEnlace();
+} else {
+    echo '<p>El registro está deshabilitado en este sitio.</p>';
+}
+```
+
+### Casos de uso comunes
+
+#### Página de login dedicada
+```php
+<?php
+/*
+Template Name: Login Page
+*/
+
+get_header();
+?>
+
+<div class="login-page-wrapper">
+    <div class="login-form-container">
+        <h1>Iniciar Sesión</h1>
+        <?php echo AutenticacionRenderer::renderLogin(['redirectTo' => home_url('/dashboard')]); ?>
+
+        <div class="additional-links">
+            <?php echo AutenticacionRenderer::renderRegistroEnlace(); ?>
+            <a href="<?php echo wp_lostpassword_url(); ?>">¿Olvidaste tu contraseña?</a>
+        </div>
+    </div>
+</div>
+
+<?php get_footer(); ?>
+```
+
+#### Modal de login
+```php
+<?php
+// En tu header o footer
+?>
+<div id="loginModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Iniciar Sesión</h2>
+        <?php echo AutenticacionRenderer::renderLogin([
+            'claseWrapper' => 'modal-form',
+            'redirectTo' => isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : home_url('/')
+        ]); ?>
+    </div>
+</div>
+```
+
+#### Integración con AJAX (usando gloryAjax)
+```php
+<?php
+// El formulario funciona nativamente, pero puedes extenderlo con AJAX
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.querySelector('.formularioLogin');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            // Usar gloryAjax para envío AJAX
+            gloryAjax({
+                action: 'custom_login_handler',
+                data: Object.fromEntries(formData),
+                success: function(response) {
+                    if (response.success) {
+                        window.location.href = response.data.redirect_to;
+                    } else {
+                        alert(response.data.message || 'Error en el login');
+                    }
+                },
+                error: function() {
+                    alert('Error de conexión');
+                }
+            });
+        });
+    }
+});
+</script>
+```

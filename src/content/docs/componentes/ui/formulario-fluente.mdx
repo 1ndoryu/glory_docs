@@ -1,0 +1,588 @@
+---
+title: FormularioFluente
+description: Constructor fluido de formularios con API intuitiva para desarrollo ágil
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+## FormularioFluente
+
+El componente `FormularioFluente` implementa el patrón Builder/Fluent API para construir formularios de manera elegante y mantenible. Permite combinar diferentes tipos de elementos (campos de FormBuilder, HTML personalizado, funciones) en una sola estructura fluida.
+
+### Características principales
+
+- **API fluida intuitiva** con encadenamiento de métodos
+- **Integración completa con FormBuilder** para campos reutilizables
+- **Múltiples formas de agregar contenido** (HTML, funciones, configuración)
+- **Construcción desde arrays** para configuraciones complejas
+- **Conversión automática a string** para uso directo en templates
+- **Código mantenible y testeable**
+
+### Métodos disponibles
+
+#### agregar(string $fn, ?array $args = null): self
+
+Agrega un elemento llamando a un método de FormBuilder.
+
+**Parámetros:**
+- `$fn` (string): Nombre del método de FormBuilder a llamar
+- `$args` (array|null): Argumentos para pasar al método de FormBuilder
+
+**Retorna:** Instancia de FormularioFluente para encadenamiento
+
+#### agregarRaw(string $html): self
+
+Agrega HTML sin procesar directamente.
+
+**Parámetros:**
+- `$html` (string): HTML a insertar tal cual
+
+**Retorna:** Instancia de FormularioFluente para encadenamiento
+
+#### agregarCallable(callable $callable): self
+
+Agrega el resultado de ejecutar una función o closure.
+
+**Parámetros:**
+- `$callable` (callable): Función que retorna el contenido a agregar
+
+**Retorna:** Instancia de FormularioFluente para encadenamiento
+
+#### agregarDesdeConfig(array $config): self
+
+Construye el formulario desde una configuración estructurada.
+
+**Parámetros:**
+- `$config` (array): Array de elementos a procesar
+
+**Retorna:** Instancia de FormularioFluente para encadenamiento
+
+#### renderizar(): string
+
+Genera y retorna el HTML completo del formulario.
+
+**Retorna:** HTML del formulario como string
+
+### Uso básico
+
+```php
+<?php
+use Glory\Components\FormularioFluente;
+
+// Crear instancia
+$form = new FormularioFluente();
+
+// Agregar elementos con API fluida
+$html = $form
+    ->agregar('campoTexto', ['name' => 'titulo', 'label' => 'Título'])
+    ->agregar('campoEmail', ['name' => 'email', 'label' => 'Email'])
+    ->agregar('botonSubmit', ['texto' => 'Enviar'])
+    ->renderizar();
+
+echo $html;
+?>
+```
+
+### Configuración estructurada
+
+```php
+<?php
+$config = [
+    // Campos usando FormBuilder
+    ['fn' => 'campoTexto', 'args' => ['name' => 'nombre', 'label' => 'Nombre']],
+    ['fn' => 'campoEmail', 'args' => ['name' => 'email', 'label' => 'Email']],
+
+    // HTML personalizado
+    ['raw' => '<div class="form-section"><h3>Datos adicionales</h3></div>'],
+
+    // Funciones personalizadas
+    ['callable' => function() {
+        return '<div class="info">Complete todos los campos</div>';
+    }],
+
+    // Elementos como string directo
+    '<input type="hidden" name="form_id" value="123">',
+
+    // Botón de envío
+    ['fn' => 'botonSubmit', 'args' => ['texto' => 'Guardar cambios']]
+];
+
+$form = new FormularioFluente();
+echo $form->agregarDesdeConfig($config)->renderizar();
+?>
+```
+
+### Ejemplos avanzados
+
+#### Formulario de contacto completo
+
+```php
+<?php
+$formularioContacto = new FormularioFluente();
+
+echo $formularioContacto
+    ->agregarRaw('<div class="contact-form">')
+    ->agregar('campoTexto', [
+        'name' => 'nombre',
+        'label' => 'Nombre completo',
+        'required' => true
+    ])
+    ->agregar('campoEmail', [
+        'name' => 'email',
+        'label' => 'Correo electrónico',
+        'required' => true
+    ])
+    ->agregar('campoTextarea', [
+        'name' => 'mensaje',
+        'label' => 'Mensaje',
+        'placeholder' => 'Escriba su mensaje aquí...',
+        'required' => true
+    ])
+    ->agregarCallable(function() {
+        return '<div class="privacy-notice">
+            <label>
+                <input type="checkbox" name="privacy" required>
+                Acepto la política de privacidad
+            </label>
+        </div>';
+    })
+    ->agregar('botonSubmit', [
+        'texto' => 'Enviar mensaje',
+        'class' => 'btn btn-primary btn-lg'
+    ])
+    ->agregarRaw('</div>')
+    ->renderizar();
+?>
+```
+
+#### Formulario de registro con validación
+
+```php
+<?php
+function renderRegistroForm(): string {
+    $config = [
+        ['fn' => 'campoTexto', 'args' => [
+            'name' => 'username',
+            'label' => 'Nombre de usuario',
+            'required' => true,
+            'minlength' => 3
+        ]],
+        ['fn' => 'campoEmail', 'args' => [
+            'name' => 'email',
+            'label' => 'Correo electrónico',
+            'required' => true
+        ]],
+        ['fn' => 'campoPassword', 'args' => [
+            'name' => 'password',
+            'label' => 'Contraseña',
+            'required' => true,
+            'minlength' => 8
+        ]],
+        ['fn' => 'campoPassword', 'args' => [
+            'name' => 'password_confirm',
+            'label' => 'Confirmar contraseña',
+            'required' => true
+        ]],
+        ['callable' => function() {
+            return '<div class="terms">
+                <label>
+                    <input type="checkbox" name="terms" required>
+                    Acepto los términos y condiciones
+                </label>
+            </div>';
+        }],
+        ['fn' => 'botonSubmit', 'args' => [
+            'texto' => 'Crear cuenta',
+            'class' => 'btn btn-success'
+        ]]
+    ];
+
+    return (new FormularioFluente())->agregarDesdeConfig($config)->renderizar();
+}
+
+echo '<form method="post" action="/registro">' . renderRegistroForm() . '</form>';
+?>
+```
+
+#### Sistema de formularios reutilizables
+
+```php
+<?php
+class FormulariosComunes {
+    public static function formularioContacto(): FormularioFluente {
+        return (new FormularioFluente())
+            ->agregar('campoTexto', ['name' => 'nombre', 'label' => 'Nombre'])
+            ->agregar('campoEmail', ['name' => 'email', 'label' => 'Email'])
+            ->agregar('campoTextarea', ['name' => 'mensaje', 'label' => 'Mensaje'])
+            ->agregar('botonSubmit', ['texto' => 'Enviar']);
+    }
+
+    public static function formularioBusqueda(): FormularioFluente {
+        return (new FormularioFluente())
+            ->agregarRaw('<div class="search-form">')
+            ->agregar('campoTexto', [
+                'name' => 'q',
+                'placeholder' => 'Buscar...',
+                'class' => 'search-input'
+            ])
+            ->agregar('botonSubmit', [
+                'texto' => '🔍',
+                'class' => 'search-btn'
+            ])
+            ->agregarRaw('</div>');
+    }
+}
+
+// Uso
+echo '<div class="contact-section">';
+echo FormulariosComunes::formularioContacto()->renderizar();
+echo '</div>';
+
+echo '<div class="search-section">';
+echo FormulariosComunes::formularioBusqueda()->renderizar();
+echo '</div>';
+?>
+```
+
+### Conversión automática a string
+
+```php
+<?php
+$form = new FormularioFluente()
+    ->agregar('campoTexto', ['name' => 'titulo'])
+    ->agregar('botonSubmit', ['texto' => 'Guardar']);
+
+// Uso directo como string (llama automáticamente a __toString)
+echo $form; // Equivalente a $form->renderizar()
+
+// En contextos que esperan strings
+$templatingData = [
+    'form_html' => $form, // Se convierte automáticamente
+    'title' => 'Mi página'
+];
+
+// Dentro de funciones que retornan HTML
+function getForm(): string {
+    return new FormularioFluente()
+        ->agregar('campoTexto', ['name' => 'input'])
+        ->agregar('botonSubmit', ['texto' => 'Submit']);
+}
+?>
+```
+
+### Integración con FormBuilder
+
+FormularioFluente está diseñado para trabajar perfectamente con FormBuilder:
+
+```php
+<?php
+use Glory\Components\{FormularioFluente, FormBuilder};
+
+// Todos estos métodos están disponibles:
+$form = new FormularioFluente()
+    ->agregar('campoTexto', ['name' => 'text_field'])
+    ->agregar('campoEmail', ['name' => 'email_field'])
+    ->agregar('campoPassword', ['name' => 'pass_field'])
+    ->agregar('campoTextarea', ['name' => 'textarea_field'])
+    ->agregar('campoSelect', ['name' => 'select_field', 'options' => ['a' => 'A', 'b' => 'B']])
+    ->agregar('campoCheckbox', ['name' => 'checkbox_field'])
+    ->agregar('campoRadio', ['name' => 'radio_field', 'options' => ['yes' => 'Sí', 'no' => 'No']])
+    ->agregar('campoArchivo', ['name' => 'file_field'])
+    ->agregar('campoOculto', ['name' => 'hidden_field', 'value' => 'secret'])
+    ->agregar('botonSubmit', ['texto' => 'Enviar'])
+    ->agregar('botonReset', ['texto' => 'Limpiar']);
+
+echo $form->renderizar();
+?>
+```
+
+### Estructura HTML generada
+
+```html
+<!-- Ejemplo de formulario construido -->
+<div class="form-group">
+    <label for="titulo">Título</label>
+    <input type="text" name="titulo" id="titulo" class="form-control">
+</div>
+
+<div class="form-group">
+    <label for="email">Email</label>
+    <input type="email" name="email" id="email" class="form-control">
+</div>
+
+<div class="form-section">
+    <h3>Datos adicionales</h3>
+</div>
+
+<div class="info">Complete todos los campos</div>
+
+<input type="hidden" name="form_id" value="123">
+
+<button type="submit" class="btn btn-primary">Guardar cambios</button>
+```
+
+### Estilos CSS recomendados
+
+```css
+/* Contenedores de formulario */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-section {
+    margin: 1.5rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid #eee;
+}
+
+.form-section h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+/* Campos de formulario */
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+}
+
+/* Etiquetas */
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Botones */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #007cba;
+    color: white;
+    border-color: #007cba;
+}
+
+.btn-primary:hover {
+    background-color: #005a87;
+    border-color: #005a87;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+/* Elementos informativos */
+.info {
+    padding: 0.75rem;
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    color: #0c5460;
+    margin-bottom: 1rem;
+}
+
+.privacy-notice,
+.terms {
+    margin: 1rem 0;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+/* Formularios específicos */
+.contact-form,
+.search-form {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.search-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+}
+
+.search-btn {
+    padding: 0.5rem;
+    min-width: auto;
+}
+```
+
+### Consideraciones de rendimiento
+
+- **Construcción lazy** - el HTML se genera solo cuando se llama a `renderizar()`
+- **Encadenamiento eficiente** - no crea objetos intermedios innecesarios
+- **Memoria optimizada** - almacena partes como array simple
+- **Sin dependencias externas** - solo requiere FormBuilder
+
+### Casos de uso comunes
+
+#### Formularios dinámicos basados en configuración
+
+```php
+<?php
+// Configuración externa (JSON, base de datos, etc.)
+$formConfigs = [
+    'contacto' => [
+        ['fn' => 'campoTexto', 'args' => ['name' => 'nombre']],
+        ['fn' => 'campoEmail', 'args' => ['name' => 'email']],
+        ['fn' => 'botonSubmit', 'args' => ['texto' => 'Enviar']]
+    ],
+    'registro' => [
+        ['fn' => 'campoTexto', 'args' => ['name' => 'username']],
+        ['fn' => 'campoPassword', 'args' => ['name' => 'password']],
+        ['fn' => 'botonSubmit', 'args' => ['texto' => 'Registrarse']]
+    ]
+];
+
+function renderForm(string $tipo): string {
+    $config = $formConfigs[$tipo] ?? [];
+    return (new FormularioFluente())->agregarDesdeConfig($config)->renderizar();
+}
+
+echo '<form>' . renderForm('contacto') . '</form>';
+?>
+```
+
+#### Integración con sistemas de templates
+
+```php
+<?php
+// En un sistema de templates personalizado
+class TemplateEngine {
+    private array $data = [];
+
+    public function setForm(string $key, FormularioFluente $form): self {
+        $this->data[$key] = $form;
+        return $this;
+    }
+
+    public function render(string $template): string {
+        // Reemplaza {{form.key}} con el HTML del formulario
+        foreach ($this->data as $key => $value) {
+            if ($value instanceof FormularioFluente) {
+                $template = str_replace("{{form.$key}}", $value->renderizar(), $template);
+            }
+        }
+        return $template;
+    }
+}
+
+// Uso
+$engine = new TemplateEngine();
+$engine->setForm('login', new FormularioFluente()
+    ->agregar('campoTexto', ['name' => 'username'])
+    ->agregar('campoPassword', ['name' => 'password'])
+    ->agregar('botonSubmit', ['texto' => 'Login'])
+);
+
+$template = '<div class="login">{{form.login}}</div>';
+echo $engine->render($template);
+?>
+```
+
+### Solución de problemas
+
+#### Error: "Method does not exist in FormBuilder"
+
+```php
+// Verificar que el método existe en FormBuilder
+$form = new FormularioFluente();
+
+// ❌ Error - método no existe
+$form->agregar('campoInexistente');
+
+// ✅ Correcto - método válido
+$form->agregar('campoTexto', ['name' => 'test']);
+```
+
+#### HTML no aparece
+
+```php
+// Recordar llamar a renderizar() o usar echo directo
+$form = new FormularioFluente()
+    ->agregar('campoTexto', ['name' => 'test']);
+
+// ❌ No muestra nada
+$form;
+
+// ✅ Correcto
+echo $form->renderizar();
+// o
+echo $form;
+```
+
+#### Problemas con closures
+
+```php
+// Las closures deben retornar strings
+$form = new FormularioFluente()
+    ->agregarCallable(function() {
+        // ❌ Retorna array
+        return ['error' => 'datos'];
+
+        // ✅ Retorna string
+        return '<div>Datos procesados</div>';
+    });
+```
+
+### Mejores prácticas
+
+1. **Usa configuración estructurada** para formularios complejos
+2. **Separa lógica de presentación** manteniendo HTML en closures cuando sea necesario
+3. **Reutiliza instancias** creando métodos factory para formularios comunes
+4. **Valida configuración** antes de pasar a `agregarDesdeConfig()`
+5. **Documenta estructuras** de configuración para mantenimiento futuro
+6. **Prueba componentes** individualmente antes de integrar
+
+### Comparación con alternativas
+
+```php
+<?php
+// ❌ HTML hardcoded - difícil de mantener
+$formHtml = '
+    <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" name="nombre">
+    </div>
+    <button type="submit">Enviar</button>
+';
+
+// ✅ FormularioFluente - mantenible y reutilizable
+$form = new FormularioFluente()
+    ->agregar('campoTexto', ['name' => 'nombre', 'label' => 'Nombre'])
+    ->agregar('botonSubmit', ['texto' => 'Enviar']);
+
+echo $form; // HTML generado automáticamente
+?>
+```
+
+FormularioFluente combina la flexibilidad del HTML personalizado con la estructura y reusabilidad de los componentes, haciendo que el desarrollo de formularios sea más intuitivo y mantenible.

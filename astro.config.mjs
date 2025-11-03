@@ -57,6 +57,10 @@ export default defineConfig({
                             label: 'UI',
                             items: [
                                 'componentes/ui/badge-list',
+                                'componentes/ui/button',
+                                'componentes/ui/formulario-fluente',
+                                'componentes/ui/glory-image',
+                                'componentes/ui/menu-walker',
                                 'componentes/ui/modales',
                                 'componentes/ui/theme-toggle'
                             ]
@@ -64,7 +68,9 @@ export default defineConfig({
                         {
                             label: 'Renderers',
                             items: [
+                                'componentes/renderers/autenticacion-renderer',
                                 'componentes/renderers/content-render',
+                                'componentes/renderers/header-renderer',
                                 'componentes/renderers/term-render',
                                 'componentes/renderers/busqueda-renderer',
                                 'componentes/renderers/logo-renderer',

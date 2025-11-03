@@ -1,0 +1,575 @@
+---
+title: MenuWalker
+description: Walker personalizado para menús de navegación con clases por nivel y soporte AJAX
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+## MenuWalker
+
+El componente `MenuWalker` es una extensión personalizada del `Walker_Nav_Menu` de WordPress que añade clases CSS específicas por nivel de menú, facilitando el estilo diferenciado de submenús y mejorando la compatibilidad con navegación AJAX.
+
+### Características principales
+
+- **Clases por nivel** automáticas (`menu-level-2`, `menu-level-3`, etc.)
+- **Compatible con WordPress** mantiene el marcado estándar
+- **Soporte para navegación AJAX** con estructura predecible
+- **Minimalista y ligero** solo modifica lo necesario
+- **Anidamiento ilimitado** maneja múltiples niveles de profundidad
+- **Integración con HeaderRenderer** para menús principales
+
+### Funcionamiento
+
+MenuWalker extiende la clase `Walker_Nav_Menu` de WordPress y modifica únicamente el método `start_lvl()` para añadir clases CSS que identifican el nivel de cada submenú.
+
+#### Estructura de niveles
+- **Nivel 1**: Menú raíz (clase `menu` por defecto)
+- **Nivel 2**: Primer submenú (clase `menu-level-2`)
+- **Nivel 3**: Segundo submenú (clase `menu-level-3`)
+- **Y así sucesivamente...**
+
+### Uso básico
+
+```php
+<?php
+use Glory\Components\MenuWalker;
+
+// En registro de ubicación de menú
+register_nav_menu('main_navigation', 'Menú Principal');
+
+// En template - uso directo
+wp_nav_menu([
+    'theme_location' => 'main_navigation',
+    'container'      => false,
+    'menu_id'        => 'main-menu',
+    'menu_class'     => 'menu menu-level-1',
+    'depth'          => 3,
+    'walker'         => new MenuWalker(),
+]);
+?>
+```
+
+### Integración con HeaderRenderer
+
+MenuWalker está integrado automáticamente en `HeaderRenderer`:
+
+```php
+<?php
+// HeaderRenderer usa MenuWalker automáticamente
+use Glory\Components\HeaderRenderer;
+
+HeaderRenderer::render([
+    'idMenu' => 'primary-nav'
+]);
+?>
+```
+
+### Estructura HTML generada
+
+```html
+<!-- Menú de un nivel -->
+<ul id="main-menu" class="menu menu-level-1">
+    <li class="menu-item menu-item-1">
+        <a href="/">Inicio</a>
+    </li>
+    <li class="menu-item menu-item-2">
+        <a href="/productos">Productos</a>
+    </li>
+</ul>
+
+<!-- Menú con submenús -->
+<ul id="main-menu" class="menu menu-level-1">
+    <li class="menu-item menu-item-1">
+        <a href="/">Inicio</a>
+    </li>
+    <li class="menu-item menu-item-2 menu-item-has-children">
+        <a href="/productos">Productos</a>
+        <ul class="sub-menu menu menu-level-2">
+            <li class="menu-item menu-item-10">
+                <a href="/productos/categoria-1">Categoría 1</a>
+            </li>
+            <li class="menu-item menu-item-11 menu-item-has-children">
+                <a href="/productos/categoria-2">Categoría 2</a>
+                <ul class="sub-menu menu menu-level-3">
+                    <li class="menu-item menu-item-20">
+                        <a href="/productos/categoria-2/subcat">Subcategoría</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+</ul>
+```
+
+### Estilos CSS recomendados
+
+```css
+/* Estilos base del menú */
+.menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 1rem;
+}
+
+.menu li {
+    position: relative;
+}
+
+/* Enlaces del menú */
+.menu a {
+    display: block;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.menu a:hover,
+.menu a:focus {
+    background-color: #f8f9fa;
+    color: #007cba;
+}
+
+/* Submenús - nivel 2 */
+.menu-level-2 {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.menu-level-2 a {
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+}
+
+/* Mostrar submenú en hover */
+.menu-item-has-children:hover .menu-level-2,
+.menu-item-has-children:focus-within .menu-level-2 {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Submenús - nivel 3 */
+.menu-level-3 {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 180px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+/* Mostrar sub-submenú */
+.menu-level-2 .menu-item-has-children:hover .menu-level-3,
+.menu-level-2 .menu-item-has-children:focus-within .menu-level-3 {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+/* Indicadores visuales */
+.menu-item-has-children > a::after {
+    content: '▼';
+    margin-left: 0.5rem;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.menu-level-2 .menu-item-has-children > a::after {
+    content: '▶';
+    float: right;
+}
+
+/* Menús móviles */
+@media (max-width: 768px) {
+    .menu {
+        flex-direction: column;
+        gap: 0;
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 280px;
+        height: 100vh;
+        background: white;
+        padding: 2rem;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+        z-index: 9999;
+    }
+
+    .menu.open {
+        left: 0;
+    }
+
+    .menu-level-2,
+    .menu-level-3 {
+        position: static;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        box-shadow: none;
+        border: none;
+        background: #f8f9fa;
+        margin-top: 0.5rem;
+        padding-left: 1rem;
+    }
+
+    .menu-level-2 a,
+    .menu-level-3 a {
+        padding: 0.5rem 0;
+    }
+}
+
+/* Estados activos */
+.current-menu-item > a,
+.current-menu-ancestor > a {
+    background-color: #007cba;
+    color: white;
+}
+
+.current-menu-item > a:hover,
+.current-menu-ancestor > a:hover {
+    background-color: #005a87;
+}
+```
+
+### JavaScript para navegación interactiva
+
+```javascript
+// Navegación móvil con MenuWalker
+document.addEventListener('DOMContentLoaded', function() {
+    const burger = document.querySelector('.burger');
+    const menu = document.getElementById('main-menu');
+    const background = document.querySelector('.background');
+
+    if (burger && menu) {
+        // Toggle menú móvil
+        burger.addEventListener('click', function() {
+            menu.classList.toggle('open');
+            burger.classList.toggle('active');
+        });
+
+        // Cerrar menú al hacer click en el background
+        if (background) {
+            background.addEventListener('click', function() {
+                menu.classList.remove('open');
+                burger.classList.remove('active');
+            });
+        }
+
+        // Cerrar menú en resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                menu.classList.remove('open');
+                burger.classList.remove('active');
+            }
+        });
+    }
+});
+
+// Navegación AJAX (opcional)
+function loadPageViaAjax(url) {
+    // Remover clase active anterior
+    document.querySelectorAll('.menu a').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Añadir clase active al enlace actual
+    const currentLink = document.querySelector(`.menu a[href="${url}"]`);
+    if (currentLink) {
+        currentLink.classList.add('active');
+    }
+
+    // Cargar contenido vía AJAX
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Actualizar contenido principal
+        const content = document.querySelector('#main-content');
+        if (content) {
+            content.innerHTML = html;
+            // Actualizar URL sin recargar
+            history.pushState(null, '', url);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading page:', error);
+    });
+}
+
+// Interceptar clicks en enlaces del menú
+document.addEventListener('click', function(e) {
+    const link = e.target.closest('.menu a');
+    if (link && !link.getAttribute('target')) {
+        e.preventDefault();
+        loadPageViaAjax(link.href);
+    }
+});
+```
+
+### Integración con WordPress
+
+#### Registro de menús
+
+```php
+<?php
+// En functions.php
+function registrar_menus() {
+    register_nav_menus([
+        'main_navigation' => 'Menú Principal',
+        'footer_navigation' => 'Menú Footer',
+        'social_navigation' => 'Menú Redes Sociales'
+    ]);
+}
+add_action('init', 'registrar_menus');
+?>
+```
+
+#### Uso en templates
+
+```php
+<?php
+// En header.php
+if (has_nav_menu('main_navigation')) {
+    wp_nav_menu([
+        'theme_location' => 'main_navigation',
+        'container'      => false,
+        'menu_id'        => 'main-menu',
+        'menu_class'     => 'menu menu-level-1',
+        'depth'          => 3, // Profundidad máxima
+        'walker'         => new \Glory\Components\MenuWalker(),
+    ]);
+}
+?>
+```
+
+#### Menú footer simple
+
+```php
+<?php
+// Menú footer sin submenús profundos
+if (has_nav_menu('footer_navigation')) {
+    wp_nav_menu([
+        'theme_location' => 'footer_navigation',
+        'container'      => false,
+        'menu_class'     => 'menu menu-level-1 footer-menu',
+        'depth'          => 1, // Solo un nivel
+        'walker'         => new \Glory\Components\MenuWalker(),
+    ]);
+}
+?>
+```
+
+### Consideraciones de accesibilidad
+
+- **Navegación por teclado** soportada
+- **Indicadores visuales** claros para submenús
+- **Estados focus** definidos
+- **Texto alternativo** en enlaces
+- **Roles ARIA** implícitos en estructura HTML
+
+### Casos de uso comunes
+
+#### Menú principal responsive
+
+```php
+<?php
+function render_main_menu() {
+    if (!has_nav_menu('main_navigation')) {
+        return '';
+    }
+
+    ob_start();
+    ?>
+    <nav class="main-navigation" role="navigation">
+        <button class="burger" aria-label="Toggle menu" type="button">
+            <span></span>
+            <span></span>
+        </button>
+
+        <?php
+        wp_nav_menu([
+            'theme_location' => 'main_navigation',
+            'container'      => false,
+            'menu_id'        => 'main-menu',
+            'menu_class'     => 'menu menu-level-1',
+            'depth'          => 3,
+            'walker'         => new \Glory\Components\MenuWalker(),
+        ]);
+        ?>
+
+        <div class="background" aria-label="Close menu"></div>
+    </nav>
+    <?php
+    return ob_get_clean();
+}
+
+echo render_main_menu();
+?>
+```
+
+#### Menú de breadcrumbs
+
+```php
+<?php
+// Usando MenuWalker para breadcrumbs (adaptado)
+function render_breadcrumbs() {
+    if (!is_single() && !is_page()) {
+        return '';
+    }
+
+    $breadcrumbs = [
+        ['title' => 'Inicio', 'url' => home_url('/')]
+    ];
+
+    if (is_page()) {
+        $breadcrumbs[] = ['title' => get_the_title(), 'url' => get_permalink()];
+    } elseif (is_single()) {
+        // Añadir categoría
+        $categories = get_the_category();
+        if ($categories) {
+            $breadcrumbs[] = [
+                'title' => $categories[0]->name,
+                'url' => get_category_link($categories[0]->term_id)
+            ];
+        }
+        $breadcrumbs[] = ['title' => get_the_title(), 'url' => get_permalink()];
+    }
+
+    $html = '<nav class="breadcrumbs" aria-label="Breadcrumb">';
+    $html .= '<ul class="menu menu-level-1 breadcrumb-menu">';
+
+    foreach ($breadcrumbs as $index => $crumb) {
+        $isLast = $index === count($breadcrumbs) - 1;
+        $html .= '<li class="breadcrumb-item' . ($isLast ? ' current' : '') . '">';
+
+        if (!$isLast) {
+            $html .= '<a href="' . esc_url($crumb['url']) . '">' . esc_html($crumb['title']) . '</a>';
+        } else {
+            $html .= '<span>' . esc_html($crumb['title']) . '</span>';
+        }
+
+        $html .= '</li>';
+    }
+
+    $html .= '</ul></nav>';
+    return $html;
+}
+
+echo render_breadcrumbs();
+?>
+```
+
+### Solución de problemas
+
+#### Submenús no aparecen
+
+```php
+<?php
+// Verificar que el menú tiene elementos
+if (has_nav_menu('main_navigation')) {
+    $menu_items = wp_get_nav_menu_items('main_navigation');
+    $has_children = false;
+
+    foreach ($menu_items as $item) {
+        if ($item->menu_item_parent > 0) {
+            $has_children = true;
+            break;
+        }
+    }
+
+    if ($has_children) {
+        // Renderizar menú con MenuWalker
+        wp_nav_menu([
+            'theme_location' => 'main_navigation',
+            'walker' => new \Glory\Components\MenuWalker(),
+            'depth' => 3
+        ]);
+    }
+}
+?>
+```
+
+#### Clases CSS no se aplican
+
+```php
+<?php
+// Asegurar que no hay conflictos de CSS
+wp_nav_menu([
+    'theme_location' => 'main_navigation',
+    'menu_class'     => 'menu menu-level-1 custom-menu-class',
+    'walker'         => new \Glory\Components\MenuWalker(),
+]);
+?>
+```
+
+#### Problemas con JavaScript
+
+```javascript
+// Verificar que los elementos existen antes de añadir eventos
+document.addEventListener('DOMContentLoaded', function() {
+    const burger = document.querySelector('.burger');
+    const menu = document.getElementById('main-menu');
+
+    if (burger && menu) {
+        // Solo añadir eventos si existen los elementos
+        burger.addEventListener('click', function() {
+            menu.classList.toggle('open');
+        });
+    }
+});
+```
+
+### Mejores prácticas
+
+1. **Define profundidad máxima** según necesidades del sitio
+2. **Usa semantic HTML** con roles de navegación apropiados
+3. **Implementa estados activos** para mejor UX
+4. **Considera accesibilidad** en navegación móvil
+5. **Optimiza CSS** para diferentes breakpoints
+6. **Prueba navegación por teclado** regularmente
+
+### Comparación con walkers nativos
+
+```php
+<?php
+// ❌ Walker nativo - sin clases por nivel
+wp_nav_menu([
+    'theme_location' => 'main_navigation',
+    'walker' => new \Walker_Nav_Menu(), // Solo <ul class="sub-menu">
+]);
+
+// ✅ MenuWalker - clases específicas por nivel
+wp_nav_menu([
+    'theme_location' => 'main_navigation',
+    'walker' => new \Glory\Components\MenuWalker(), // <ul class="sub-menu menu menu-level-2">
+]);
+?>
+```
+
+MenuWalker proporciona la estructura CSS necesaria para crear menús complejos y responsivos mientras mantiene la compatibilidad total con WordPress y facilita la implementación de navegación AJAX.

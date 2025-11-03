@@ -30,8 +30,8 @@ Glory tendra un contructor que todavía no esta listo, solo para tener en cuenta
 - **PageManager** ✅ (Existe)
 - **DefaultContentManager** ✅ (Existe)
 - **PostTypeManager** ❌ (Falta)
-- **AdminPageManager** ❌ (Falta)
-- **MenuManager** ❌ (Falta)
+- **AdminPageManager** ✅ (Completado)
+- **MenuManager** ✅ (Completado)
 
 ### 3. **Sistema AJAX y Formularios** (Parcialmente documentado)
 - **gloryAjax.js** ✅ (Existe)
@@ -200,7 +200,7 @@ glory_docs/src/content/docs/
 - [x] Actualizar navegación en astro.config.mjs (agregar SyncManager)
 - [x] Documentar SyncManager
 - [x] Documentar PostTypeManager
-- [x] Documentar managers faltantes: AdminPageManager, MenuManager
+- [x] Documentar managers faltantes: AdminPageManager, MenuManager ✅ (Revisados)
 - [x] Continuar con componentes (BadgeList, Modal, DataGridRenderer, PaginationRenderer)
 - [ ] Documentar utilidades faltantes
 - [ ] Crear sección de integraciones

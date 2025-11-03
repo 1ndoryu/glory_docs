@@ -68,7 +68,32 @@ git clone https://github.com/1ndoryu/glory.git
 
 Esto creará la carpeta `Glory/` dentro de tu tema con todo el código del framework.
 
-## 🎨 Paso 5: Activar el Tema
+## ⚙️ Paso 5: Configurar Variables de Entorno
+
+Para el desarrollo local, necesitas crear un archivo `.env` en la raíz de tu tema con las siguientes variables:
+
+```env
+# Archivo: .env (en la raíz del tema)
+LOCAL=TRUE
+DEV=TRUE
+```
+
+### ¿Por qué son importantes estas variables?
+
+- **`LOCAL=TRUE`**: Indica que estás trabajando en un entorno local
+- **`DEV=TRUE`**: Activa el modo desarrollador con características especiales
+
+**Nota importante**: Si estas variables no existen en el archivo `.env`, por defecto serán `false`. Es crucial configurarlas correctamente para el desarrollo local.
+
+### Cómo crear el archivo .env
+
+1. En la raíz de tu tema (donde está `functions.php`), crea un archivo llamado `.env`
+2. Añade las líneas mostradas arriba
+3. Guarda el archivo
+
+**Advertencia**: El archivo `.env` contiene información sensible y nunca debe subirse a control de versiones (asegúrate de que esté en tu `.gitignore`).
+
+## 🎨 Paso 6: Activar el Tema
 
 1. **Accede al panel de administración** de WordPress:
    - URL: `http://tu-sitio.local/wp-admin/`
@@ -78,7 +103,7 @@ Esto creará la carpeta `Glory/` dentro de tu tema con todo el código del frame
 
 3. **Activa el tema "Template Glory"**
 
-## ✅ Paso 6: Verificar la Instalación
+## ✅ Paso 7: Verificar la Instalación
 
 Después de activar el tema, deberías poder acceder a tu sitio y ver que Glory está funcionando correctamente.
 
@@ -99,7 +124,7 @@ if (class_exists('Glory\\Core\\Setup')) {
 }
 ```
 
-## 🔧 Configuración Inicial (Opcional)
+## 🔧 Paso 8: Configuración Inicial (Opcional)
 
 Una vez instalado, puedes empezar a configurar las funcionalidades básicas:
 

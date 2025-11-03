@@ -69,6 +69,13 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'Utilidades',
+                    items: [
+                        'utilidades/image-utility',
+                        'utilidades/template-registry'
+                    ]
+                },
+                {
                     label: 'Administración',
                     items: [
                         'administracion/sync-manager'

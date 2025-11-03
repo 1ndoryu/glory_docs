@@ -1,0 +1,364 @@
+---
+title: ContentRender
+description: Sistema completo para renderizar listas de contenido con caché inteligente y paginación AJAX
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# ContentRender
+
+El componente **ContentRender** es un sistema avanzado y agnóstico para renderizar listas de contenido de WordPress. Proporciona funcionalidades como caché inteligente, paginación AJAX, ordenamiento personalizado, y es completamente extensible a través de plantillas callback.
+
+## Características Principales
+
+- **Caché inteligente**: Almacenamiento automático con invalidación automática al modificar contenido
+- **Paginación AJAX**: Navegación sin recarga con estado preservado
+- **Ordenamiento flexible**: Por fecha, meta campos, aleatorio con semilla, o IDs preferidos
+- **Plantillas personalizables**: Sistema de callbacks para renderizado completamente personalizado
+- **UI agnóstico**: Atributos data para integración con JavaScript independiente
+- **Integración GBN**: Soporte nativo para el sistema Glory Builder Node
+- **Optimización de imágenes**: Integración con ImageUtility para rendimiento
+
+## Uso Básico
+
+```php
+use Glory\Components\ContentRender;
+
+// Renderizar posts por defecto
+ContentRender::print('post');
+
+// Con configuración personalizada
+ContentRender::print('post', [
+    'publicacionesPorPagina' => 6,
+    'claseContenedor' => 'mi-grid-posts',
+    'claseItem' => 'mi-card-post',
+    'paginacion' => true,
+    'orden' => 'random'
+]);
+```
+
+## Configuración Completa
+
+### Opciones Principales
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `publicacionesPorPagina` | int | 10 | Número de elementos por página |
+| `claseContenedor` | string | 'glory-content-list' | Clase CSS del contenedor principal |
+| `claseItem` | string | 'glory-content-item' | Clase CSS de cada elemento |
+| `paginacion` | bool | false | Activar paginación AJAX |
+| `plantillaCallback` | callable | `[self::class, 'defaultTemplate']` | Función para renderizar cada item |
+| `argumentosConsulta` | array | [] | Argumentos adicionales para WP_Query |
+| `orden` | string | 'fecha' | Orden: 'fecha', 'random', 'meta' |
+| `metaKey` | string\|null | null | Clave meta para ordenamiento |
+| `tiempoCache` | int | HOUR_IN_SECONDS | Duración de la caché en segundos |
+| `forzarSinCache` | bool | false | Forzar renderizado sin caché |
+
+### Opciones UI Agnósticas
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `acciones` | array | [] | Acciones disponibles (ej: ['eliminar']) |
+| `submenu` | bool | false | Habilitar submenús |
+| `eventoAccion` | string | 'dblclick' | Evento para activar acciones |
+| `selectorItem` | string | '[id^="post-"]' | Selector CSS para identificar items |
+| `idsPreferidos` | array | [] | IDs que aparecerán primero en el orden |
+
+### Opciones de Imágenes
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `imgOptimize` | bool | true | Usar optimización de imágenes |
+| `imgQuality` | int | 60 | Calidad de compresión (1-100) |
+| `imgSize` | string | 'medium' | Tamaño de imagen de WordPress |
+
+## Métodos Principales
+
+### `print(string $postType, array $opciones = []): void`
+
+Método principal para renderizar contenido. Maneja automáticamente la caché y paginación.
+
+```php
+// Ejemplo básico
+ContentRender::print('post');
+
+// Con paginación AJAX
+ContentRender::print('product', [
+    'paginacion' => true,
+    'publicacionesPorPagina' => 12,
+    'claseContenedor' => 'productos-grid'
+]);
+
+// Con orden aleatorio estable
+ContentRender::print('post', [
+    'orden' => 'random',
+    'argumentosConsulta' => ['glory_rand_seed' => 12345]
+]);
+
+// Con IDs preferidos (aparecen primero)
+ContentRender::print('post', [
+    'idsPreferidos' => [15, 23, 8],
+    'publicacionesPorPagina' => 20
+]);
+```
+
+### Gestión de Caché
+
+```php
+// Limpiar caché de un tipo de post específico
+ContentRender::clearCacheForPostType('post');
+
+// Limpiar toda la caché de ContentRender
+ContentRender::clearAllContentCaches();
+
+// Inicializar hooks de limpieza automática
+ContentRender::initHooks();
+```
+
+## Plantillas Personalizadas
+
+### Plantilla por Defecto
+
+La plantilla `defaultTemplate` incluye título, imagen destacada y excerpt:
+
+```php
+public static function defaultTemplate(\WP_Post $post, string $itemClass): void
+{
+    ?>
+    <div id="post-<?php echo $post->ID; ?>" class="<?php echo esc_attr($itemClass); ?>">
+        <a class="glory-cr__link" href="<?php echo esc_url(get_permalink($post)); ?>">
+            <div class="glory-cr__stack">
+                <h2 class="glory-cr__title"><?php echo esc_html(get_the_title($post)); ?></h2>
+                <?php if (has_post_thumbnail($post)): ?>
+                    <img class="glory-cr__image" src="<?php echo esc_url(get_the_post_thumbnail_url($post, 'medium')); ?>" alt="<?php echo esc_attr(get_the_title($post)); ?>">
+                <?php endif; ?>
+            </div>
+        </a>
+        <div class="entry-content"><?php the_excerpt(); ?></div>
+    </div>
+    <?php
+}
+```
+
+### Crear Plantilla Personalizada
+
+```php
+class MiRenderPersonalizado
+{
+    public static function renderCard(\WP_Post $post, string $itemClass): void
+    {
+        $indice = ContentRender::getCurrentOption('indiceItem', 0);
+        $esPar = $indice % 2 === 0;
+        ?>
+        <article class="<?php echo esc_attr($itemClass . ($esPar ? ' par' : ' impar')); ?>">
+            <header>
+                <h3><?php echo esc_html(get_the_title($post)); ?></h3>
+                <time><?php echo get_the_date('', $post); ?></time>
+            </header>
+
+            <?php if (has_post_thumbnail($post)): ?>
+                <div class="featured-image">
+                    <?php echo get_the_post_thumbnail($post, 'large'); ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="content">
+                <?php echo apply_filters('the_excerpt', get_the_excerpt($post)); ?>
+            </div>
+
+            <footer>
+                <a href="<?php echo esc_url(get_permalink($post)); ?>" class="read-more">
+                    Leer más
+                </a>
+            </footer>
+        </article>
+        <?php
+    }
+}
+
+// Usar la plantilla personalizada
+ContentRender::print('post', [
+    'plantillaCallback' => [MiRenderPersonalizado::class, 'renderCard']
+]);
+```
+
+### Plantilla de Contenido Completo
+
+Para páginas de detalle o contenido expandido:
+
+```php
+ContentRender::print('page', [
+    'plantillaCallback' => [ContentRender::class, 'fullContentTemplate'],
+    'publicacionesPorPagina' => 1
+]);
+```
+
+## Integración con JavaScript
+
+ContentRender genera automáticamente atributos `data-*` para integración con JavaScript agnóstico:
+
+```html
+<div class="glory-content-list"
+     data-post-type="post"
+     data-content-actions="eliminar"
+     data-submenu-enabled="0"
+     data-accion-evento="dblclick"
+     data-item-selector="[id^='post-']"
+     data-template-callback="MiClase::metodo">
+    <!-- Items -->
+</div>
+```
+
+### Paginación AJAX
+
+Cuando se activa la paginación AJAX, se genera una estructura especial:
+
+```html
+<div class="glory-pagination-container"
+     data-nonce="..."
+     data-post-type="post"
+     data-posts-per-page="10"
+     data-template-callback="..."
+     data-content-target=".glory-content-target"
+     data-pagination-target=".glory-pagination-target">
+    <div class="glory-content-target">
+        <!-- Contenido -->
+    </div>
+    <div class="glory-pagination-target">
+        <!-- Controles de paginación -->
+    </div>
+</div>
+```
+
+## Integración GBN (Glory Builder Node)
+
+ContentRender tiene soporte nativo para GBN cuando está activo:
+
+```php
+// Se activa automáticamente si GBN está disponible
+// Agrega atributos data-gbn-* para edición visual
+```
+
+## Casos de Uso Avanzados
+
+### Filtro por Meta Campos
+
+```php
+ContentRender::print('event', [
+    'metaKey' => 'event_date',
+    'orden' => 'ASC',
+    'argumentosConsulta' => [
+        'meta_query' => [
+            [
+                'key' => 'event_date',
+                'value' => date('Y-m-d'),
+                'compare' => '>='
+            ]
+        ]
+    ]
+]);
+```
+
+### Contenido Relacionado
+
+```php
+$relatedPostIds = get_related_posts_ids(get_the_ID());
+
+ContentRender::print('post', [
+    'argumentosConsulta' => [
+        'post__in' => $relatedPostIds,
+        'orderby' => 'post__in'
+    ],
+    'idsPreferidos' => $relatedPostIds,
+    'publicacionesPorPagina' => 4
+]);
+```
+
+### Renderizado Condicional
+
+```php
+// Solo mostrar si hay resultados
+$query = new WP_Query([
+    'post_type' => 'product',
+    'posts_per_page' => 1
+]);
+
+if ($query->have_posts()) {
+    ContentRender::print('product', [
+        'publicacionesPorPagina' => 8,
+        'claseContenedor' => 'featured-products'
+    ]);
+}
+```
+
+## Optimizaciones de Rendimiento
+
+### Caché Estratégico
+
+- **Modo desarrollo**: Sin caché cuando `WP_DEBUG` está activo
+- **Invalidación automática**: Se limpia caché al modificar posts
+- **Claves únicas**: Basadas en configuración completa + página actual
+- **Tiempo configurable**: Ajustable por implementación
+
+### Optimización de Imágenes
+
+```php
+ContentRender::print('post', [
+    'imgOptimize' => true,
+    'imgQuality' => 80,
+    'imgSize' => 'large'
+]);
+```
+
+### Deduplicación Automática
+
+ContentRender incluye filtros para prevenir duplicados en consultas complejas.
+
+## Solución de Problemas
+
+### Caché No Se Actualiza
+
+```php
+// Forzar sin caché para debugging
+ContentRender::print('post', ['forzarSinCache' => true]);
+
+// Limpiar caché manualmente
+ContentRender::clearCacheForPostType('post');
+```
+
+### Paginación AJAX No Funciona
+
+Verificar que:
+- La opción `paginacion` esté en `true`
+- Los scripts de paginación estén cargados
+- No haya conflictos de JavaScript
+
+### Imágenes No Se Optimizan
+
+```php
+// Verificar configuración de ImageUtility
+add_action('wp', function() {
+    if (class_exists('Glory\Utility\ImageUtility')) {
+        // ImageUtility está disponible
+    }
+});
+```
+
+## Dependencias
+
+- `WP_Query` - Para consultas de WordPress
+- `PaginationRenderer` - Para controles de paginación
+- `ImageUtility` - Para optimización de imágenes
+- `GloryFeatures` - Para integración GBN
+
+<Aside type="tip">
+**Recomendación**: Inicializar hooks de limpieza de caché en el setup del tema:
+
+```php
+add_action('after_setup_theme', function() {
+    ContentRender::initHooks();
+});
+```
+</Aside>

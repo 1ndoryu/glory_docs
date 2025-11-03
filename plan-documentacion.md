@@ -3,6 +3,10 @@
 ## 🎯 Objetivo
 Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress.
 
+Nota del usuario: documenta paso a paso, lo que ya parece documentado, se tiene que revisar de nuevo y marcar como doble revisión, mantener la documentación facil de entender. Cada cosa documentada debe enviarse un commit para la revisión (commit del repositorio de glory_docs), te detienes con cada commit que envias y esperas la confirmación de usuario para continuar.
+
+Entender la esencia, Glory va dentro del tema, y App es una plantilla de Glory donde viven las configuraciones especificas del tema. Glory debe ser agnostico. Glory esta en fase beta por lo que es impotante tener en cuenta.
+
 ## 📋 Estructura Actual de glory_docs
 - **Introducción**: Bienvenida básica
 - **Core**: Features, AJAX, Realtime
@@ -191,7 +195,8 @@ glory_docs/src/content/docs/
 - [x] Revisar documentación existente (AssetManager, OpcionManager, PageManager, DefaultContentManager, GloryAjax, GloryFeatures, etc.)
 - [x] Actualizar navegación en astro.config.mjs (agregar SyncManager)
 - [x] Documentar SyncManager
-- [ ] Documentar managers faltantes: PostTypeManager, AdminPageManager, MenuManager
+- [x] Documentar PostTypeManager
+- [x] Documentar managers faltantes: AdminPageManager, MenuManager
 - [ ] Continuar con componentes
 - [ ] Documentar utilidades faltantes
 - [ ] Crear sección de integraciones

@@ -1,7 +1,7 @@
 # Plan de Documentación de Glory Framework
 
 ## 🎯 Objetivo
-Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress. Toda la documentación debe ser profesional, detallada y facil de entender.
+Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress. Toda la documentación debe ser profesional, detallada y facil de entender. No intentar ejecutar astro, no existe en local.
 
 Nota del usuario: documenta paso a paso, lo que ya parece documentado, se tiene que revisar de nuevo y marcar como doble revisión, mantener la documentación facil de entender. Cada cosa documentada debe enviarse un commit para la revisión (commit del repositorio de glory_docs), te detienes con cada commit que envias y esperas la confirmación de usuario para continuar.
 
@@ -204,6 +204,6 @@ glory_docs/src/content/docs/
 - [x] Continuar con componentes (BadgeList, Modal, DataGridRenderer, PaginationRenderer) ✅ Completado
 - [x] Documentar utilidades faltantes ✅ (ImageUtility, TemplateRegistry)
 - [NO DOCUMENTAR NADA SOBRE INTEGRACONES] Crear sección de integraciones
-- [ ] Documentar sistema administrativo
+- [x] Documentar sistema administrativo ✅ (TaxonomyMetaManager, SeoMetabox, PageContentModeMetabox)
 - [ ] Crear guías de desarrollo
 - [ ] Revisar y validar toda la documentación

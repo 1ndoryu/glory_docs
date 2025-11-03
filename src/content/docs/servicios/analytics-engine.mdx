@@ -1,0 +1,363 @@
+---
+title: AnalyticsEngine
+description: Motor de análisis de datos para cálculos agregados (suma, conteo, promedio)
+sidebar:
+  label: AnalyticsEngine
+  order: 3
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# AnalyticsEngine
+
+El **AnalyticsEngine** es un motor de análisis de datos que permite realizar cálculos agregados sobre colecciones de datos. Soporta operaciones básicas como suma, conteo y promedio, siendo ideal para análisis de métricas y estadísticas.
+
+## Filosofía
+
+AnalyticsEngine está diseñado para ser:
+- **Simple**: API clara y directa para cálculos comunes
+- **Flexible**: Trabaja con arrays y objetos
+- **Robusto**: Manejo de errores integrado
+- **Eficiente**: Operaciones optimizadas para PHP
+
+## Uso Básico
+
+### Inicialización
+
+```php
+use Glory\Services\AnalyticsEngine;
+
+// Datos de ejemplo: ventas mensuales
+$datosVentas = [
+    ['mes' => 'Enero', 'ventas' => 15000, 'clientes' => 120],
+    ['mes' => 'Febrero', 'ventas' => 18000, 'clientes' => 135],
+    ['mes' => 'Marzo', 'ventas' => 22000, 'clientes' => 150],
+];
+
+$analytics = new AnalyticsEngine($datosVentas);
+```
+
+### Cálculos Simples
+
+```php
+// Configurar cálculos a realizar
+$configuracion = [
+    'total_ventas' => 'sum(ventas)',
+    'total_clientes' => 'sum(clientes)',
+    'promedio_ventas' => 'avg(ventas)',
+    'total_meses' => 'count(*)' // count(*) cuenta registros totales
+];
+
+// Ejecutar cálculos
+$resultados = $analytics->calcular($configuracion);
+
+print_r($resultados);
+/*
+Array
+(
+    [total_ventas] => 55000
+    [total_clientes] => 405
+    [promedio_ventas] => 18333.333333333332
+    [total_meses] => 3
+)
+*/
+```
+
+## Funciones Disponibles
+
+### SUM (Suma)
+Calcula la suma de valores en una columna específica.
+
+```php
+$config = [
+    'total_ingresos' => 'sum(ingresos)',
+    'total_gastos' => 'sum(gastos)'
+];
+```
+
+**Requisitos**: Requiere especificar el nombre de la columna.
+
+### COUNT (Conteo)
+Cuenta elementos en una columna o el total de registros.
+
+```php
+$config = [
+    'total_usuarios' => 'count(*)',        // Total de registros
+    'usuarios_activos' => 'count(activo)' // Valores no vacíos en columna 'activo'
+];
+```
+
+**Características**:
+- `count(*)`: Cuenta el número total de registros
+- `count(columna)`: Cuenta valores no vacíos/null en la columna especificada
+
+### AVG (Promedio)
+Calcula el promedio aritmético de valores en una columna.
+
+```php
+$config = [
+    'promedio_edad' => 'avg(edad)',
+    'calificacion_promedio' => 'avg(calificacion)'
+];
+```
+
+**Requisitos**: Requiere especificar el nombre de la columna.
+
+## Tipos de Datos Soportados
+
+### Arrays Asociativos
+
+```php
+$datos = [
+    ['producto' => 'Laptop', 'precio' => 1200, 'stock' => 50],
+    ['producto' => 'Mouse', 'precio' => 25, 'stock' => 200],
+    ['producto' => 'Teclado', 'precio' => 75, 'stock' => 100],
+];
+
+$analytics = new AnalyticsEngine($datos);
+$resultados = $analytics->calcular([
+    'valor_inventario' => 'sum(precio)',
+    'total_productos' => 'count(*)',
+    'precio_promedio' => 'avg(precio)'
+]);
+```
+
+### Objetos
+
+```php
+class Venta {
+    public $producto;
+    public $cantidad;
+    public $total;
+
+    public function __construct($producto, $cantidad, $total) {
+        $this->producto = $producto;
+        $this->cantidad = $cantidad;
+        $this->total = $total;
+    }
+}
+
+$ventas = [
+    new Venta('Producto A', 10, 500),
+    new Venta('Producto B', 5, 250),
+    new Venta('Producto C', 8, 400),
+];
+
+$analytics = new AnalyticsEngine($ventas);
+$resultados = $analytics->calcular([
+    'total_vendido' => 'sum(total)',
+    'productos_vendidos' => 'count(*)',
+    'promedio_venta' => 'avg(total)'
+]);
+```
+
+## Manejo de Errores
+
+AnalyticsEngine incluye manejo robusto de errores:
+
+```php
+$config = [
+    'calculo_correcto' => 'sum(precio)',
+    'funcion_invalida' => 'max(precio)',    // Función no soportada
+    'columna_inexistente' => 'sum(no_existe)', // Columna no existe
+    'formato_invalido' => 'sum',            // Falta paréntesis
+];
+
+$resultados = $analytics->calcular($config);
+
+/*
+Array
+(
+    [calculo_correcto] => 1500
+    [funcion_invalida] => Array([error] => Función de cálculo desconocida: max)
+    [columna_inexistente] => Array([error] => La clave 'no_existe' no existe en los arrays de datos.)
+    [formato_invalido] => Array([error] => Formato de cálculo inválido: sum)
+)
+*/
+```
+
+## Ejemplos Prácticos
+
+### Análisis de Ventas
+
+```php
+// Datos de ventas
+$ventas = [
+    ['fecha' => '2024-01-01', 'producto' => 'Widget A', 'cantidad' => 10, 'precio_unitario' => 25],
+    ['fecha' => '2024-01-01', 'producto' => 'Widget B', 'cantidad' => 5, 'precio_unitario' => 50],
+    ['fecha' => '2024-01-02', 'producto' => 'Widget A', 'cantidad' => 8, 'precio_unitario' => 25],
+];
+
+$analytics = new AnalyticsEngine($ventas);
+
+// Calcular métricas
+$metricas = $analytics->calcular([
+    'total_unidades' => 'sum(cantidad)',
+    'total_ingresos' => 'sum(precio_unitario)', // Esto suma los precios unitarios, no el total
+    'productos_vendidos' => 'count(*)',
+    'precio_promedio' => 'avg(precio_unitario)'
+]);
+
+// Para calcular ingresos totales correctamente, necesitas datos calculados
+$ventasConTotales = array_map(function($venta) {
+    $venta['total'] = $venta['cantidad'] * $venta['precio_unitario'];
+    return $venta;
+}, $ventas);
+
+$analyticsTotales = new AnalyticsEngine($ventasConTotales);
+$ingresos = $analyticsTotales->calcular([
+    'ingresos_totales' => 'sum(total)'
+]);
+```
+
+### Estadísticas de Usuarios
+
+```php
+$usuarios = [
+    ['edad' => 25, 'pais' => 'MX', 'activo' => true],
+    ['edad' => 30, 'pais' => 'ES', 'activo' => true],
+    ['edad' => 35, 'pais' => 'AR', 'activo' => false],
+    ['edad' => 28, 'pais' => 'CO', 'activo' => true],
+];
+
+$analytics = new AnalyticsEngine($usuarios);
+
+$estadisticas = $analytics->calcular([
+    'edad_promedio' => 'avg(edad)',
+    'total_usuarios' => 'count(*)',
+    'usuarios_activos' => 'count(activo)' // Cuenta valores truthy en 'activo'
+]);
+```
+
+### Análisis de Logs
+
+```php
+$logs = [
+    ['nivel' => 'ERROR', 'tiempo_respuesta' => 2.5, 'usuario' => 123],
+    ['nivel' => 'INFO', 'tiempo_respuesta' => 0.8, 'usuario' => 456],
+    ['nivel' => 'ERROR', 'tiempo_respuesta' => 1.2, 'usuario' => 789],
+    ['nivel' => 'WARNING', 'tiempo_respuesta' => 1.5, 'usuario' => 123],
+];
+
+$analytics = new AnalyticsEngine($logs);
+
+$analisis = $analytics->calcular([
+    'tiempo_promedio' => 'avg(tiempo_respuesta)',
+    'total_logs' => 'count(*)',
+    'tiempo_total' => 'sum(tiempo_respuesta)'
+]);
+```
+
+## Integración con Componentes Glory
+
+### Con DataGridRenderer
+
+```php
+class ReporteVentasRenderer
+{
+    public function renderDatos(array $ventas): array
+    {
+        $analytics = new AnalyticsEngine($ventas);
+
+        // Calcular totales para mostrar en el footer
+        $totales = $analytics->calcular([
+            'total_ventas' => 'sum(total)',
+            'promedio_venta' => 'avg(total)',
+            'numero_ventas' => 'count(*)'
+        ]);
+
+        return [
+            'datos' => $ventas,
+            'totales' => $totales
+        ];
+    }
+}
+```
+
+### Con AJAX Handlers
+
+```php
+// Handler para obtener estadísticas
+add_action('wp_ajax_obtener_estadisticas', function() {
+    $tipo = sanitize_text_field($_POST['tipo'] ?? 'ventas');
+
+    $datos = $this->obtenerDatos($tipo);
+    $analytics = new AnalyticsEngine($datos);
+
+    $configCalculo = $this->getConfigCalculo($tipo);
+    $resultados = $analytics->calcular($configCalculo);
+
+    wp_send_json_success($resultados);
+});
+```
+
+## Limitaciones
+
+### Funciones Disponibles
+Actualmente soporta solo 3 funciones: `sum`, `count`, `avg`. Para funciones más complejas, procesa los datos antes de pasarlos al AnalyticsEngine.
+
+### Tipos de Datos
+- Trabaja con números (int, float)
+- Para strings y otros tipos, algunas funciones pueden no tener sentido
+
+### Rendimiento
+- Para datasets muy grandes, considera paginación o procesamiento por lotes
+- Las operaciones son O(n), lineales al tamaño del dataset
+
+## Mejores Prácticas
+
+### 1. Preparar Datos Adecuadamente
+
+```php
+// ✅ Bueno: datos preparados para análisis
+$datos = $this->prepararDatosAnalisis($rawData);
+
+// ❌ Evitar: cálculos complejos en la configuración
+$config = [
+    'resultado_complejo' => 'avg(precio * cantidad)' // No soportado
+];
+```
+
+### 2. Usar Nombres Descriptivos
+
+```php
+// ✅ Claro y descriptivo
+$config = [
+    'ingresos_totales' => 'sum(total_venta)',
+    'clientes_unicos' => 'count(cliente_id)',
+    'ticket_promedio' => 'avg(monto)'
+];
+```
+
+### 3. Manejar Errores
+
+```php
+$resultados = $analytics->calcular($config);
+
+// Verificar errores en resultados
+foreach ($resultados as $clave => $valor) {
+    if (isset($valor['error'])) {
+        GloryLogger::warning("Error en cálculo analítico", [
+            'calculo' => $clave,
+            'error' => $valor['error']
+        ]);
+    }
+}
+```
+
+### 4. Datasets Apropiados
+
+```php
+// ✅ Ideal para AnalyticsEngine
+$ventas = [
+    ['fecha' => '2024-01', 'total' => 15000, 'items' => 150],
+    // ... más registros similares
+];
+
+// ❌ No apropiado para series temporales complejas
+// Mejor usar librerías especializadas como Carbon o análisis estadístico avanzado
+```
+
+<Aside type="tip">
+AnalyticsEngine es perfecto para cálculos agregados simples en dashboards, reportes y métricas básicas. Para análisis más complejos, considera combinarlo con otras herramientas o librerías especializadas.
+</Aside>

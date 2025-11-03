@@ -38,6 +38,34 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'Componentes',
+                    items: [
+                        {
+                            label: 'UI',
+                            items: [
+                                'componentes/ui/badge-list',
+                                'componentes/ui/modales',
+                                'componentes/ui/theme-toggle'
+                            ]
+                        },
+                        {
+                            label: 'Renderers',
+                            items: [
+                                'componentes/renderers/content-render',
+                                'componentes/renderers/term-render',
+                                'componentes/renderers/busqueda-renderer',
+                                'componentes/renderers/logo-renderer',
+                                'componentes/renderers/data-grid-renderer',
+                                'componentes/renderers/pagination-renderer',
+                                'componentes/renderers/scheduler-renderer',
+                                'componentes/renderers/perfil-renderer',
+                                'componentes/renderers/barra-filtros-renderer',
+                                'componentes/renderers/header-renderer'
+                            ]
+                        }
+                    ]
+                },
+                {
                     label: 'Administración',
                     items: [
                         'administracion/sync-manager'

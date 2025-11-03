@@ -1,0 +1,503 @@
+---
+title: Modal
+description: Componente para crear modales responsivos con contenido dinámico y formularios
+---
+
+# Modal
+
+El `Modal` es un componente de Glory que facilita la creación de modales responsivos. Proporciona dos métodos principales: uno para contenido HTML personalizado y otro específico para formularios integrados con `FormBuilder`.
+
+## Funcionalidades principales
+
+- **Contenido personalizado**: Renderiza cualquier contenido HTML dentro del modal
+- **Integración con formularios**: Método específico para formularios usando `FormBuilder`
+- **Accesibilidad**: Incluye atributos ARIA apropiados (`role="dialog"`, `aria-modal="true"`)
+- **Atributos personalizados**: Permite agregar atributos HTML adicionales
+- **IDs únicos**: Cada modal debe tener un ID único para control JavaScript
+
+## Uso básico
+
+### Modal con contenido HTML simple
+
+```php
+use Glory\Components\Modal;
+
+// Renderizar modal básico
+echo Modal::render(
+    id: 'mi-modal',
+    titulo: 'Título del Modal',
+    contenidoHtml: '<p>Este es el contenido del modal.</p><button type="button" onclick="cerrarModal()">Cerrar</button>'
+);
+```
+
+### Modal con formulario integrado
+
+```php
+// Modal con formulario usando FormBuilder
+echo Modal::renderConFormulario(
+    id: 'modal-formulario',
+    titulo: 'Editar Usuario',
+    formRenderer: function() {
+        // Renderizar campos del formulario
+        return '
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        ';
+    },
+    opcionesFormulario: [
+        'action' => admin_url('admin-post.php'),
+        'method' => 'POST',
+        'ajax' => true
+    ]
+);
+```
+
+## Métodos disponibles
+
+### `render()`
+
+Renderiza un modal con contenido HTML personalizado.
+
+```php
+public static function render(
+    string $id,
+    string $titulo = '',
+    string $contenidoHtml = '',
+    array $atributos = []
+): string
+```
+
+**Parámetros:**
+
+| Parámetro | Tipo | Descripción | Requerido |
+|-----------|------|-------------|-----------|
+| `$id` | string | ID único del modal (usado para JavaScript) | ✅ |
+| `$titulo` | string | Título que aparece en el header del modal | ❌ |
+| `$contenidoHtml` | string | Contenido HTML que se renderiza dentro del modal | ❌ |
+| `$atributos` | array | Array asociativo de atributos HTML adicionales | ❌ |
+
+### `renderConFormulario()`
+
+Renderiza un modal que contiene un formulario creado con `FormBuilder`.
+
+```php
+public static function renderConFormulario(
+    string $id,
+    string $titulo,
+    callable $formRenderer,
+    array $opcionesFormulario = [],
+    array $atributos = []
+): string
+```
+
+**Parámetros:**
+
+| Parámetro | Tipo | Descripción | Requerido |
+|-----------|------|-------------|-----------|
+| `$id` | string | ID único del modal | ✅ |
+| `$titulo` | string | Título del modal | ✅ |
+| `$formRenderer` | callable | Función que retorna el HTML de los campos del formulario | ✅ |
+| `$opcionesFormulario` | array | Opciones para `FormBuilder::inicio()` | ❌ |
+| `$atributos` | array | Atributos HTML adicionales para el modal | ❌ |
+
+## Estructura HTML generada
+
+```html
+<div id="mi-modal" class="modalOverlay modal" role="dialog" aria-modal="true" style="display:none;" data-close-on-overlay="0">
+    <div class="modalDialog">
+        <div class="modalContenido">
+            <h2>Título del Modal</h2>
+            <!-- Contenido HTML aquí -->
+        </div>
+    </div>
+</div>
+```
+
+## Atributos HTML adicionales
+
+Puedes agregar atributos personalizados al modal:
+
+```php
+echo Modal::render(
+    'mi-modal',
+    'Título',
+    '<p>Contenido</p>',
+    [
+        'data-size' => 'large',
+        'data-animation' => 'fade',
+        'class' => 'modalOverlay modal custom-modal' // se combina con las clases por defecto
+    ]
+);
+```
+
+## Ejemplos completos
+
+### Modal de confirmación
+
+```php
+<?php
+function renderModalConfirmacion() {
+    $contenido = '
+        <p>¿Estás seguro de que deseas eliminar este elemento?</p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="cerrarModal(\'confirmar-eliminacion\')">Cancelar</button>
+            <button type="button" class="btn btn-danger" onclick="confirmarEliminacion()">Eliminar</button>
+        </div>
+    ';
+
+    return Modal::render(
+        'confirmar-eliminacion',
+        'Confirmar Eliminación',
+        $contenido,
+        ['data-type' => 'confirmation']
+    );
+}
+?>
+```
+
+### Modal con formulario de edición
+
+```php
+<?php
+function renderModalEditarUsuario($usuarioId) {
+    return Modal::renderConFormulario(
+        'editar-usuario-' . $usuarioId,
+        'Editar Usuario',
+        function() use ($usuarioId) {
+            // Obtener datos del usuario
+            $usuario = get_userdata($usuarioId);
+
+            return '
+                <input type="hidden" name="usuario_id" value="' . esc_attr($usuarioId) . '">
+                <input type="hidden" name="action" value="actualizar_usuario">
+
+                <div class="form-group">
+                    <label for="first_name">Nombre:</label>
+                    <input type="text" id="first_name" name="first_name"
+                           value="' . esc_attr($usuario->first_name) . '" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="last_name">Apellido:</label>
+                    <input type="text" id="last_name" name="last_name"
+                           value="' . esc_attr($usuario->last_name) . '" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email"
+                           value="' . esc_attr($usuario->user_email) . '" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModal(\'editar-usuario-' . $usuarioId . '\')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+            ';
+        },
+        [
+            'action' => admin_url('admin-post.php'),
+            'method' => 'POST',
+            'ajax' => true
+        ],
+        ['data-user-id' => $usuarioId]
+    );
+}
+?>
+```
+
+### Modal con contenido dinámico (AJAX)
+
+```php
+<?php
+function renderModalContenidoDinamico($postId) {
+    $contenido = '
+        <div id="contenido-dinamico-' . $postId . '">
+            <div class="loading-spinner">Cargando...</div>
+        </div>
+        <script>
+            cargarContenidoModal(' . $postId . ');
+        </script>
+    ';
+
+    return Modal::render(
+        'modal-contenido-' . $postId,
+        'Contenido del Post',
+        $contenido,
+        ['data-post-id' => $postId]
+    );
+}
+?>
+```
+
+## Estilos CSS recomendados
+
+```css
+/* Modal base */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modalOverlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modalDialog {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.modalOverlay.show .modalDialog {
+    transform: scale(1);
+}
+
+.modalContenido {
+    padding: 24px;
+    max-width: 600px;
+}
+
+.modalContenido h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Modal actions */
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modalDialog {
+        max-width: 95vw;
+        margin: 20px;
+    }
+
+    .modalContenido {
+        padding: 16px;
+    }
+}
+
+/* Animations */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modalOverlay.show .modalDialog {
+    animation: modalFadeIn 0.3s ease-out;
+}
+```
+
+## JavaScript para control de modales
+
+### Funciones básicas de control
+
+```javascript
+/**
+ * Abrir modal
+ * @param {string} modalId - ID del modal a abrir
+ */
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+
+        // Prevenir scroll del body
+        document.body.style.overflow = 'hidden';
+
+        // Focus trap para accesibilidad
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+/**
+ * Cerrar modal
+ * @param {string} modalId - ID del modal a cerrar
+ */
+function cerrarModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            modal.setAttribute('aria-hidden', 'true');
+        }, 300); // Esperar a que termine la animación
+    }
+}
+
+/**
+ * Cerrar modal al hacer click en overlay
+ */
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modalOverlay')) {
+        const modal = e.target;
+        if (modal.dataset.closeOnOverlay !== '0') {
+            cerrarModal(modal.id);
+        }
+    }
+});
+
+/**
+ * Cerrar modal con tecla Escape
+ */
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modalsAbiertos = document.querySelectorAll('.modalOverlay.show');
+        if (modalsAbiertos.length > 0) {
+            const ultimoModal = modalsAbiertos[modalsAbiertos.length - 1];
+            cerrarModal(ultimoModal.id);
+        }
+    }
+});
+```
+
+### Integración con gloryAjax
+
+```javascript
+// Ejemplo de envío de formulario dentro de modal
+function manejarEnvioFormularioModal(form, modalId) {
+    const formData = new FormData(form);
+
+    gloryAjax({
+        url: form.action,
+        method: form.method,
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                // Cerrar modal en caso de éxito
+                cerrarModal(modalId);
+
+                // Mostrar mensaje de éxito
+                mostrarNotificacion('Datos guardados correctamente', 'success');
+
+                // Recargar contenido si es necesario
+                location.reload();
+            } else {
+                // Mostrar errores
+                mostrarErrores(response.errors);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error al enviar formulario:', error);
+            mostrarNotificacion('Error al procesar la solicitud', 'error');
+        }
+    });
+}
+```
+
+## Consideraciones de accesibilidad
+
+- **Atributos ARIA**: Incluye `role="dialog"` y `aria-modal="true"`
+- **Focus management**: El foco debe mantenerse dentro del modal cuando está abierto
+- **Teclado**: Soporte para cerrar con Escape y navegación con Tab
+- **Screen readers**: Contenido correctamente estructurado para lectores de pantalla
+
+## Mejores prácticas
+
+1. **IDs únicos**: Cada modal debe tener un ID único para evitar conflictos
+2. **Un modal a la vez**: Evita abrir múltiples modales simultáneamente
+3. **Contenido dinámico**: Usa AJAX para cargar contenido pesado
+4. **Validación**: Valida formularios antes del envío
+5. **Feedback visual**: Proporciona feedback claro al usuario (loading, success, error)
+6. **Responsive**: Asegura que los modales funcionen bien en dispositivos móviles
+
+## Casos de uso comunes
+
+- **Formularios de edición**: Crear, editar usuarios, posts, productos
+- **Confirmaciones**: Confirmar eliminaciones, cambios importantes
+- **Información detallada**: Mostrar detalles adicionales sin cambiar de página
+- **Galerías de imágenes**: Mostrar imágenes en tamaño completo
+- **Ayuda contextual**: Mostrar ayuda o información adicional
+
+## Integración con otros componentes
+
+El `Modal` se integra perfectamente con otros componentes de Glory:
+
+```php
+<?php
+// Modal con DataGridRenderer
+function renderModalTablaDatos() {
+    $contenido = DataGridRenderer::render([
+        'data' => $datos,
+        'columns' => $columnas,
+        'pagination' => true
+    ]);
+
+    return Modal::render(
+        'modal-tabla',
+        'Datos Detallados',
+        $contenido
+    );
+}
+?>
+```
+
+## Troubleshooting
+
+### El modal no se muestra
+
+- Verifica que el CSS incluya `display: flex` para `.modalOverlay.show`
+- Asegura que el JavaScript de apertura se esté ejecutando
+- Revisa que no haya conflictos de z-index
+
+### El modal no se cierra correctamente
+
+- Verifica que el JavaScript de cierre esté vinculado correctamente
+- Revisa que los selectores CSS sean correctos
+- Asegura que las transiciones CSS no interfieran
+
+### Problemas de scroll
+
+- El JavaScript debe manejar `document.body.style.overflow`
+- Considera el z-index para elementos fixed/absolute dentro del modal
+- Prueba en diferentes tamaños de pantalla
+
+### Formularios no se envían
+
+- Verifica que `FormBuilder` esté configurado correctamente
+- Asegura que las opciones AJAX estén habilitadas si es necesario
+- Revisa la configuración de `admin-post.php` en WordPress

@@ -1,0 +1,540 @@
+---
+title: PaginationRenderer
+description: Componente para renderizar controles de paginación para consultas de WordPress
+---
+
+# PaginationRenderer
+
+El `PaginationRenderer` es un componente de Glory que facilita la creación de controles de paginación para consultas de WordPress (`WP_Query`). Transforma los enlaces de paginación estándar de WordPress en elementos que pueden ser controlados por JavaScript, manteniendo la compatibilidad con navegación AJAX.
+
+## Funcionalidades principales
+
+- **Integración con WP_Query**: Funciona directamente con objetos `WP_Query`
+- **Enlaces AJAX-ready**: Convierte enlaces en elementos controlables por JavaScript
+- **Estilos consistentes**: Mantiene clases CSS consistentes con otros componentes
+- **Navegación accesible**: Preserva la accesibilidad de los controles de paginación
+- **Detección automática**: Solo se renderiza cuando hay múltiples páginas
+
+## Uso básico
+
+### Paginación simple
+
+```php
+use Glory\Components\PaginationRenderer;
+
+// Crear consulta con paginación
+$query = new WP_Query([
+    'post_type' => 'post',
+    'posts_per_page' => 10,
+    'paged' => get_query_var('paged') ?: 1
+]);
+
+// Mostrar posts
+if ($query->have_posts()) {
+    while ($query->have_posts()) {
+        $query->the_post();
+        // Mostrar contenido del post
+        the_title();
+        the_content();
+    }
+}
+
+// Renderizar paginación
+PaginationRenderer::render($query);
+```
+
+### Con parámetros de consulta personalizados
+
+```php
+// Query con parámetros adicionales
+$query = new WP_Query([
+    'post_type' => 'product',
+    'posts_per_page' => 12,
+    'paged' => get_query_var('paged') ?: 1,
+    'meta_query' => [
+        [
+            'key' => 'precio',
+            'value' => 100,
+            'compare' => '<='
+        ]
+    ]
+]);
+
+// Loop de productos
+while ($query->have_posts()) {
+    $query->the_post();
+    // Mostrar producto
+}
+
+// Paginación
+PaginationRenderer::render($query);
+```
+
+## Cómo funciona
+
+### Transformación de enlaces
+
+El componente toma los enlaces generados por `paginate_links()` de WordPress y los transforma:
+
+1. **Enlaces originales**: `<a href="/page/2/">2</a>`
+2. **Enlaces transformados**: `<a data-page="2" class="noAjax">2</a>`
+
+### Atributos añadidos
+
+- **`data-page`**: Contiene el número de página para JavaScript
+- **`class="noAjax"`**: Previene interferencia con sistemas AJAX de navegación
+
+## Estructura HTML generada
+
+```html
+<div class="gloryPaginacion noAjax">
+    <a class="prev noAjax" data-page="1">&laquo; Prev</a>
+    <span class="current">2</span>
+    <a data-page="3" class="noAjax">3</a>
+    <a data-page="4" class="noAjax">4</a>
+    <a class="next noAjax" data-page="3">Next &raquo;</a>
+</div>
+```
+
+## Estilos CSS recomendados
+
+```css
+/* Contenedor de paginación */
+.gloryPaginacion {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+/* Enlaces de paginación */
+.gloryPaginacion a,
+.gloryPaginacion span {
+    display: inline-block;
+    padding: 8px 12px;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #333;
+    background: #fff;
+    transition: all 0.3s ease;
+    min-width: 40px;
+    text-align: center;
+}
+
+.gloryPaginacion a:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+/* Página actual */
+.gloryPaginacion .current {
+    background: #007cba;
+    color: white;
+    border-color: #007cba;
+    font-weight: 600;
+}
+
+/* Enlaces prev/next */
+.gloryPaginacion .prev,
+.gloryPaginacion .next {
+    font-weight: 600;
+}
+
+/* Estados deshabilitados */
+.gloryPaginacion .prev.disabled,
+.gloryPaginacion .next.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .gloryPaginacion {
+        gap: 4px;
+    }
+
+    .gloryPaginacion a,
+    .gloryPaginacion span {
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+
+    /* Ocultar números intermedios en móviles */
+    .gloryPaginacion a:not(.prev):not(.next):not(.current) {
+        display: none;
+    }
+
+    .gloryPaginacion .current {
+        display: inline-block;
+    }
+}
+```
+
+## JavaScript para navegación AJAX
+
+### Navegación básica
+
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    // Interceptar clicks en paginación
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('.gloryPaginacion a');
+        if (link && !link.classList.contains('disabled')) {
+            e.preventDefault();
+
+            const page = link.dataset.page;
+            if (page) {
+                cargarPagina(page);
+            }
+        }
+    });
+});
+
+function cargarPagina(pageNumber) {
+    // Mostrar loading
+    mostrarLoading();
+
+    // Actualizar URL sin recargar
+    const url = new URL(window.location);
+    url.searchParams.set('paged', pageNumber);
+    window.history.pushState({}, '', url);
+
+    // Cargar contenido vía AJAX
+    gloryAjax({
+        url: url.toString(),
+        method: 'GET',
+        success: function(response) {
+            // Actualizar contenido
+            document.querySelector('.contenido-posts').innerHTML = response.html;
+
+            // Actualizar paginación
+            document.querySelector('.gloryPaginacion').innerHTML = response.paginacion;
+
+            // Scroll al top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        error: function() {
+            console.error('Error al cargar página');
+            ocultarLoading();
+        },
+        complete: function() {
+            ocultarLoading();
+        }
+    });
+}
+```
+
+### Navegación con filtros
+
+```javascript
+function cargarPaginaConFiltros(pageNumber) {
+    const filtros = obtenerFiltrosActuales();
+
+    const url = new URL(window.location);
+    url.searchParams.set('paged', pageNumber);
+
+    // Agregar filtros actuales
+    Object.keys(filtros).forEach(key => {
+        if (filtros[key]) {
+            url.searchParams.set(key, filtros[key]);
+        }
+    });
+
+    // Cargar contenido filtrado
+    gloryAjax({
+        url: url.toString(),
+        method: 'GET',
+        data: filtros,
+        success: function(response) {
+            actualizarContenido(response);
+        }
+    });
+}
+
+function obtenerFiltrosActuales() {
+    const filtros = {};
+    const form = document.querySelector('.filtros-form');
+
+    if (form) {
+        const formData = new FormData(form);
+        for (let [key, value] of formData.entries()) {
+            filtros[key] = value;
+        }
+    }
+
+    return filtros;
+}
+```
+
+## Integración con DataGridRenderer
+
+El `PaginationRenderer` se integra automáticamente con `DataGridRenderer`:
+
+```php
+<?php
+// DataGridRenderer usa PaginationRenderer internamente para WP_Query
+$query = new WP_Query([
+    'post_type' => 'post',
+    'posts_per_page' => 20
+]);
+
+DataGridRenderer::render($query, [
+    'columnas' => $columnas,
+    'paginacion' => true // Usa PaginationRenderer automáticamente
+]);
+?>
+```
+
+## Ejemplos completos
+
+### Paginación de posts con filtros
+
+```php
+<?php
+function mostrarPostsPaginados() {
+    // Obtener filtros
+    $categoria = isset($_GET['categoria']) ? sanitize_text_field($_GET['categoria']) : '';
+    $busqueda = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+
+    // Construir query
+    $args = [
+        'post_type' => 'post',
+        'posts_per_page' => 10,
+        'paged' => get_query_var('paged') ?: 1,
+        'post_status' => 'publish'
+    ];
+
+    if ($categoria) {
+        $args['category_name'] = $categoria;
+    }
+
+    if ($busqueda) {
+        $args['s'] = $busqueda;
+    }
+
+    $query = new WP_Query($args);
+
+    // Formulario de filtros
+    ?>
+    <form method="get" action="" class="filtros-form">
+        <input type="text" name="s" value="<?php echo esc_attr($busqueda); ?>" placeholder="Buscar posts...">
+        <select name="categoria">
+            <option value="">Todas las categorías</option>
+            <?php
+            $categorias = get_categories();
+            foreach ($categorias as $cat) {
+                printf(
+                    '<option value="%s" %s>%s</option>',
+                    esc_attr($cat->slug),
+                    selected($categoria, $cat->slug, false),
+                    esc_html($cat->name)
+                );
+            }
+            ?>
+        </select>
+        <button type="submit">Filtrar</button>
+        <a href="<?php echo esc_url(remove_query_arg(['s', 'categoria'])); ?>" class="noAjax">Limpiar</a>
+    </form>
+    <?php
+
+    // Mostrar posts
+    if ($query->have_posts()) {
+        echo '<div class="posts-container">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            ?>
+            <article class="post-item">
+                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                <div class="post-meta">
+                    <span>Por <?php the_author(); ?></span>
+                    <span>en <?php the_category(', '); ?></span>
+                    <span><?php the_date(); ?></span>
+                </div>
+                <div class="post-excerpt">
+                    <?php the_excerpt(); ?>
+                </div>
+            </article>
+            <?php
+        }
+        echo '</div>';
+
+        // Paginación
+        PaginationRenderer::render($query);
+    } else {
+        echo '<p>No se encontraron posts.</p>';
+    }
+
+    wp_reset_postdata();
+}
+?>
+```
+
+### Paginación de productos WooCommerce
+
+```php
+<?php
+function mostrarProductosPaginados() {
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => 12,
+        'paged' => get_query_var('paged') ?: 1,
+        'post_status' => 'publish',
+        'meta_query' => [
+            [
+                'key' => '_visibility',
+                'value' => ['catalog', 'visible'],
+                'compare' => 'IN'
+            ]
+        ]
+    ];
+
+    // Agregar filtros de precio si existen
+    if (isset($_GET['min_price']) && isset($_GET['max_price'])) {
+        $args['meta_query'][] = [
+            'key' => '_price',
+            'value' => [$_GET['min_price'], $_GET['max_price']],
+            'compare' => 'BETWEEN',
+            'type' => 'NUMERIC'
+        ];
+    }
+
+    $query = new WP_Query($args);
+
+    if ($query->have_posts()) {
+        echo '<div class="productos-grid">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            global $product;
+
+            ?>
+            <div class="producto-item">
+                <a href="<?php the_permalink(); ?>">
+                    <?php echo woocommerce_get_product_thumbnail(); ?>
+                    <h3><?php the_title(); ?></h3>
+                    <span class="precio"><?php echo $product->get_price_html(); ?></span>
+                </a>
+                <?php woocommerce_template_loop_add_to_cart(); ?>
+            </div>
+            <?php
+        }
+        echo '</div>';
+
+        PaginationRenderer::render($query);
+    }
+
+    wp_reset_postdata();
+}
+?>
+```
+
+## Consideraciones de rendimiento
+
+- **Cache de queries**: WordPress cache automáticamente las queries
+- **Lazy loading**: Considera implementar lazy loading para muchas páginas
+- **Paginación profunda**: Limita el número máximo de páginas mostradas
+- **Database queries**: Usa índices apropiados en meta queries
+
+## Compatibilidad
+
+- **WordPress estándar**: Funciona con cualquier instalación de WordPress
+- **Custom post types**: Compatible con tipos de post personalizados
+- **WooCommerce**: Funciona con productos y otras entidades de WooCommerce
+- **Multisitio**: Compatible con instalaciones multisitio
+
+## Personalización avanzada
+
+### Cambiar textos de navegación
+
+```php
+// Los textos se pueden filtrar con WordPress
+add_filter('paginate_links', function($args) {
+    $args['prev_text'] = '← Anterior';
+    $args['next_text'] = 'Siguiente →';
+    return $args;
+});
+```
+
+### Personalizar estructura HTML
+
+```php
+// Extender la clase para personalización
+class MiPaginationRenderer extends PaginationRenderer {
+    public static function render(WP_Query $query): void {
+        // Lógica personalizada
+        $big = 999999999;
+        $current_page = $query->get('paged') ? absint($query->get('paged')) : 1;
+
+        $args = [
+            'base' => str_replace($big, '%#%', esc_url(get_pagenum_link($big))),
+            'format' => '?paged=%#%',
+            'current' => $current_page,
+            'total' => $query->max_num_pages,
+            'type' => 'array',
+            'prev_text' => '← Anterior',
+            'next_text' => 'Siguiente →',
+            'end_size' => 1,
+            'mid_size' => 2
+        ];
+
+        $pages = paginate_links($args);
+
+        if (is_array($pages)) {
+            echo '<nav class="mi-paginacion" aria-label="Navegación de páginas">';
+            echo '<ul class="pagination-list">';
+
+            foreach ($pages as $page_html) {
+                echo '<li class="pagination-item">';
+                // Procesar y mostrar cada enlace
+                echo '</li>';
+            }
+
+            echo '</ul>';
+            echo '</nav>';
+        }
+    }
+}
+```
+
+## Casos de uso comunes
+
+- **Listados de posts**: Paginación de entradas de blog
+- **Productos e-commerce**: Paginación de catálogos de productos
+- **Resultados de búsqueda**: Paginación de resultados de búsqueda
+- **Archivos de autor**: Paginación de posts por autor
+- **Feeds personalizados**: Paginación de contenido personalizado
+
+## Troubleshooting
+
+### La paginación no aparece
+
+- Verifica que `$query->max_num_pages > 1`
+- Asegura que `posts_per_page` sea menor que el total de posts
+- Revisa que no haya errores en la query
+
+### Los enlaces no funcionan
+
+- Confirma que JavaScript esté interceptando correctamente los clicks
+- Verifica que `data-page` contenga el número correcto
+- Asegura que las rutas AJAX estén configuradas
+
+### Problemas con URLs pretty
+
+- Para permalinks personalizados, ajusta el `base` en los argumentos
+- Considera usar `add_rewrite_rule()` para URLs personalizadas
+- Verifica que `get_pagenum_link()` funcione correctamente
+
+### Conflictos con otros plugins
+
+- La clase `noAjax` previene conflictos con plugins de AJAX navigation
+- Desactiva temporalmente otros plugins para debugging
+- Verifica el orden de carga de scripts
+
+### Páginas profundas no cargan
+
+- Implementa límites en el número de páginas mostradas
+- Considera usar "infinite scroll" para muchas páginas
+- Agrega validación en el lado del servidor para números de página

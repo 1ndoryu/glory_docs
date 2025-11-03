@@ -1,0 +1,258 @@
+---
+title: BadgeList
+description: Componente para renderizar listas de badges con funcionalidad de toggle o navegación
+---
+
+# BadgeList
+
+El `BadgeList` es un componente de Glory que renderiza una lista de badges interactivos con dos modos de funcionamiento: toggle y navegación. Cada badge se genera automáticamente con un slug normalizado para evitar caracteres especiales.
+
+## Funcionalidades principales
+
+- **Generación automática de slugs**: Convierte texto a slugs válidos eliminando caracteres especiales
+- **Dos modos de operación**: Toggle y navegación
+- **HTML semántico**: Estructura limpia con clases CSS apropiadas
+- **IDs únicos**: Cada instancia tiene un ID único para evitar conflictos
+
+## Uso básico
+
+### Modo toggle (por defecto)
+
+```php
+use Glory\Components\BadgeList;
+
+// Renderizar badges con funcionalidad de toggle
+echo BadgeList::render([
+    'badges' => ['Formulario', 'Modal', 'Dashboard'],
+    'mode' => 'toggle' // opcional, es el valor por defecto
+]);
+```
+
+### Modo navegación
+
+```php
+// Renderizar badges con funcionalidad de navegación
+echo BadgeList::render([
+    'badges' => ['Productos', 'Servicios', 'Contacto'],
+    'mode' => 'navigate'
+]);
+```
+
+## Parámetros de configuración
+
+| Parámetro | Tipo | Descripción | Valor por defecto |
+|-----------|------|-------------|-------------------|
+| `badges` | array | Array de strings con los textos de los badges | `[]` |
+| `mode` | string | Modo de funcionamiento: `'toggle'` o `'navigate'` | `'toggle'` |
+
+## Generación de slugs
+
+El componente genera automáticamente slugs válidos a partir del texto de cada badge:
+
+- **Texto original**: `"Formulario Avanzado"`
+- **Slug generado**: `"formulario"`
+
+### Proceso de normalización:
+
+1. Toma la primera palabra del texto
+2. Convierte a minúsculas
+3. Transliterate caracteres especiales (ñ, acentos) a ASCII
+4. Elimina caracteres no alfanuméricos (excepto guiones y guiones bajos)
+
+## Estructura HTML generada
+
+```html
+<div id="glory-badgelist-a1b2c3d4" class="badgeList" data-mode="toggle">
+    <div class="badge" data-target="formulario">Formulario</div>
+    <div class="badge" data-target="modal">Modal</div>
+    <div class="badge" data-target="dashboard">Dashboard</div>
+</div>
+```
+
+## Ejemplos de uso
+
+### En un panel de administración
+
+```php
+<?php
+// En un archivo de administración
+$badges = ['Usuarios', 'Configuración', 'Reportes', 'Ayuda'];
+echo BadgeList::render(['badges' => $badges]);
+?>
+```
+
+### En un sistema de filtros
+
+```php
+<?php
+// Para filtrar contenido
+$filtros = ['Todos', 'Activos', 'Inactivos', 'Pendientes'];
+echo BadgeList::render([
+    'badges' => $filtros,
+    'mode' => 'toggle'
+]);
+?>
+```
+
+### Navegación por secciones
+
+```php
+<?php
+// Para navegación entre secciones
+$secciones = ['Introducción', 'Instalación', 'Configuración', 'Ejemplos'];
+echo BadgeList::render([
+    'badges' => $secciones,
+    'mode' => 'navigate'
+]);
+?>
+```
+
+## Estilos CSS recomendados
+
+```css
+.badgeList {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+}
+
+.badge {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    background: #f9f9f9;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.badge:hover {
+    background: #e9e9e9;
+    border-color: #bbb;
+}
+
+.badge.active {
+    background: #007cba;
+    color: white;
+    border-color: #007cba;
+}
+```
+
+## JavaScript para funcionalidad
+
+### Para modo toggle
+
+```javascript
+// JavaScript para manejar el modo toggle
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.badgeList[data-mode="toggle"] .badge').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const target = this.dataset.target;
+            const isActive = this.classList.contains('active');
+
+            // Toggle la clase active
+            if (isActive) {
+                this.classList.remove('active');
+            } else {
+                this.classList.add('active');
+            }
+
+            // Aquí puedes agregar lógica adicional para mostrar/ocultar contenido
+            toggleContent(target, !isActive);
+        });
+    });
+});
+
+function toggleContent(target, show) {
+    // Implementa la lógica para mostrar/ocultar contenido basado en el target
+    const elements = document.querySelectorAll(`[data-badge-target="${target}"]`);
+    elements.forEach(el => {
+        el.style.display = show ? 'block' : 'none';
+    });
+}
+```
+
+### Para modo navegación
+
+```javascript
+// JavaScript para manejar el modo navegación
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.badgeList[data-mode="navigate"] .badge').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const target = this.dataset.target;
+
+            // Remover clase active de todos los badges en la misma lista
+            this.parentElement.querySelectorAll('.badge').forEach(b => {
+                b.classList.remove('active');
+            });
+
+            // Agregar clase active al badge clickeado
+            this.classList.add('active');
+
+            // Navegar a la sección correspondiente
+            navigateToSection(target);
+        });
+    });
+});
+
+function navigateToSection(target) {
+    // Implementa la lógica de navegación (scroll, cambio de página, etc.)
+    const section = document.getElementById(target);
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+```
+
+## Consideraciones de accesibilidad
+
+- Los badges son elementos interactivos con `cursor: pointer`
+- Se recomienda agregar atributos `aria-label` para mayor accesibilidad
+- Los slugs generados pueden usarse como anclas para navegación por teclado
+
+## Casos de uso comunes
+
+1. **Filtros de contenido**: Activar/desactivar categorías de contenido
+2. **Navegación por pestañas**: Cambiar entre diferentes vistas o secciones
+3. **Selección múltiple**: Elegir múltiples opciones (modo toggle)
+4. **Estados de elementos**: Mostrar estados como "activo", "inactivo", "pendiente"
+
+## Integración con otros componentes
+
+El `BadgeList` puede combinarse fácilmente con otros componentes de Glory:
+
+```php
+<?php
+// Combinado con DataGridRenderer
+$badges = ['Todos', 'Activos', 'Inactivos'];
+echo BadgeList::render(['badges' => $badges, 'mode' => 'toggle']);
+
+echo DataGridRenderer::render([
+    'data' => $filteredData,
+    'columns' => $columns
+]);
+?>
+```
+
+## Troubleshooting
+
+### Los slugs no se generan correctamente
+
+- Asegúrate de que el texto no esté vacío
+- Verifica que la función `iconv` esté disponible en tu servidor
+- Los caracteres especiales se convertirán a su equivalente ASCII más cercano
+
+### Los badges no responden a clicks
+
+- Verifica que el JavaScript correspondiente esté cargado
+- Asegúrate de que no hay conflictos de CSS que oculten los elementos
+- Revisa que el `data-mode` esté configurado correctamente
+
+### Problemas de caracteres especiales
+
+- El componente usa `iconv` para transliteración
+- Si `iconv` no está disponible, considera instalar la extensión PHP correspondiente
+- Los slugs se limpian de caracteres no alfanuméricos para mayor compatibilidad

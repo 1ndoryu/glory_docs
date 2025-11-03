@@ -1,0 +1,935 @@
+---
+title: DataGridRenderer
+description: Componente avanzado para renderizar tablas de datos con filtros, ordenamiento, selección múltiple y paginación
+---
+
+# DataGridRenderer
+
+El `DataGridRenderer` es un componente avanzado de Glory que facilita la creación de tablas de datos complejas con funcionalidades como filtros, ordenamiento, selección múltiple, acciones masivas y paginación. Está diseñado para trabajar tanto con arrays de datos como con objetos `WP_Query` de WordPress.
+
+## Funcionalidades principales
+
+- **Múltiples fuentes de datos**: Soporta arrays y objetos `WP_Query`
+- **Sistema de columnas configurables**: Columnas personalizables con callbacks
+- **Ordenamiento avanzado**: Ordenamiento por múltiples columnas con indicadores visuales
+- **Filtros dinámicos**: Sistema de filtros integrado con formularios GET
+- **Selección múltiple**: Checkboxes para selección masiva de elementos
+- **Acciones masivas**: Ejecutar acciones sobre múltiples elementos seleccionados
+- **Paginación automática**: Integración con `PaginationRenderer`
+- **Separación de componentes**: Capacidad para renderizar componentes por separado
+- **Seguridad**: Sanitización automática y control de HTML permitido
+
+## Uso básico
+
+### Con array de datos
+
+```php
+use Glory\Components\DataGridRenderer;
+
+// Datos de ejemplo
+$usuarios = [
+    ['ID' => 1, 'nombre' => 'Juan Pérez', 'email' => 'juan@example.com', 'rol' => 'admin'],
+    ['ID' => 2, 'nombre' => 'María García', 'email' => 'maria@example.com', 'rol' => 'editor'],
+    // ... más datos
+];
+
+// Configuración de columnas
+$columnas = [
+    [
+        'etiqueta' => 'ID',
+        'clave' => 'ID',
+        'ordenable' => true
+    ],
+    [
+        'etiqueta' => 'Nombre',
+        'clave' => 'nombre',
+        'ordenable' => true
+    ],
+    [
+        'etiqueta' => 'Email',
+        'clave' => 'email'
+    ],
+    [
+        'etiqueta' => 'Rol',
+        'clave' => 'rol'
+    ]
+];
+
+// Renderizar tabla
+DataGridRenderer::render($usuarios, [
+    'columnas' => $columnas,
+    'paginacion' => true,
+    'per_page' => 10
+]);
+```
+
+### Con WP_Query
+
+```php
+use Glory\Components\DataGridRenderer;
+
+// Query de posts
+$query = new WP_Query([
+    'post_type' => 'post',
+    'posts_per_page' => 20,
+    'post_status' => 'publish'
+]);
+
+$columnas = [
+    [
+        'etiqueta' => 'Título',
+        'clave' => 'post_title',
+        'ordenable' => true
+    ],
+    [
+        'etiqueta' => 'Autor',
+        'callback' => function($post) {
+            return get_the_author_meta('display_name', $post->post_author);
+        }
+    ],
+    [
+        'etiqueta' => 'Fecha',
+        'clave' => 'post_date',
+        'ordenable' => true,
+        'callback' => function($post) {
+            return get_the_date('d/m/Y', $post);
+        }
+    ]
+];
+
+DataGridRenderer::render($query, [
+    'columnas' => $columnas,
+    'paginacion' => true
+]);
+```
+
+## Configuración completa
+
+### Parámetros principales
+
+| Parámetro | Tipo | Descripción | Valor por defecto |
+|-----------|------|-------------|-------------------|
+| `columnas` | array | Configuración de columnas | `[]` |
+| `filtros` | array | Configuración de filtros | `[]` |
+| `paginacion` | bool | Habilitar paginación | `true` |
+| `per_page` | int | Elementos por página | `20` |
+| `page_param` | string | Parámetro URL para paginación | `'paged'` |
+| `seleccionMultiple` | bool | Habilitar checkboxes de selección | `false` |
+| `accionesMasivas` | array | Acciones masivas disponibles | `[]` |
+| `filtros_separados` | bool | Renderizar filtros fuera del contenedor | `false` |
+| `acciones_masivas_separadas` | bool | Renderizar acciones fuera del contenedor | `false` |
+| `allowed_html` | array\|null | HTML permitido para wp_kses | `null` |
+
+## Configuración de columnas
+
+### Estructura básica
+
+```php
+$columnas = [
+    [
+        'etiqueta' => 'Nombre del encabezado',
+        'clave' => 'campo_en_los_datos', // opcional si se usa callback
+        'ordenable' => true, // opcional
+        'callback' => function($item) { // opcional
+            // Lógica personalizada para renderizar la celda
+            return 'contenido personalizado';
+        }
+    ]
+];
+```
+
+### Columnas con callback personalizado
+
+```php
+$columnas = [
+    [
+        'etiqueta' => 'Acciones',
+        'callback' => function($usuario) {
+            $editarUrl = admin_url('user-edit.php?user_id=' . $usuario['ID']);
+            $eliminarUrl = wp_nonce_url(
+                admin_url('users.php?action=delete&user=' . $usuario['ID']),
+                'bulk-users'
+            );
+
+            return sprintf(
+                '<a href="%s">Editar</a> | <a href="%s" class="submitdelete">Eliminar</a>',
+                esc_url($editarUrl),
+                esc_url($eliminarUrl)
+            );
+        }
+    ],
+    [
+        'etiqueta' => 'Estado',
+        'callback' => function($usuario) {
+            $estado = $usuario['activo'] ? 'activo' : 'inactivo';
+            $clase = $usuario['activo'] ? 'status-activo' : 'status-inactivo';
+            return '<span class="' . esc_attr($clase) . '">' . esc_html($estado) . '</span>';
+        }
+    ]
+];
+```
+
+### Columnas ordenables
+
+```php
+$columnas = [
+    [
+        'etiqueta' => 'Nombre',
+        'clave' => 'nombre',
+        'ordenable' => true
+    ],
+    [
+        'etiqueta' => 'Fecha de creación',
+        'clave' => 'fecha_creacion',
+        'ordenable' => true
+    ]
+];
+```
+
+## Sistema de filtros
+
+### Configuración básica
+
+```php
+$config = [
+    'filtros' => [
+        'nombre' => [
+            'etiqueta' => 'Buscar por nombre'
+        ],
+        'email' => [
+            'etiqueta' => 'Buscar por email'
+        ],
+        'rol' => [
+            'etiqueta' => 'Filtrar por rol'
+        ]
+    ]
+];
+```
+
+### Filtros separados del contenedor
+
+```php
+// Renderizar filtros en una ubicación separada
+DataGridRenderer::renderFiltrosFromConfig([
+    'filtros' => [
+        'busqueda' => ['etiqueta' => 'Búsqueda general'],
+        'categoria' => ['etiqueta' => 'Categoría']
+    ]
+]);
+
+// Luego renderizar la tabla sin filtros
+DataGridRenderer::render($datos, [
+    'columnas' => $columnas,
+    'filtros_separados' => true
+]);
+```
+
+## Selección múltiple y acciones masivas
+
+### Habilitando selección múltiple
+
+```php
+$config = [
+    'seleccionMultiple' => true,
+    'accionesMasivas' => [
+        [
+            'id' => 'eliminar',
+            'etiqueta' => 'Eliminar seleccionados',
+            'ajax_action' => 'bulk_delete_users',
+            'confirmacion' => '¿Estás seguro de eliminar los usuarios seleccionados?'
+        ],
+        [
+            'id' => 'activar',
+            'etiqueta' => 'Activar usuarios',
+            'ajax_action' => 'bulk_activate_users'
+        ]
+    ]
+];
+```
+
+### Acciones masivas separadas
+
+```php
+// Renderizar acciones masivas en ubicación separada
+DataGridRenderer::renderAccionesMasivasFromConfig([
+    'seleccionMultiple' => true,
+    'accionesMasivas' => [
+        [
+            'id' => 'exportar',
+            'etiqueta' => 'Exportar CSV',
+            'ajax_action' => 'bulk_export_csv'
+        ]
+    ]
+]);
+
+// Renderizar tabla sin acciones masivas
+DataGridRenderer::render($datos, [
+    'columnas' => $columnas,
+    'acciones_masivas_separadas' => true
+]);
+```
+
+## Paginación
+
+### Paginación automática para arrays
+
+```php
+DataGridRenderer::render($arrayDeDatos, [
+    'columnas' => $columnas,
+    'paginacion' => true,
+    'per_page' => 25,
+    'page_param' => 'pagina' // parámetro personalizado
+]);
+```
+
+### Paginación con WP_Query
+
+```php
+$query = new WP_Query([
+    'posts_per_page' => 15,
+    'paged' => get_query_var('paged') ?: 1
+]);
+
+DataGridRenderer::render($query, [
+    'columnas' => $columnas,
+    'paginacion' => true
+]);
+```
+
+## Estructura HTML generada
+
+```html
+<div class="gloryDataGridContenedor">
+    <!-- Acciones masivas (si no están separadas) -->
+    <div class="gloryDataGridAccionesMasivas">
+        <select id="gloryGridBulkSelect" class="gloryGridBulkSelect">
+            <option value="">Acciones masivas</option>
+            <option value="eliminar" data-ajax-action="bulk_delete" data-confirm="¿Confirmar?">Eliminar</option>
+        </select>
+        <button type="button" class="button gloryGridBulkApply">Aplicar</button>
+    </div>
+
+    <!-- Filtros (si no están separados) -->
+    <div class="gloryDataGridFiltros">
+        <form method="get" action="">
+            <input type="search" name="busqueda" placeholder="Buscar...">
+            <button type="submit" class="button">Filtrar</button>
+            <a href="..." class="button noAjax">Limpiar</a>
+        </form>
+    </div>
+
+    <!-- Contenedor con scroll -->
+    <div class="gloryDataGridTablaScroll">
+        <table class="gloryDataGridTabla wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <!-- Checkbox de selección múltiple (si está habilitado) -->
+                    <th class="manage-column column-cb check-column">
+                        <input id="gloryGridSelectAll" type="checkbox" class="gloryGridSelectAll">
+                    </th>
+                    <!-- Columnas ordenables -->
+                    <th class="columnaOrdenable">
+                        <a class="noAjax gloryGridSort" href="?orderby=nombre&order=asc">
+                            Nombre <span class="indicadorOrden">&uarr;</span>
+                        </a>
+                    </th>
+                    <!-- Otras columnas -->
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th scope="row" class="check-column">
+                        <input type="checkbox" class="gloryGridSelect" value="123">
+                    </th>
+                    <td>Dato de la fila</td>
+                    <!-- Más celdas -->
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="gloryPaginacion noAjax">
+        <a class="prev" data-page="1">&laquo; Prev</a>
+        <span class="current">2</span>
+        <a data-page="3">3</a>
+        <a class="next" data-page="3">Next &raquo;</a>
+    </div>
+</div>
+```
+
+## Estilos CSS recomendados
+
+```css
+/* Contenedor principal */
+.gloryDataGridContenedor {
+    margin: 20px 0;
+}
+
+/* Tabla */
+.gloryDataGridTabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.gloryDataGridTabla th,
+.gloryDataGridTabla td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.gloryDataGridTabla th {
+    background: #f8f9fa;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Scroll horizontal */
+.gloryDataGridTablaScroll {
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Columnas ordenables */
+.columnaOrdenable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.columnaOrdenable:hover {
+    background: #f0f0f0;
+}
+
+.columnaOrdenable.ordenando {
+    background: #e9ecef;
+}
+
+.indicadorOrden {
+    margin-left: 5px;
+    opacity: 0.7;
+}
+
+/* Filtros */
+.gloryDataGridFiltros {
+    background: #f8f9fa;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.gloryDataGridFiltros form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.gloryDataGridFiltros input[type="search"] {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+/* Acciones masivas */
+.gloryDataGridAccionesMasivas {
+    background: #fff3cd;
+    padding: 10px 15px;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.gloryDataGridAccionesMasivas select,
+.gloryDataGridAccionesMasivas button {
+    margin-right: 10px;
+}
+
+/* Checkboxes de selección */
+.gloryGridSelectAll,
+.gloryGridSelect {
+    margin: 0;
+}
+
+/* Paginación */
+.gloryPaginacion {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.gloryPaginacion a,
+.gloryPaginacion span {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 2px;
+    border: 1px solid #ddd;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.gloryPaginacion a:hover {
+    background: #f8f9fa;
+}
+
+.gloryPaginacion .current {
+    background: #007cba;
+    color: white;
+    border-color: #007cba;
+}
+
+/* Estados */
+.status-activo {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-inactivo {
+    color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .gloryDataGridTablaScroll {
+        font-size: 14px;
+    }
+
+    .gloryDataGridTabla th,
+    .gloryDataGridTabla td {
+        padding: 6px 8px;
+    }
+
+    .gloryDataGridFiltros form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .gloryDataGridFiltros input[type="search"] {
+        min-width: auto;
+    }
+}
+```
+
+## JavaScript para funcionalidades avanzadas
+
+### Selección múltiple
+
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    // Seleccionar/deseleccionar todos
+    const selectAllCheckbox = document.getElementById('gloryGridSelectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const checkboxes = document.querySelectorAll('.gloryGridSelect');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = isChecked;
+                actualizarEstadoCheckbox(checkbox);
+            });
+        });
+    }
+
+    // Actualizar estado del checkbox "seleccionar todos"
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('gloryGridSelect')) {
+            actualizarEstadoCheckbox(e.target);
+            actualizarSelectAllCheckbox();
+        }
+    });
+
+    function actualizarEstadoCheckbox(checkbox) {
+        const row = checkbox.closest('tr');
+        if (checkbox.checked) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    }
+
+    function actualizarSelectAllCheckbox() {
+        const selectAllCheckbox = document.getElementById('gloryGridSelectAll');
+        const checkboxes = document.querySelectorAll('.gloryGridSelect');
+        const checkedBoxes = document.querySelectorAll('.gloryGridSelect:checked');
+
+        selectAllCheckbox.checked = checkboxes.length === checkedBoxes.length && checkboxes.length > 0;
+        selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < checkboxes.length;
+    }
+});
+```
+
+### Acciones masivas
+
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    const bulkApplyButton = document.querySelector('.gloryGridBulkApply');
+    const bulkSelect = document.getElementById('gloryGridBulkSelect');
+
+    if (bulkApplyButton && bulkSelect) {
+        bulkApplyButton.addEventListener('click', function() {
+            const action = bulkSelect.value;
+            if (!action) {
+                alert('Por favor selecciona una acción');
+                return;
+            }
+
+            const selectedOption = bulkSelect.querySelector(`option[value="${action}"]`);
+            const ajaxAction = selectedOption.dataset.ajaxAction;
+            const confirmMessage = selectedOption.dataset.confirm;
+
+            // Obtener elementos seleccionados
+            const selectedItems = Array.from(document.querySelectorAll('.gloryGridSelect:checked'))
+                .map(checkbox => checkbox.value);
+
+            if (selectedItems.length === 0) {
+                alert('Por favor selecciona al menos un elemento');
+                return;
+            }
+
+            // Confirmar acción si es necesario
+            if (confirmMessage && !confirm(confirmMessage)) {
+                return;
+            }
+
+            // Ejecutar acción AJAX
+            ejecutarAccionMasiva(ajaxAction, selectedItems);
+        });
+    }
+
+    function ejecutarAccionMasiva(action, items) {
+        // Deshabilitar botón mientras procesa
+        bulkApplyButton.disabled = true;
+        bulkApplyButton.textContent = 'Procesando...';
+
+        gloryAjax({
+            url: ajaxurl,
+            method: 'POST',
+            data: {
+                action: action,
+                items: items,
+                nonce: wpAjax.nonce // o tu nonce personalizado
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Recargar página o actualizar tabla
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.data || 'Error desconocido'));
+                }
+            },
+            error: function() {
+                alert('Error al procesar la solicitud');
+            },
+            complete: function() {
+                // Rehabilitar botón
+                bulkApplyButton.disabled = false;
+                bulkApplyButton.textContent = 'Aplicar';
+            }
+        });
+    }
+});
+```
+
+### Paginación AJAX
+
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    // Interceptar clicks en enlaces de paginación
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('.gloryPaginacion a');
+        if (link && !link.classList.contains('noAjax')) {
+            e.preventDefault();
+
+            const page = link.dataset.page;
+            const url = new URL(window.location);
+
+            // Actualizar parámetro de página
+            url.searchParams.set('paged', page);
+
+            // Recargar página con nueva página
+            window.location.href = url.toString();
+        }
+    });
+});
+```
+
+## Ejemplos completos
+
+### Tabla de usuarios con todas las funcionalidades
+
+```php
+<?php
+function renderTablaUsuarios() {
+    // Obtener usuarios (ejemplo simplificado)
+    $usuarios = get_users(['number' => 100]);
+
+    // Convertir a array para DataGridRenderer
+    $datosUsuarios = array_map(function($user) {
+        return [
+            'ID' => $user->ID,
+            'nombre' => $user->display_name,
+            'email' => $user->user_email,
+            'rol' => implode(', ', $user->roles),
+            'fecha_registro' => $user->user_registered,
+            'activo' => get_user_meta($user->ID, 'activo', true) === '1'
+        ];
+    }, $usuarios);
+
+    $columnas = [
+        [
+            'etiqueta' => 'ID',
+            'clave' => 'ID',
+            'ordenable' => true
+        ],
+        [
+            'etiqueta' => 'Nombre',
+            'clave' => 'nombre',
+            'ordenable' => true
+        ],
+        [
+            'etiqueta' => 'Email',
+            'clave' => 'email'
+        ],
+        [
+            'etiqueta' => 'Rol',
+            'clave' => 'rol'
+        ],
+        [
+            'etiqueta' => 'Estado',
+            'callback' => function($usuario) {
+                $estado = $usuario['activo'] ? 'Activo' : 'Inactivo';
+                $clase = $usuario['activo'] ? 'status-activo' : 'status-inactivo';
+                return '<span class="' . esc_attr($clase) . '">' . esc_html($estado) . '</span>';
+            }
+        ],
+        [
+            'etiqueta' => 'Acciones',
+            'callback' => function($usuario) {
+                return sprintf(
+                    '<a href="%s">Editar</a> | <a href="%s" class="submitdelete">Eliminar</a>',
+                    esc_url(admin_url('user-edit.php?user_id=' . $usuario['ID'])),
+                    esc_url(wp_nonce_url(
+                        admin_url('users.php?action=delete&user=' . $usuario['ID']),
+                        'bulk-users'
+                    ))
+                );
+            }
+        ]
+    ];
+
+    $config = [
+        'columnas' => $columnas,
+        'filtros' => [
+            'nombre' => ['etiqueta' => 'Buscar por nombre'],
+            'email' => ['etiqueta' => 'Buscar por email'],
+            'rol' => ['etiqueta' => 'Filtrar por rol']
+        ],
+        'paginacion' => true,
+        'per_page' => 20,
+        'seleccionMultiple' => true,
+        'accionesMasivas' => [
+            [
+                'id' => 'activar',
+                'etiqueta' => 'Activar usuarios',
+                'ajax_action' => 'bulk_activate_users'
+            ],
+            [
+                'id' => 'desactivar',
+                'etiqueta' => 'Desactivar usuarios',
+                'ajax_action' => 'bulk_deactivate_users'
+            ],
+            [
+                'id' => 'eliminar',
+                'etiqueta' => 'Eliminar usuarios',
+                'ajax_action' => 'bulk_delete_users',
+                'confirmacion' => '¿Estás seguro de eliminar los usuarios seleccionados?'
+            ]
+        ],
+        'allowed_html' => [
+            'a' => ['href' => [], 'class' => []],
+            'span' => ['class' => []]
+        ]
+    ];
+
+    DataGridRenderer::render($datosUsuarios, $config);
+}
+?>
+```
+
+### Tabla de posts con WP_Query
+
+```php
+<?php
+function renderTablaPosts() {
+    $query = new WP_Query([
+        'post_type' => 'post',
+        'posts_per_page' => 25,
+        'post_status' => 'publish',
+        'orderby' => isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'date',
+        'order' => isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'ASC' : 'DESC'
+    ]);
+
+    $columnas = [
+        [
+            'etiqueta' => 'Título',
+            'callback' => function($post) {
+                $editUrl = get_edit_post_link($post->ID);
+                $viewUrl = get_permalink($post->ID);
+                return sprintf(
+                    '<strong><a href="%s">%s</a></strong><br>' .
+                    '<div class="row-actions">' .
+                        '<a href="%s">Editar</a> | ' .
+                        '<a href="%s" target="_blank">Ver</a>' .
+                    '</div>',
+                    esc_url($editUrl),
+                    esc_html($post->post_title),
+                    esc_url($editUrl),
+                    esc_url($viewUrl)
+                );
+            }
+        ],
+        [
+            'etiqueta' => 'Autor',
+            'callback' => function($post) {
+                $author = get_the_author_meta('display_name', $post->post_author);
+                return esc_html($author);
+            },
+            'ordenable' => true
+        ],
+        [
+            'etiqueta' => 'Categorías',
+            'callback' => function($post) {
+                $categories = get_the_category($post->ID);
+                $catNames = array_map(function($cat) {
+                    return sprintf(
+                        '<a href="%s">%s</a>',
+                        esc_url(get_category_link($cat)),
+                        esc_html($cat->name)
+                    );
+                }, $categories);
+                return implode(', ', $catNames);
+            }
+        ],
+        [
+            'etiqueta' => 'Fecha',
+            'clave' => 'post_date',
+            'ordenable' => true,
+            'callback' => function($post) {
+                return get_the_date('d/m/Y H:i', $post);
+            }
+        ]
+    ];
+
+    DataGridRenderer::render($query, [
+        'columnas' => $columnas,
+        'paginacion' => true,
+        'filtros' => [
+            's' => ['etiqueta' => 'Buscar posts...']
+        ]
+    ]);
+}
+?>
+```
+
+## Consideraciones de rendimiento
+
+- **Paginación**: Siempre usa paginación para grandes conjuntos de datos
+- **Callbacks**: Los callbacks se ejecutan por cada celda, mantenlos eficientes
+- **WP_Query**: Para datos de WordPress, usa `WP_Query` para aprovechar el cache
+- **Índices de base de datos**: Asegura índices en columnas ordenables
+- **Lazy loading**: Considera cargar datos de manera diferida para tablas muy grandes
+
+## Seguridad
+
+- **Sanitización**: Todos los datos se sanitizan automáticamente
+- **HTML permitido**: Controla qué HTML se permite con `allowed_html`
+- **Nonces**: Usa nonces de WordPress para acciones que modifiquen datos
+- **Validación**: Valida todos los inputs del usuario
+- **Permisos**: Verifica permisos antes de mostrar datos sensibles
+
+## Mejores prácticas
+
+1. **Configuración clara**: Define columnas y configuraciones en variables separadas
+2. **Callbacks eficientes**: Mantén los callbacks simples y reutilizables
+3. **Paginación obligatoria**: Siempre habilita paginación para más de 50 elementos
+4. **Etiquetas descriptivas**: Usa etiquetas claras para filtros y acciones
+5. **Estados visuales**: Proporciona feedback visual claro para acciones
+6. **Responsive**: Considera cómo se verá la tabla en dispositivos móviles
+7. **Accesibilidad**: Incluye atributos apropiados para lectores de pantalla
+
+## Casos de uso comunes
+
+- **Listados administrativos**: Usuarios, posts, páginas, productos
+- **Reportes**: Datos tabulares con filtros y exportación
+- **Gestión de contenido**: Artículos, categorías, etiquetas
+- **E-commerce**: Productos, pedidos, inventario
+- **Análisis**: Estadísticas y métricas en formato tabular
+- **CRM**: Contactos, leads, oportunidades
+
+## Integración con otros componentes
+
+El `DataGridRenderer` se integra perfectamente con otros componentes de Glory:
+
+```php
+<?php
+// Combinado con Modal para edición
+function renderTablaConModal() {
+    // Renderizar tabla
+    DataGridRenderer::render($datos, $config);
+
+    // Modal de edición (se mostraría con JavaScript)
+    echo Modal::renderConFormulario(
+        'editar-item',
+        'Editar Elemento',
+        function() {
+            // Formulario de edición
+            return FormBuilder::input('nombre', 'Nombre') .
+                   FormBuilder::input('email', 'Email') .
+                   FormBuilder::submit('Guardar');
+        }
+    );
+}
+?>
+```
+
+## Troubleshooting
+
+### La tabla no se muestra
+
+- Verifica que `$datos` no esté vacío
+- Asegura que `columnas` esté configurado correctamente
+- Revisa errores PHP en los logs
+
+### Los filtros no funcionan
+
+- Confirma que el formulario se envía correctamente
+- Verifica que los nombres de los filtros coincidan con `$_GET`
+- Asegura que la página maneje correctamente los parámetros GET
+
+### La paginación no aparece
+
+- Verifica que `paginacion => true`
+- Para arrays, asegúrate de que hay más elementos que `per_page`
+- Para WP_Query, verifica que `max_num_pages > 1`
+
+### Las acciones masivas no funcionan
+
+- Confirma que `seleccionMultiple => true`
+- Verifica que los `ajax_action` estén definidos
+- Asegura que el JavaScript esté cargado y funcional
+
+### Problemas de ordenamiento
+
+- Verifica que las columnas tengan `ordenable => true`
+- Asegura que las claves de ordenamiento existan en los datos
+- Para WP_Query, verifica que los campos sean ordenables en WordPress
+
+### Errores de HTML
+
+- Revisa la configuración de `allowed_html`
+- Usa `wp_kses_post()` si permites HTML completo
+- Sanitiza datos manualmente en callbacks si es necesario

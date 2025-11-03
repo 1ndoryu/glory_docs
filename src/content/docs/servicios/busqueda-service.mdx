@@ -1,0 +1,501 @@
+---
+title: BusquedaService
+description: Servicio centralizado para gestionar búsquedas en múltiples tipos de contenido
+sidebar:
+  label: BusquedaService
+  order: 4
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# BusquedaService
+
+El **BusquedaService** es el servicio centralizado de Glory para gestionar operaciones de búsqueda en todo el sitio web. Permite buscar en diferentes tipos de contenido (posts, usuarios, tipos personalizados) de manera estructurada y extensible.
+
+## Filosofía
+
+BusquedaService está diseñado para ser:
+- **Centralizado**: Un único punto de entrada para todas las búsquedas
+- **Extensible**: Soporte para tipos de contenido personalizados mediante manejadores
+- **Estructurado**: Resultados formateados y consistentes
+- **Equilibrado**: Balance automático de resultados para evitar dominancia de un tipo
+
+## Arquitectura
+
+### Componentes Principales
+
+- **Configuración de búsqueda**: Define qué tipos de contenido buscar
+- **Manejadores personalizados**: Lógica específica para tipos de contenido complejos
+- **Manejadores predeterminados**: Búsqueda automática para posts y usuarios
+- **Formateo de resultados**: Estructura consistente para todos los resultados
+- **Balanceo**: Límite de resultados por tipo para experiencia equilibrada
+
+## Uso Básico
+
+### Inicialización
+
+```php
+use Glory\Services\BusquedaService;
+
+// Crear instancia con término de búsqueda
+$busqueda = new BusquedaService('término de búsqueda');
+```
+
+### Configuración Simple
+
+```php
+// Configurar búsqueda en posts y usuarios
+$resultados = $busqueda
+    ->agregarTipoBusqueda('post', ['post_type' => 'post', 'limite' => 5])
+    ->agregarTipoBusqueda('usuario', ['limite' => 3])
+    ->ejecutar()
+    ->balancear(2) // Máximo 2 resultados por tipo
+    ->obtenerResultados();
+```
+
+### Estructura de Resultados
+
+```php
+// Resultados devueltos
+[
+    'post' => [
+        [
+            'titulo' => 'Título del post',
+            'url' => 'https://sitio.com/post/',
+            'tipo' => 'Post',
+            'imagen' => 'https://sitio.com/wp-content/uploads/imagen.jpg'
+        ]
+    ],
+    'usuario' => [
+        [
+            'titulo' => 'Nombre del Usuario',
+            'url' => 'https://sitio.com/author/usuario/',
+            'tipo' => 'Perfil',
+            'imagen' => 'https://secure.gravatar.com/avatar/...',
+        ]
+    ]
+]
+```
+
+## Tipos de Búsqueda
+
+### Posts (Predeterminado)
+
+```php
+$busqueda->agregarTipoBusqueda('post', [
+    'post_type' => 'post', // Tipo de post (post, page, custom_post_type)
+    'limite' => 5          // Número máximo de resultados
+]);
+```
+
+### Usuarios (Predeterminado)
+
+```php
+$busqueda->agregarTipoBusqueda('usuario', [
+    'limite' => 3  // Número máximo de resultados
+]);
+```
+
+### Tipos Personalizados con Manejador
+
+```php
+$busqueda->agregarTipoBusqueda('productos', [
+    'categoria' => 'electronica',
+    'disponible' => true
+], function($termino, $args) {
+    // Lógica personalizada de búsqueda
+    $query = new WP_Query([
+        'post_type' => 'producto',
+        'meta_query' => [
+            [
+                'key' => 'disponible',
+                'value' => $args['disponible'],
+                'compare' => '='
+            ]
+        ],
+        's' => $termino
+    ]);
+
+    $resultados = [];
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $resultados[] = [
+                'titulo' => get_the_title(),
+                'url' => get_permalink(),
+                'tipo' => 'Producto',
+                'imagen' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail'),
+                'precio' => get_post_meta(get_the_ID(), 'precio', true)
+            ];
+        }
+    }
+    wp_reset_postdata();
+
+    return $resultados;
+});
+```
+
+## Métodos Principales
+
+### `agregarTipoBusqueda(string $tipo, array $args = [], ?callable $handler = null)`
+
+Agrega un tipo de contenido a la configuración de búsqueda.
+
+**Parámetros:**
+- `$tipo`: Identificador único del tipo de contenido
+- `$args`: Argumentos específicos para la búsqueda
+- `$handler`: Función personalizada para manejar la búsqueda (opcional)
+
+**Retorna:** Instancia de BusquedaService para encadenamiento
+
+### `ejecutar()`
+
+Ejecuta todas las búsquedas configuradas.
+
+**Retorna:** Instancia de BusquedaService para encadenamiento
+
+### `balancear(int $maxPorTipo = 2)`
+
+Limita el número de resultados por tipo de contenido.
+
+**Parámetros:**
+- `$maxPorTipo`: Número máximo de resultados por tipo
+
+**Retorna:** Instancia de BusquedaService para encadenamiento
+
+### `obtenerResultados()`
+
+Devuelve los resultados formateados de la búsqueda.
+
+**Retorna:** Array asociativo con resultados por tipo
+
+## Ejemplos Avanzados
+
+### Búsqueda Multi-tipo Compleja
+
+```php
+$busquedaService = new BusquedaService($_GET['q'] ?? '');
+
+// Posts del blog
+$busquedaService->agregarTipoBusqueda('posts', [
+    'post_type' => 'post',
+    'limite' => 4
+]);
+
+// Páginas
+$busquedaService->agregarTipoBusqueda('paginas', [
+    'post_type' => 'page',
+    'limite' => 2
+]);
+
+// Usuarios
+$busquedaService->agregarTipoBusqueda('usuarios', [
+    'limite' => 3
+]);
+
+// Productos personalizados con lógica específica
+$busquedaService->agregarTipoBusqueda('productos', [
+    'en_stock' => true
+], function($termino, $args) {
+    global $wpdb;
+
+    $productos = $wpdb->get_results($wpdb->prepare("
+        SELECT p.ID, p.post_title, pm.meta_value as precio
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = 'precio'
+        WHERE p.post_type = 'producto'
+        AND p.post_status = 'publish'
+        AND (p.post_title LIKE %s OR p.post_content LIKE %s)
+        AND EXISTS (
+            SELECT 1 FROM {$wpdb->postmeta} pm2
+            WHERE pm2.post_id = p.ID AND pm2.meta_key = 'en_stock' AND pm2.meta_value = '1'
+        )
+        LIMIT 5
+    ", '%' . $wpdb->esc_like($termino) . '%', '%' . $wpdb->esc_like($termino) . '%'));
+
+    return array_map(function($producto) {
+        return [
+            'titulo' => $producto->post_title,
+            'url' => get_permalink($producto->ID),
+            'tipo' => 'Producto',
+            'imagen' => get_the_post_thumbnail_url($producto->ID, 'thumbnail'),
+            'precio' => $producto->precio ? '$' . number_format($producto->precio, 2) : 'Precio no disponible'
+        ];
+    }, $productos);
+});
+
+// Ejecutar búsqueda
+$resultados = $busquedaService
+    ->ejecutar()
+    ->balancear(3)
+    ->obtenerResultados();
+
+// Usar resultados en template
+foreach ($resultados as $tipo => $items) {
+    echo "<h3>" . ucfirst($tipo) . "</h3>";
+    foreach ($items as $item) {
+        echo "<div class='resultado-busqueda'>";
+        echo "<img src='{$item['imagen']}' alt='' />";
+        echo "<h4><a href='{$item['url']}'>{$item['titulo']}</a></h4>";
+        echo "<span class='tipo'>{$item['tipo']}</span>";
+        echo "</div>";
+    }
+}
+```
+
+### Integración con AJAX
+
+```php
+// En functions.php o plugin
+add_action('wp_ajax_buscar_contenido', 'manejar_busqueda_ajax');
+add_action('wp_ajax_nopriv_buscar_contenido', 'manejar_busqueda_ajax');
+
+function manejar_busqueda_ajax() {
+    $termino = sanitize_text_field($_POST['termino'] ?? '');
+
+    if (empty($termino)) {
+        wp_send_json_error('Término de búsqueda requerido');
+        return;
+    }
+
+    $busqueda = new BusquedaService($termino);
+
+    // Configurar tipos de búsqueda
+    $busqueda->agregarTipoBusqueda('post', ['post_type' => 'post', 'limite' => 5]);
+    $busqueda->agregarTipoBusqueda('usuario', ['limite' => 3]);
+
+    $resultados = $busqueda->ejecutar()->balancear(2)->obtenerResultados();
+
+    wp_send_json_success([
+        'resultados' => $resultados,
+        'total' => array_sum(array_map('count', $resultados))
+    ]);
+}
+```
+
+```javascript
+// JavaScript para búsqueda en tiempo real
+document.getElementById('busqueda-input').addEventListener('input', function(e) {
+    const termino = e.target.value.trim();
+
+    if (termino.length < 3) return; // Mínimo 3 caracteres
+
+    fetch('/wp-admin/admin-ajax.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            action: 'buscar_contenido',
+            termino: termino
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarResultados(data.data.resultados);
+        }
+    });
+});
+
+function mostrarResultados(resultados) {
+    const contenedor = document.getElementById('resultados-busqueda');
+    contenedor.innerHTML = '';
+
+    Object.keys(resultados).forEach(tipo => {
+        const items = resultados[tipo];
+        if (items.length > 0) {
+            const seccion = document.createElement('div');
+            seccion.className = 'seccion-resultados';
+            seccion.innerHTML = `<h4>${tipo.charAt(0).toUpperCase() + tipo.slice(1)}</h4>`;
+
+            items.forEach(item => {
+                const elemento = document.createElement('div');
+                elemento.className = 'resultado-item';
+                elemento.innerHTML = `
+                    <img src="${item.imagen || '/default-image.jpg'}" alt="">
+                    <div class="info">
+                        <h5><a href="${item.url}">${item.titulo}</a></h5>
+                        <span class="tipo">${item.tipo}</span>
+                    </div>
+                `;
+                seccion.appendChild(elemento);
+            });
+
+            contenedor.appendChild(seccion);
+        }
+    });
+}
+```
+
+## Filtros y Extensiones
+
+### Filtro para Personalizar Imágenes
+
+```php
+// En functions.php
+add_filter('glory_busqueda_imagen_post', 'personalizar_imagen_busqueda', 10, 3);
+function personalizar_imagen_busqueda($imagenUrl, $postId, $metaKeys) {
+    // Si no hay imagen, usar una imagen por defecto del tipo de post
+    if (!$imagenUrl) {
+        $postType = get_post_type($postId);
+        $imagenUrl = get_template_directory_uri() . "/images/default-{$postType}.jpg";
+    }
+
+    // Redimensionar o procesar la imagen si es necesario
+    // ...
+
+    return $imagenUrl;
+}
+```
+
+### Extender con Nuevos Tipos Predeterminados
+
+```php
+// Agregar soporte para taxonomías
+class BusquedaServiceExtendida extends Glory\Services\BusquedaService {
+    public function agregarTipoBusqueda($tipo, $args = [], $handler = null) {
+        // Agregar soporte para términos de taxonomía
+        if ($tipo === 'categoria' || $tipo === 'tag') {
+            $handler = function($termino, $args) {
+                $taxonomia = $args['taxonomia'] ?? ($tipo === 'categoria' ? 'category' : 'post_tag');
+
+                $terminos = get_terms([
+                    'taxonomy' => $taxonomia,
+                    'name__like' => $termino,
+                    'number' => $args['limite'] ?? 5
+                ]);
+
+                return array_map(function($termino) {
+                    return [
+                        'titulo' => $termino->name,
+                        'url' => get_term_link($termino),
+                        'tipo' => ucfirst($taxonomia),
+                        'imagen' => get_template_directory_uri() . '/images/taxonomy-default.jpg'
+                    ];
+                }, $terminos);
+            };
+        }
+
+        return parent::agregarTipoBusqueda($tipo, $args, $handler);
+    }
+}
+```
+
+## Mejores Prácticas
+
+### 1. Configuración Eficiente
+
+```php
+// ❌ Mal: Configuración repetitiva
+$busqueda = new BusquedaService($termino);
+$busqueda->agregarTipoBusqueda('post', ['post_type' => 'post', 'limite' => 5]);
+$busqueda->agregarTipoBusqueda('page', ['post_type' => 'page', 'limite' => 5]);
+$busqueda->agregarTipoBusqueda('producto', ['post_type' => 'producto', 'limite' => 5]);
+
+// ✅ Bien: Configuración centralizada
+$configTipos = [
+    'post' => ['post_type' => 'post'],
+    'page' => ['post_type' => 'page'],
+    'producto' => ['post_type' => 'producto']
+];
+
+$busqueda = new BusquedaService($termino);
+foreach ($configTipos as $tipo => $args) {
+    $args['limite'] = 5; // Configuración común
+    $busqueda->agregarTipoBusqueda($tipo, $args);
+}
+```
+
+### 2. Manejadores Reutilizables
+
+```php
+// Crear manejadores reutilizables
+$manejadorProducto = function($termino, $args) {
+    // Lógica común para productos
+    return buscarEnProductos($termino, $args);
+};
+
+$manejadorServicio = function($termino, $args) {
+    // Lógica común para servicios
+    return buscarEnServicios($termino, $args);
+};
+
+// Usar en múltiples búsquedas
+$busquedaPrincipal = new BusquedaService($termino);
+$busquedaPrincipal->agregarTipoBusqueda('producto', [], $manejadorProducto);
+$busquedaPrincipal->agregarTipoBusqueda('servicio', [], $manejadorServicio);
+```
+
+### 3. Cache para Rendimiento
+
+```php
+class BusquedaServiceCache extends Glory\Services\BusquedaService {
+    private $cache = [];
+
+    public function ejecutar() {
+        $cacheKey = 'busqueda_' . md5($this->terminoBusqueda . serialize($this->configuracionBusqueda));
+
+        if (isset($this->cache[$cacheKey])) {
+            $this->resultados = $this->cache[$cacheKey];
+            return $this;
+        }
+
+        parent::ejecutar();
+
+        // Cache por 5 minutos
+        $this->cache[$cacheKey] = $this->resultados;
+        wp_cache_set($cacheKey, $this->resultados, 'busqueda', 300);
+
+        return $this;
+    }
+}
+```
+
+## Casos de Uso Comunes
+
+### Búsqueda Global del Sitio
+
+```php
+function buscarGlobal($termino) {
+    $busqueda = new BusquedaService($termino);
+
+    // Contenido principal
+    $busqueda->agregarTipoBusqueda('posts', ['post_type' => 'post', 'limite' => 6]);
+    $busqueda->agregarTipoBusqueda('paginas', ['post_type' => 'page', 'limite' => 3]);
+
+    // Contenido personalizado
+    $busqueda->agregarTipoBusqueda('productos', ['limite' => 4], $manejadorProductos);
+    $busqueda->agregarTipoBusqueda('servicios', ['limite' => 4], $manejadorServicios);
+
+    // Usuarios
+    $busqueda->agregarTipoBusqueda('usuarios', ['limite' => 2]);
+
+    return $busqueda->ejecutar()->balancear(3)->obtenerResultados();
+}
+```
+
+### Búsqueda por Sección
+
+```php
+function buscarEnBlog($termino) {
+    return (new BusquedaService($termino))
+        ->agregarTipoBusqueda('post', ['post_type' => 'post', 'limite' => 10])
+        ->agregarTipoBusqueda('categoria', ['taxonomia' => 'category', 'limite' => 5], $manejadorCategorias)
+        ->ejecutar()
+        ->obtenerResultados();
+}
+
+function buscarEnProductos($termino) {
+    return (new BusquedaService($termino))
+        ->agregarTipoBusqueda('producto', ['disponible' => true, 'limite' => 12], $manejadorProductos)
+        ->agregarTipoBusqueda('categoria_producto', ['limite' => 4], $manejadorCategoriaProductos)
+        ->ejecutar()
+        ->balancear(6)
+        ->obtenerResultados();
+}
+```
+
+<Aside type="tip">
+**Nota Importante**: BusquedaService está optimizado para búsquedas moderadas. Para volúmenes muy altos de datos, considera implementar paginación o índices de búsqueda especializados como Elasticsearch.
+</Aside>

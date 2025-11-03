@@ -80,7 +80,8 @@ export default defineConfig({
                     items: [
                         'servicios/event-bus',
                         'servicios/glory-logger',
-                        'servicios/analytics-engine'
+                        'servicios/analytics-engine',
+                        'servicios/busqueda-service'
                     ]
                 },
                 {

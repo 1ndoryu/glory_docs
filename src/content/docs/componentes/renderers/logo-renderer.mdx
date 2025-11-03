@@ -1,0 +1,532 @@
+---
+title: LogoRenderer
+description: Sistema flexible para renderizar logos con múltiples modos, filtros CSS y compatibilidad con Avada
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# LogoRenderer
+
+El componente **LogoRenderer** es un sistema flexible y agnóstico para renderizar logos en temas WordPress. Soporta múltiples modos de visualización (imagen, texto, ninguno), filtros CSS avanzados, y tiene compatibilidad nativa con Avada Builder. Incluye un sistema de fallback automático y shortcode integrado.
+
+## Características Principales
+
+- **Múltiples modos**: Imagen, texto, o sin logo
+- **Filtros CSS avanzados**: Blanco, negro, o filtros personalizados
+- **Compatibilidad Avada**: Integración automática con logos de Avada
+- **Sistema de fallback**: Logo personalizado → Logo WordPress → Logo por defecto
+- **Shortcode integrado**: `[theme_logo]` para uso en cualquier lugar
+- **Responsive**: Control de ancho y escalado automático
+- **Accesibilidad**: Atributos ARIA y navegación por teclado
+
+## Configuración del Tema
+
+### Opciones de Logo
+
+Antes de usar LogoRenderer, configura las opciones del logo en el panel de administración:
+
+```php
+// Configuración típica en opciones del tema
+OpcionManager::set('glory_logo_mode', 'image');      // 'image', 'text', 'none', 'default'
+OpcionManager::set('glory_logo_image', 123);         // ID de imagen adjunta
+OpcionManager::set('glory_logo_text', 'Mi Sitio');    // Texto del logo
+```
+
+### Modos de Logo
+
+| Modo | Descripción | Comportamiento |
+|------|-------------|---------------|
+| `'image'` | Logo como imagen | Usa imagen subida en opciones de Glory |
+| `'text'` | Logo como texto | Usa texto definido en opciones de Glory |
+| `'default'` | Logo por defecto | Compatible con Avada (logo sticky/header) |
+| `'none'` | Sin logo | No renderiza nada |
+
+## Uso Básico
+
+### Método Principal
+
+```php
+use Glory\Components\LogoRenderer;
+
+// Renderizar logo con configuración por defecto
+echo LogoRenderer::get_html();
+
+// Con ancho personalizado
+echo LogoRenderer::get_html(['width' => '200px']);
+
+// Con filtro blanco (útil para headers oscuros)
+echo LogoRenderer::get_html(['filter' => 'white']);
+```
+
+### Shortcode
+
+```php
+// Registrar el shortcode (normalmente se hace automáticamente)
+LogoRenderer::register_shortcode();
+
+// Usar en contenido o widgets
+echo do_shortcode('[theme_logo]');
+
+// Con parámetros
+echo do_shortcode('[theme_logo width="150px" filter="white"]');
+```
+
+## Parámetros de Configuración
+
+### Parámetros Principales
+
+| Parámetro | Tipo | Default | Descripción |
+|-----------|------|---------|-------------|
+| `width` | string | `''` | Ancho del logo (ej: '200px', '50%') |
+| `filter` | string | `''` | Filtro CSS: 'white', 'black', o CSS personalizado |
+
+### Filtros CSS Disponibles
+
+```php
+// Filtros predefinidos
+LogoRenderer::get_html(['filter' => 'white']);  // brightness(0) invert(1)
+LogoRenderer::get_html(['filter' => 'black']);  // brightness(0)
+
+// Filtro personalizado
+LogoRenderer::get_html(['filter' => 'sepia(1) hue-rotate(90deg)']);
+```
+
+## Modos de Renderizado
+
+### Modo Imagen
+
+```php
+// Configurar modo imagen
+OpcionManager::set('glory_logo_mode', 'image');
+OpcionManager::set('glory_logo_image', 123); // ID de imagen
+
+// Renderizar
+echo LogoRenderer::get_html(['width' => '200px']);
+```
+
+**HTML generado:**
+```html
+<div class="glory-logo-shortcode-wrapper">
+    <a href="https://misitio.com/" rel="home">
+        <img src="https://misitio.com/wp-content/uploads/logo.png"
+             alt="Mi Sitio"
+             style="width: 200px; height: auto;">
+    </a>
+</div>
+```
+
+### Modo Texto
+
+```php
+// Configurar modo texto
+OpcionManager::set('glory_logo_mode', 'text');
+OpcionManager::set('glory_logo_text', 'Mi Marca');
+
+// Renderizar
+echo LogoRenderer::get_html(['filter' => 'white']);
+```
+
+**HTML generado:**
+```html
+<div class="glory-logo-shortcode-wrapper">
+    <a href="https://misitio.com/" rel="home" class="glory-logo-text" style="color: #ffffff;">
+        Mi Marca
+    </a>
+</div>
+```
+
+### Modo Default (Avada)
+
+```php
+// Configurar modo default (solo funciona con Avada activo)
+OpcionManager::set('glory_logo_mode', 'default');
+
+// Renderizar (usa logos de Avada automáticamente)
+echo LogoRenderer::get_html();
+```
+
+### Modo Sin Logo
+
+```php
+// Desactivar logo completamente
+OpcionManager::set('glory_logo_mode', 'none');
+
+echo LogoRenderer::get_html(); // Retorna string vacío
+```
+
+## Sistema de Fallback
+
+LogoRenderer implementa un sistema de fallback inteligente:
+
+```php
+// 1. Intenta usar configuración específica de Glory/Avada
+// 2. Si falla, usa get_custom_logo() de WordPress
+// 3. Si no hay logo personalizado, usa logo por defecto de Glory
+// 4. Como último recurso, usa el nombre del sitio como texto
+```
+
+### Jerarquía de Fallback
+
+```
+Avada Active + Mode 'default' → Logo Avada (sticky → header)
+Glory Mode 'image' → Imagen subida en opciones Glory
+WordPress Custom Logo → get_custom_logo()
+Glory Default Logo → glory::elements/blackExampleLogo.png
+Fallback Final → Nombre del sitio como texto
+```
+
+## Integración con Avada
+
+### Configuración Automática
+
+```php
+// Cuando Avada está activo, el modo por defecto es 'default'
+$default_mode = Compatibility::avadaActivo() ? 'default' : 'image';
+
+// LogoRenderer detecta automáticamente y usa:
+// 1. fusion_get_theme_option('sticky_header_logo')
+// 2. fusion_get_theme_option('logo') como fallback
+```
+
+### Uso en Headers con Avada
+
+```php
+<?php
+use Glory\Components\LogoRenderer;
+use Glory\Integration\Compatibility;
+
+// En header.php o componente header
+if (Compatibility::avadaActivo()) {
+    // Usar configuración de Avada
+    echo LogoRenderer::get_html(['filter' => 'white']);
+} else {
+    // Usar configuración de Glory
+    echo LogoRenderer::get_html();
+}
+?>
+```
+
+## Casos de Uso Avanzados
+
+### Header Responsive con Logo Adaptativo
+
+```php
+<?php
+use Glory\Components\LogoRenderer;
+?>
+
+<header class="site-header">
+    <div class="logo-container">
+        <?php
+        // Logo grande para desktop
+        echo LogoRenderer::get_html([
+            'width' => '250px',
+            'filter' => 'black'
+        ]);
+        ?>
+
+        <?php
+        // Logo pequeño para móvil (oculto por defecto, mostrado con CSS)
+        echo LogoRenderer::get_html([
+            'width' => '150px',
+            'filter' => 'white'
+        ]);
+        ?>
+    </div>
+</header>
+
+<style>
+@media (max-width: 768px) {
+    .logo-container > .glory-logo-shortcode-wrapper:first-child {
+        display: none;
+    }
+    .logo-container > .glory-logo-shortcode-wrapper:last-child {
+        display: block;
+    }
+}
+</style>
+```
+
+### Logo con Efectos Hover
+
+```php
+<?php
+use Glory\Components\LogoRenderer;
+?>
+
+<div class="logo-hover-effect">
+    <?php
+    echo LogoRenderer::get_html([
+        'width' => '200px',
+        'filter' => 'black'
+    ]);
+    ?>
+</div>
+
+<style>
+.logo-hover-effect img {
+    transition: filter 0.3s ease;
+}
+
+.logo-hover-effect:hover img {
+    filter: brightness(0) invert(1) !important;
+}
+</style>
+```
+
+### Sistema de Logos por Idioma (WPML/PolyLang)
+
+```php
+<?php
+use Glory\Components\LogoRenderer;
+
+// Función para logo según idioma
+function get_logo_por_idioma() {
+    $current_lang = apply_filters('wpml_current_language', null);
+
+    switch ($current_lang) {
+        case 'es':
+            return LogoRenderer::get_html(['filter' => 'black']);
+        case 'en':
+            return LogoRenderer::get_html(['filter' => 'white']);
+        default:
+            return LogoRenderer::get_html();
+    }
+}
+
+// En header
+echo '<div class="site-branding">';
+echo get_logo_por_idioma();
+echo '</div>';
+?>
+```
+
+### Logo en Footer con Opacidad
+
+```php
+<?php
+use Glory\Components\LogoRenderer;
+?>
+
+<footer class="site-footer">
+    <div class="footer-logo">
+        <?php
+        echo LogoRenderer::get_html([
+            'width' => '150px',
+            'filter' => 'brightness(0.5)'
+        ]);
+        ?>
+    </div>
+</footer>
+```
+
+## Estilización CSS
+
+### Estilos Base Recomendados
+
+```css
+/* Contenedor del logo */
+.glory-logo-shortcode-wrapper {
+    display: inline-block;
+    max-width: 100%;
+}
+
+/* Logo como imagen */
+.glory-logo-shortcode-wrapper img {
+    max-width: 100%;
+    height: auto;
+    transition: opacity 0.3s ease;
+}
+
+.glory-logo-shortcode-wrapper img:hover {
+    opacity: 0.8;
+}
+
+/* Logo como texto */
+.glory-logo-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.glory-logo-text:hover {
+    color: var(--color-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .glory-logo-shortcode-wrapper img {
+        max-width: 150px;
+    }
+
+    .glory-logo-text {
+        font-size: 1.2rem;
+    }
+}
+```
+
+### Tema Oscuro
+
+```css
+@media (prefers-color-scheme: dark) {
+    .glory-logo-text {
+        color: #ffffff;
+    }
+
+    .glory-logo-shortcode-wrapper img {
+        filter: brightness(0) invert(1);
+    }
+}
+```
+
+## Shortcode Detallado
+
+### Parámetros del Shortcode
+
+```php
+// Uso básico
+[theme_logo]
+
+// Con ancho específico
+[theme_logo width="200px"]
+
+// Con filtro blanco
+[theme_logo filter="white"]
+
+// Con filtro negro
+[theme_logo filter="black"]
+
+// Combinado
+[theme_logo width="250px" filter="white"]
+
+// Filtro personalizado
+[theme_logo filter="sepia(1) contrast(1.2)"]
+```
+
+### Uso en Page Builders
+
+```php
+// En Elementor (texto sin formato)
+[theme_logo width="300px" filter="white"]
+
+// En Gutenberg (bloque shortcode)
+<!-- wp:shortcode -->
+[theme_logo filter="black"]
+<!-- /wp:shortcode -->
+
+// En Visual Composer
+[theme_logo width="100%" filter="brightness(0.8)"]
+```
+
+## Integración con HeaderRenderer
+
+```php
+<?php
+use Glory\Components\HeaderRenderer;
+use Glory\Components\LogoRenderer;
+
+// HeaderRenderer usa LogoRenderer internamente
+HeaderRenderer::render([
+    'modoLogo' => 'image',  // Se pasa a LogoRenderer
+    'textoLogo' => 'Mi Sitio',
+    'logoImageId' => 123
+]);
+?>
+```
+
+## Solución de Problemas
+
+### Logo No Aparece
+
+**Posibles causas:**
+- Modo configurado como `'none'`
+- Imagen no subida correctamente
+- Avada no activo cuando se usa modo `'default'`
+
+```php
+// Verificar configuración
+$logo_mode = OpcionManager::get('glory_logo_mode');
+$logo_image = OpcionManager::get('glory_logo_image');
+
+// Debug
+var_dump($logo_mode, $logo_image);
+```
+
+### Filtros CSS No Funcionan
+
+```php
+// Verificar sintaxis de filtro
+$args = ['filter' => 'white']; // ✅ Correcto
+$args = ['filter' => 'brightness(0) invert(1)']; // ✅ Correcto
+$args = ['filter' => 'white ']; // ❌ Espacio extra causa problemas
+```
+
+### Problemas con Avada
+
+```php
+// Verificar si Avada está activo
+use Glory\Integration\Compatibility;
+
+if (Compatibility::avadaActivo()) {
+    // Avada está activo, debería funcionar el modo 'default'
+} else {
+    // Usar modo 'image' en su lugar
+    OpcionManager::set('glory_logo_mode', 'image');
+}
+```
+
+## Optimizaciones de Rendimiento
+
+### Caché de Configuración
+
+```php
+// La configuración se lee de OpcionManager que normalmente está cacheado
+// Para mejor rendimiento, considera cachear el HTML resultante
+
+function get_cached_logo($args = []) {
+    $cache_key = 'glory_logo_' . md5(serialize($args));
+
+    $cached = get_transient($cache_key);
+    if ($cached !== false) {
+        return $cached;
+    }
+
+    $html = LogoRenderer::get_html($args);
+    set_transient($cache_key, $html, HOUR_IN_SECONDS);
+
+    return $html;
+}
+```
+
+### Lazy Loading para Logos Grandes
+
+```php
+// Para logos muy grandes, considera lazy loading
+function get_lazy_logo($args = []) {
+    $html = LogoRenderer::get_html($args);
+
+    // Agregar loading="lazy" a las imágenes
+    return str_replace('<img ', '<img loading="lazy" ', $html);
+}
+```
+
+## Dependencias
+
+- `OpcionManager` - Para configuración del logo
+- `Compatibility` - Para detección de Avada
+- `AssetsUtility` - Para logo por defecto de Glory
+
+<Aside type="tip">
+**Recomendación**: Para headers con fondos oscuros, siempre usa `filter="white"` para asegurar que el logo sea visible.
+
+```php
+// Header oscuro
+echo LogoRenderer::get_html(['filter' => 'white']);
+
+// Header claro
+echo LogoRenderer::get_html(['filter' => 'black']);
+```
+</Aside>

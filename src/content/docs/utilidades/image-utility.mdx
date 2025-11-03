@@ -1,0 +1,269 @@
+---
+title: ImageUtility
+description: Utilidad para optimización de imágenes con Jetpack Photon CDN
+---
+
+# ImageUtility
+
+El `ImageUtility` es una utilidad de Glory que facilita la optimización de imágenes utilizando Jetpack Photon CDN. Proporciona una forma sencilla de servir imágenes optimizadas con compresión, redimensionamiento automático y lazy loading integrado.
+
+## Funcionalidades principales
+
+- **Optimización automática**: Comprime imágenes y reduce su tamaño sin perder calidad perceptible
+- **Integración Jetpack Photon**: Utiliza el CDN de WordPress.com para servir imágenes optimizadas
+- **Lazy loading**: Incluye automáticamente el atributo `loading="lazy"`
+- **Responsive images**: Mantiene las proporciones y tamaños originales
+- **Modo desarrollo**: Desactiva la optimización en entornos locales
+- **Fallback seguro**: Funciona sin Photon si no está disponible
+
+## Uso básico
+
+### Optimización simple de thumbnail
+
+```php
+use Glory\Utility\ImageUtility;
+
+// Obtener imagen optimizada del post actual
+echo ImageUtility::optimizar(get_post());
+```
+
+### Optimización con parámetros personalizados
+
+```php
+use Glory\Utility\ImageUtility;
+
+// Imagen grande con alta calidad
+echo ImageUtility::optimizar(get_post(), 'large', 80, 'none');
+
+// Imagen mediana con compresión agresiva
+echo ImageUtility::optimizar(get_post(), 'medium', 60, 'all');
+```
+
+### Optimización por ID de post
+
+```php
+use Glory\Utility\ImageUtility;
+
+// Optimizar thumbnail de un post específico
+echo ImageUtility::optimizar(123, 'medium_large');
+```
+
+## Parámetros de configuración
+
+### `optimizar()` - Parámetros principales
+
+| Parámetro | Tipo | Descripción | Valor por defecto |
+|-----------|------|-------------|-------------------|
+| `$post` | `\WP_Post\|int` | Post o ID del post con la imagen | **Requerido** |
+| `$size` | `string` | Tamaño de imagen registrado en WordPress | `'medium_large'` |
+| `$quality` | `int` | Calidad de compresión (1-100) | `60` |
+| `$strip` | `string` | Metadatos a remover: `'all'`, `'info'`, `'none'` | `'all'` |
+
+### Valores de `$strip`
+
+- **`'all'`**: Remueve todos los metadatos EXIF, IPTC, etc.
+- **`'info'`**: Remueve solo información personal (GPS, copyright, etc.)
+- **`'none'`**: Mantiene todos los metadatos
+
+## Ejemplos completos
+
+### En un loop de posts
+
+```php
+<?php
+// En archive.php o cualquier template
+if (have_posts()) {
+    while (have_posts()) {
+        the_post();
+        ?>
+        <article class="post-item">
+            <div class="post-thumbnail">
+                <?php echo ImageUtility::optimizar(get_post(), 'medium_large', 70); ?>
+            </div>
+            <h2><?php the_title(); ?></h2>
+            <div class="post-excerpt">
+                <?php the_excerpt(); ?>
+            </div>
+        </article>
+        <?php
+    }
+}
+?>
+```
+
+### En un custom post type
+
+```php
+<?php
+// Para productos o cualquier CPT
+$query = new WP_Query([
+    'post_type' => 'product',
+    'posts_per_page' => 12
+]);
+
+while ($query->have_posts()) {
+    $query->the_post();
+    $product = wc_get_product(get_the_ID());
+    ?>
+    <div class="product-card">
+        <div class="product-image">
+            <?php echo ImageUtility::optimizar(get_post(), 'woocommerce_thumbnail', 75, 'info'); ?>
+        </div>
+        <h3><?php the_title(); ?></h3>
+        <div class="product-price">
+            <?php echo $product->get_price_html(); ?>
+        </div>
+    </div>
+    <?php
+}
+wp_reset_postdata();
+?>
+```
+
+### En un slider o galería
+
+```php
+<?php
+// Para imágenes de alta calidad en galerías
+$gallery_images = get_post_meta(get_the_ID(), 'gallery_images', true);
+if ($gallery_images) {
+    echo '<div class="gallery-slider">';
+    foreach ($gallery_images as $image_id) {
+        $image_url = wp_get_attachment_image_url($image_id, 'large');
+        if ($image_url) {
+            // Crear un elemento img optimizado manualmente
+            $photon_url = ImageUtility::jetpack_photon_url($image_url, [
+                'quality' => 85,
+                'strip' => 'info',
+                'resize' => '800,600'
+            ]);
+            printf(
+                '<img src="%s" alt="%s" loading="lazy" />',
+                esc_url($photon_url),
+                esc_attr(get_post_meta($image_id, '_wp_attachment_image_alt', true) ?: '')
+            );
+        }
+    }
+    echo '</div>';
+}
+?>
+```
+
+## Funciones avanzadas
+
+### `jetpack_photon_url()` - Optimización directa de URLs
+
+```php
+use Glory\Utility\ImageUtility;
+
+// Optimizar cualquier URL de imagen
+$original_url = 'https://example.com/image.jpg';
+$optimized_url = ImageUtility::jetpack_photon_url($original_url, [
+    'quality' => 70,
+    'strip' => 'all',
+    'resize' => '400,300'
+]);
+
+echo '<img src="' . esc_url($optimized_url) . '" alt="Imagen optimizada" />';
+```
+
+### Personalización avanzada
+
+```php
+use Glory\Utility\ImageUtility;
+
+// Múltiples transformaciones
+$args = [
+    'quality' => 75,
+    'strip' => 'info',
+    'resize' => '600,400',
+    'filter' => 'grayscale', // Filtro adicional de Photon
+    'brightness' => 110      // Ajuste de brillo
+];
+
+$url = ImageUtility::jetpack_photon_url($image_url, $args);
+```
+
+## Modo desarrollo
+
+El `ImageUtility` automáticamente desactiva la optimización cuando se define la constante `LOCAL`:
+
+```php
+// En wp-config.php para desarrollo local
+define('LOCAL', true);
+
+// En este caso, optimizar() simplemente retorna get_the_post_thumbnail() sin modificaciones
+```
+
+## Consideraciones de rendimiento
+
+- **Tamaño de archivo**: Reduce el tamaño de las imágenes hasta en un 70%
+- **Velocidad de carga**: Las imágenes se sirven desde el CDN global de WordPress
+- **Cache**: Photon cachea las imágenes optimizadas automáticamente
+- **Formatos**: Convierte automáticamente a WebP cuando es soportado
+
+## Compatibilidad
+
+- **WordPress**: Compatible con todas las versiones modernas
+- **Jetpack**: Funciona sin Jetpack instalado (aunque con menor optimización)
+- **HTTPS**: Funciona correctamente en sitios con SSL
+- **Multisitio**: Compatible con instalaciones multisitio de WordPress
+
+## Mejores prácticas
+
+1. **Elegir tamaños apropiados**: Usa tamaños de imagen registrados en WordPress
+2. **Balance calidad/rendimiento**: Calidad 60-80% ofrece el mejor balance
+3. **Lazy loading**: Ya incluido automáticamente, no es necesario agregarlo manualmente
+4. **Alt text**: Siempre proporciona texto alternativo descriptivo
+5. **Modo desarrollo**: Mantén `LOCAL = true` en desarrollo para debugging
+
+## Casos de uso comunes
+
+- **Thumbnails de posts**: Optimización de imágenes destacadas
+- **Galerías de productos**: Imágenes de e-commerce
+- **Sliders y carousels**: Imágenes de presentaciones
+- **Avatares de usuario**: Imágenes de perfil optimizadas
+- **Contenido multimedia**: Cualquier imagen en el contenido
+
+## Integración con otros componentes
+
+El `ImageUtility` se integra perfectamente con otros componentes de Glory:
+
+```php
+<?php
+// Combinado con ContentRender
+$content = ContentRender::render(get_post(), [
+    'image_callback' => function($post) {
+        return ImageUtility::optimizar($post, 'large', 80);
+    }
+]);
+?>
+```
+
+## Troubleshooting
+
+### Las imágenes no se optimizan
+
+- Verifica que no estés en modo `LOCAL = true`
+- Confirma que el post tenga un thumbnail establecido
+- Revisa que la imagen exista en la biblioteca de medios
+
+### Errores de Photon
+
+- Photon puede no estar disponible en algunos servidores
+- En caso de error, la utilidad retorna la URL original
+- Verifica la conectividad a `i0.wp.com`
+
+### Problemas de calidad
+
+- Aumenta el valor de `quality` para mejor calidad
+- Reduce `strip` a `'info'` o `'none'` para preservar metadatos
+- Verifica que la imagen original tenga buena calidad
+
+### Imágenes no responsive
+
+- El componente mantiene las proporciones originales
+- Para responsive design, combina con CSS adicional
+- Considera usar múltiples tamaños con `srcset`
+</contents>
+</xai:function_call">Crear la página de documentación para ImageUtility

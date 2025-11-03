@@ -1,0 +1,540 @@
+---
+title: TemplateRegistry
+description: Sistema de registro agnóstico para plantillas de renderizado de contenido
+---
+
+# TemplateRegistry
+
+El `TemplateRegistry` es una utilidad de Glory que proporciona un sistema de registro global y agnóstico para plantillas de renderizado de contenido. Permite a los temas registrar funciones de renderizado reutilizables que pueden aplicarse a diferentes tipos de contenido de WordPress.
+
+## Funcionalidades principales
+
+- **Registro global**: Sistema centralizado para plantillas de renderizado
+- **Agnóstico de contenido**: Funciona con cualquier tipo de post o contenido
+- **Filtrado por post type**: Las plantillas pueden aplicarse selectivamente
+- **Sistema de opciones**: Genera automáticamente opciones para selectores
+- **Soporte extensible**: Permite metadatos adicionales por plantilla
+- **Type safety**: Interfaces claras con PHPDoc completo
+
+## Arquitectura
+
+El `TemplateRegistry` mantiene un array estático de plantillas registradas, donde cada plantilla incluye:
+
+- **ID único**: Identificador de la plantilla
+- **Etiqueta**: Nombre legible para humanos
+- **Callable**: Función de renderizado
+- **Post types aplicables**: Lista de tipos de contenido donde aplica
+- **Soporte adicional**: Metadatos extensibles
+
+## Uso básico
+
+### Registro de una plantilla simple
+
+```php
+use Glory\Utility\TemplateRegistry;
+
+// Registrar una plantilla básica
+TemplateRegistry::register(
+    'tarjeta_simple',
+    'Tarjeta Simple',
+    function(\WP_Post $post, string $itemClass = '') {
+        printf(
+            '<article class="%s"><h3>%s</h3><p>%s</p></article>',
+            esc_attr($itemClass),
+            esc_html(get_the_title($post)),
+            esc_html(get_the_excerpt($post))
+        );
+    }
+);
+```
+
+### Registro con post types específicos
+
+```php
+use Glory\Utility\TemplateRegistry;
+
+// Plantilla solo para posts
+TemplateRegistry::register(
+    'post_blog',
+    'Post de Blog',
+    function(\WP_Post $post, string $itemClass = '') {
+        // Renderizado específico para posts
+        get_template_part('template-parts/content', 'blog');
+    },
+    ['post'] // Solo aplica a posts
+);
+```
+
+### Registro con metadatos adicionales
+
+```php
+use Glory\Utility\TemplateRegistry;
+
+// Plantilla con soporte adicional
+TemplateRegistry::register(
+    'galeria_imagenes',
+    'Galería de Imágenes',
+    function(\WP_Post $post, string $itemClass = '') {
+        // Renderizar galería
+        $galeria = get_post_meta($post->ID, 'galeria_imagenes', true);
+        if ($galeria) {
+            echo '<div class="galeria-container">';
+            foreach ($galeria as $imagen_id) {
+                echo wp_get_attachment_image($imagen_id, 'medium');
+            }
+            echo '</div>';
+        }
+    },
+    ['post', 'page', 'producto'], // Múltiples post types
+    [
+        'thumbnail' => true,
+        'editor' => true,
+        'custom_fields' => ['galeria_imagenes']
+    ]
+);
+```
+
+## Métodos principales
+
+### `register()` - Registrar una plantilla
+
+```php
+public static function register(
+    string $id,
+    string $label,
+    callable $callable,
+    array $appliesTo = [],
+    array $supports = []
+): void
+```
+
+**Parámetros:**
+- `$id`: Identificador único de la plantilla
+- `$label`: Nombre legible para interfaces de usuario
+- `$callable`: Función que renderiza el contenido. Firma recomendada: `callable(\WP_Post $post, string $itemClass): void`
+- `$appliesTo`: Array de post types donde aplica (vacío = todos)
+- `$supports`: Array asociativo con metadatos adicionales
+
+### `options()` - Obtener opciones filtradas
+
+```php
+public static function options(?string $postType = null): array
+```
+
+Retorna un array `id => label` de plantillas disponibles, opcionalmente filtrado por post type.
+
+### `get()` - Obtener callable
+
+```php
+public static function get(string $id): ?callable
+```
+
+Retorna la función de renderizado de una plantilla específica.
+
+### `supports()` - Obtener metadatos
+
+```php
+public static function supports(string $id): array
+```
+
+Retorna el array de metadatos `supports` de una plantilla.
+
+### `appliesTo()` - Obtener post types aplicables
+
+```php
+public static function appliesTo(string $id): array
+```
+
+Retorna el array de post types donde aplica una plantilla.
+
+## Ejemplos completos
+
+### Sistema de plantillas para un theme
+
+```php
+<?php
+// En functions.php o archivo de configuración del theme
+
+use Glory\Utility\TemplateRegistry;
+
+// Plantilla para posts estándar
+TemplateRegistry::register(
+    'post_standard',
+    'Post Estándar',
+    function(\WP_Post $post, string $itemClass = '') {
+        ?>
+        <article class="<?php echo esc_attr($itemClass); ?> post-standard">
+            <header class="post-header">
+                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                <div class="post-meta">
+                    <span>Por <?php the_author(); ?></span>
+                    <span>en <?php the_category(', '); ?></span>
+                </div>
+            </header>
+
+            <?php if (has_post_thumbnail()): ?>
+                <div class="post-thumbnail">
+                    <?php the_post_thumbnail('medium_large'); ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="post-content">
+                <?php the_excerpt(); ?>
+            </div>
+
+            <footer class="post-footer">
+                <a href="<?php the_permalink(); ?>" class="read-more">Leer más</a>
+            </footer>
+        </article>
+        <?php
+    },
+    ['post']
+);
+
+// Plantilla para productos
+TemplateRegistry::register(
+    'product_card',
+    'Tarjeta de Producto',
+    function(\WP_Post $post, string $itemClass = '') {
+        $product = wc_get_product($post->ID);
+        ?>
+        <div class="<?php echo esc_attr($itemClass); ?> product-card">
+            <div class="product-image">
+                <?php echo woocommerce_get_product_thumbnail(); ?>
+            </div>
+
+            <div class="product-info">
+                <h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+
+                <div class="product-price">
+                    <?php echo $product->get_price_html(); ?>
+                </div>
+
+                <div class="product-actions">
+                    <?php woocommerce_template_loop_add_to_cart(); ?>
+                </div>
+            </div>
+        </div>
+        <?php
+    },
+    ['product'],
+    ['woocommerce' => true]
+);
+
+// Plantilla para páginas
+TemplateRegistry::register(
+    'page_fullwidth',
+    'Página Ancha',
+    function(\WP_Post $post, string $itemClass = '') {
+        ?>
+        <div class="<?php echo esc_attr($itemClass); ?> page-fullwidth">
+            <div class="page-content">
+                <?php the_content(); ?>
+            </div>
+        </div>
+        <?php
+    },
+    ['page']
+);
+?>
+```
+
+### Uso en componentes
+
+```php
+<?php
+// En un componente que lista contenido
+
+use Glory\Utility\TemplateRegistry;
+
+class ContentLister
+{
+    public static function render($posts, string $templateId = 'post_standard')
+    {
+        $template = TemplateRegistry::get($templateId);
+
+        if (!$template) {
+            // Fallback si no existe la plantilla
+            $template = function($post) {
+                echo '<div class="fallback">' . get_the_title($post) . '</div>';
+            };
+        }
+
+        echo '<div class="content-lister">';
+
+        foreach ($posts as $post) {
+            $template($post, 'content-item');
+        }
+
+        echo '</div>';
+    }
+}
+
+// Uso
+$query = new WP_Query(['post_type' => 'post', 'posts_per_page' => 10]);
+ContentLister::render($query->posts, 'post_standard');
+?>
+```
+
+### Selector dinámico de plantillas
+
+```php
+<?php
+// En el panel de administración o metabox
+
+use Glory\Utility\TemplateRegistry;
+
+// Obtener opciones filtradas por post type
+$postType = get_post_type();
+$templates = TemplateRegistry::options($postType);
+
+// Renderizar selector
+if (!empty($templates)) {
+    ?>
+    <p>
+        <label for="plantilla_contenido">Plantilla de renderizado:</label>
+        <select name="plantilla_contenido" id="plantilla_contenido">
+            <?php foreach ($templates as $id => $label): ?>
+                <option value="<?php echo esc_attr($id); ?>"
+                        <?php selected(get_post_meta(get_the_ID(), 'plantilla_contenido', true), $id); ?>>
+                    <?php echo esc_html($label); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </p>
+    <?php
+}
+?>
+```
+
+### Sistema de renderizado condicional
+
+```php
+<?php
+// Renderizado basado en condiciones
+
+use Glory\Utility\TemplateRegistry;
+
+function render_content_by_template($post)
+{
+    // Obtener plantilla guardada para este post
+    $templateId = get_post_meta($post->ID, 'plantilla_contenido', true) ?: 'post_standard';
+
+    // Verificar si la plantilla aplica a este post type
+    $appliesTo = TemplateRegistry::appliesTo($templateId);
+    if (!empty($appliesTo) && !in_array($post->post_type, $appliesTo)) {
+        // Usar plantilla por defecto si no aplica
+        $templateId = 'post_standard';
+    }
+
+    $template = TemplateRegistry::get($templateId);
+
+    if ($template) {
+        $template($post, 'dynamic-content');
+    } else {
+        // Fallback
+        echo '<article class="fallback-content">' . get_the_title($post) . '</article>';
+    }
+}
+
+// Uso en loop
+while (have_posts()) {
+    the_post();
+    render_content_by_template(get_post());
+}
+?>
+```
+
+## Patrón de diseño
+
+### Firma recomendada del callable
+
+```php
+function(\WP_Post $post, string $itemClass = ''): void {
+    // $post: El objeto WP_Post a renderizar
+    // $itemClass: Clase CSS opcional para el contenedor
+
+    // Implementación del renderizado
+}
+```
+
+### Beneficios del patrón
+
+1. **Consistencia**: Todas las plantillas siguen la misma interfaz
+2. **Flexibilidad**: El `$itemClass` permite personalización CSS
+3. **Type safety**: PHPDoc claro para desarrollo
+4. **Reutilización**: Las plantillas pueden usarse en múltiples contextos
+
+## Casos de uso avanzados
+
+### Plantillas condicionales
+
+```php
+// Plantilla que cambia según metadatos
+TemplateRegistry::register(
+    'post_adaptable',
+    'Post Adaptable',
+    function(\WP_Post $post, string $itemClass = '') {
+        $layout = get_post_meta($post->ID, 'layout_type', true) ?: 'standard';
+
+        $classes = [$itemClass];
+        if ($layout === 'featured') {
+            $classes[] = 'post-featured';
+        }
+
+        printf('<article class="%s">', esc_attr(implode(' ', $classes)));
+
+        // Renderizado condicional basado en layout
+        if ($layout === 'featured') {
+            // Layout especial para posts destacados
+            get_template_part('template-parts/featured-post');
+        } else {
+            // Layout estándar
+            get_template_part('template-parts/standard-post');
+        }
+
+        echo '</article>';
+    },
+    ['post']
+);
+```
+
+### Plantillas con dependencias
+
+```php
+// Plantilla que requiere plugins específicos
+TemplateRegistry::register(
+    'post_with_gallery',
+    'Post con Galería',
+    function(\WP_Post $post, string $itemClass = '') {
+        // Verificar que el plugin esté activo
+        if (!function_exists('get_post_gallery')) {
+            echo '<p>Galería no disponible</p>';
+            return;
+        }
+
+        echo '<article class="' . esc_attr($itemClass) . ' post-with-gallery">';
+
+        // Contenido del post
+        the_title('<h2>', '</h2>');
+        the_content();
+
+        // Galería si existe
+        $gallery = get_post_gallery($post, false);
+        if ($gallery) {
+            echo '<div class="post-gallery">';
+            echo do_shortcode($gallery['shortcode']);
+            echo '</div>';
+        }
+
+        echo '</article>';
+    },
+    ['post'],
+    [
+        'requires' => ['gallery'],
+        'thumbnail' => true
+    ]
+);
+```
+
+## Integración con el sistema de opciones
+
+El `TemplateRegistry` se integra perfectamente con `OpcionManager`:
+
+```php
+<?php
+// Registrar opción global de plantilla por defecto
+OpcionManager::register('plantilla_default', [
+    'type' => 'select',
+    'label' => 'Plantilla por defecto',
+    'options' => TemplateRegistry::options(), // Todas las plantillas disponibles
+    'default' => 'post_standard'
+]);
+
+// En el renderizado
+$defaultTemplate = OpcionManager::get('plantilla_default');
+$template = TemplateRegistry::get($defaultTemplate) ?: TemplateRegistry::get('post_standard');
+?>
+```
+
+## Consideraciones de rendimiento
+
+- **Carga diferida**: Las plantillas se registran típicamente en `init` o `after_setup_theme`
+- **Cache**: WordPress cachea automáticamente las opciones
+- **Lazy loading**: Solo carga las plantillas cuando se necesitan
+- **Memory**: Usa memoria estática, no instancia objetos innecesarios
+
+## Mejores prácticas
+
+1. **Nombres descriptivos**: Usa IDs claros y labels informativos
+2. **Validación**: Verifica que las dependencias existan antes de registrar
+3. **Fallbacks**: Siempre proporciona contenido alternativo
+4. **Documentación**: Documenta qué hace cada plantilla y sus requisitos
+5. **Organización**: Agrupa plantillas relacionadas por funcionalidad
+
+## Extensibilidad
+
+### Añadir propiedades personalizadas
+
+```php
+// Extender con propiedades custom
+TemplateRegistry::register(
+    'custom_template',
+    'Plantilla Personalizada',
+    $callable,
+    ['post'],
+    [
+        'custom_prop' => 'valor',
+        'version' => '1.0',
+        'author' => 'Tu Nombre'
+    ]
+);
+
+// Acceder a propiedades custom
+$supports = TemplateRegistry::supports('custom_template');
+$version = $supports['version'] ?? 'unknown';
+```
+
+### Hooks para extensibilidad
+
+```php
+// Hook para modificar plantillas registradas
+add_filter('glory_template_registry_templates', function($templates) {
+    // Modificar o añadir plantillas
+    $templates['custom'] = [
+        'label' => 'Personalizada',
+        'callable' => function($post) { /* ... */ },
+        'applies_to' => ['post'],
+        'supports' => []
+    ];
+    return $templates;
+});
+```
+
+## Troubleshooting
+
+### Plantilla no aparece en opciones
+
+- Verifica que `$appliesTo` incluya el post type correcto
+- Confirma que la plantilla esté registrada en el momento correcto
+- Revisa que no haya errores PHP impidiendo el registro
+
+### Callable no funciona
+
+- Verifica la firma de la función: `(\WP_Post $post, string $itemClass)`
+- Asegura que la función sea callable (no método de instancia sin binding)
+- Revisa errores en el callable con debugging
+
+### Problemas de contexto
+
+- Las plantillas se ejecutan en el contexto donde se llaman
+- Variables globales pueden no estar disponibles
+- Usa `global $post` si necesitas acceder al post global
+
+### Conflictos de nombres
+
+- Usa prefijos únicos para IDs de plantillas
+- Evita nombres genéricos como 'default' o 'standard'
+- Verifica que no existan plantillas con el mismo ID
+</contents>
+</xai:function_call">Crear la página de documentación para TemplateRegistry

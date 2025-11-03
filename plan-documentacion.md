@@ -1,7 +1,7 @@
 # Plan de Documentación de Glory Framework
 
 ## 🎯 Objetivo
-Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress.
+Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress. Toda la documentación debe ser profesional, detallada y facil de entender.
 
 Nota del usuario: documenta paso a paso, lo que ya parece documentado, se tiene que revisar de nuevo y marcar como doble revisión, mantener la documentación facil de entender. Cada cosa documentada debe enviarse un commit para la revisión (commit del repositorio de glory_docs), te detienes con cada commit que envias y esperas la confirmación de usuario para continuar.
 

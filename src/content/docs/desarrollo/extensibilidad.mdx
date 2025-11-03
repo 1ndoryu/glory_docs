@@ -1,0 +1,905 @@
+---
+title: Extensibilidad
+description: Cómo extender y personalizar el framework Glory
+sidebar:
+  label: Extensibilidad
+  order: 2
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# Extensibilidad del Framework
+
+Glory está diseñado para ser altamente extensible, permitiendo a los desarrolladores agregar nueva funcionalidad sin modificar el núcleo del framework. Esta guía explica las diferentes formas de extender Glory manteniendo la compatibilidad y el agnosticismo.
+
+## Filosofía de Extensibilidad
+
+Glory sigue estos principios de extensibilidad:
+- **Composición sobre herencia**: Favorece la composición de componentes
+- **Interfaces claras**: Define contratos a través de interfaces
+- **Configuración externa**: La lógica específica vive fuera del núcleo
+- **Hooks y eventos**: Permite modificar comportamiento sin cambiar código
+
+## Extensión a través de Hooks
+
+### Crear Handlers AJAX Personalizados
+
+```php
+<?php
+// En functions.php o un archivo personalizado
+
+class MiHandlerPersonalizado implements Glory\Contracts\FormHandlerInterface
+{
+    public function procesar(array $datos): array
+    {
+        // Lógica personalizada de procesamiento
+        $resultado = procesar_datos_personalizados($datos);
+
+        // Emitir evento para otras extensiones
+        do_action('mi_handler_procesado', $resultado, $datos);
+
+        return [
+            'success' => true,
+            'data' => $resultado,
+            'mensaje' => 'Procesamiento completado'
+        ];
+    }
+
+    public function validar(array $datos): array
+    {
+        $errores = [];
+
+        // Validaciones personalizadas
+        if (empty($datos['mi_campo_requerido'])) {
+            $errores['mi_campo_requerido'] = 'Este campo es requerido';
+        }
+
+        return $errores;
+    }
+}
+
+// Registrar el handler
+add_action('wp_ajax_mi_accion_personalizada', function() {
+    $handler = new MiHandlerPersonalizado();
+
+    $datos = $_POST;
+    $errores = $handler->validar($datos);
+
+    if (!empty($errores)) {
+        wp_send_json_error(['errores' => $errores]);
+        return;
+    }
+
+    try {
+        $resultado = $handler->procesar($datos);
+        wp_send_json_success($resultado);
+    } catch (Exception $e) {
+        GloryLogger::error('Error en handler personalizado', [
+            'error' => $e->getMessage(),
+            'datos' => $datos
+        ]);
+        wp_send_json_error(['mensaje' => 'Error interno del servidor']);
+    }
+});
+
+add_action('wp_ajax_nopriv_mi_accion_personalizada', function() {
+    // Misma lógica para usuarios no logueados si es necesario
+});
+```
+
+### Extender el Sistema de Búsqueda
+
+```php
+// Extender proveedores de búsqueda
+add_filter('glory_busqueda_proveedores', 'agregar_proveedor_busqueda_personalizado');
+
+function agregar_proveedor_busqueda_personalizado($proveedores) {
+    $proveedores['mi_proveedor'] = [
+        'nombre' => 'Mi Proveedor Personalizado',
+        'handler' => 'MiProveedorBusqueda',
+        'prioridad' => 50
+    ];
+
+    return $proveedores;
+}
+
+// Implementar el proveedor personalizado
+class MiProveedorBusqueda implements Glory\Contracts\BusquedaProveedorInterface
+{
+    public function buscar(string $query, array $args = []): array
+    {
+        // Lógica personalizada de búsqueda
+        $resultados = buscar_en_mi_sistema_personalizado($query, $args);
+
+        // Formatear resultados según contrato de Glory
+        return array_map(function($resultado) {
+            return [
+                'titulo' => $resultado['title'],
+                'extracto' => $resultado['description'],
+                'url' => $resultado['permalink'],
+                'tipo' => 'mi_tipo_personalizado',
+                'fecha' => $resultado['date'],
+                'imagen' => $resultado['thumbnail'] ?? null
+            ];
+        }, $resultados);
+    }
+
+    public function get_tipos_soportados(): array
+    {
+        return ['mi_tipo_personalizado'];
+    }
+}
+```
+
+## Crear Nuevos Managers
+
+### Patrón para Managers Personalizados
+
+```php
+<?php
+namespace MiTema\Managers;
+
+use Glory\Manager\AssetManager;
+
+class MiManagerPersonalizado
+{
+    private static bool $inicializado = false;
+
+    public static function register(): void
+    {
+        if (self::$inicializado) {
+            return;
+        }
+
+        // Registrar hooks
+        add_action('init', [self::class, 'inicializar']);
+        add_action('admin_menu', [self::class, 'agregar_menu_admin']);
+
+        // Registrar assets si es necesario
+        AssetManager::define('script', 'mi-manager-script', '/js/mi-manager.js', [
+            'deps' => ['jquery'],
+            'area' => 'admin'
+        ]);
+
+        self::$inicializado = true;
+    }
+
+    public static function inicializar(): void
+    {
+        // Lógica de inicialización
+        self::registrar_post_types();
+        self::registrar_taxonomias();
+        self::configurar_reescrituras();
+    }
+
+    public static function agregar_menu_admin(): void
+    {
+        add_menu_page(
+            'Mi Manager',
+            'Mi Manager',
+            'manage_options',
+            'mi-manager-admin',
+            [self::class, 'renderizar_pagina_admin'],
+            'dashicons-admin-tools',
+            30
+        );
+    }
+
+    public static function renderizar_pagina_admin(): void
+    {
+        // Renderizar interfaz de administración
+        ?>
+        <div class="wrap">
+            <h1><?php _e('Mi Manager Personalizado', 'mi-tema'); ?></h1>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields('mi_manager_settings');
+                do_settings_sections('mi-manager-admin');
+                submit_button();
+                ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    private static function registrar_post_types(): void
+    {
+        register_post_type('mi_post_type', [
+            'labels' => [
+                'name' => 'Mis Post Types',
+                'singular_name' => 'Mi Post Type'
+            ],
+            'public' => true,
+            'supports' => ['title', 'editor', 'thumbnail'],
+            'show_in_rest' => true
+        ]);
+    }
+
+    private static function registrar_taxonomias(): void
+    {
+        register_taxonomy('mi_taxonomia', 'mi_post_type', [
+            'labels' => [
+                'name' => 'Mis Taxonomías',
+                'singular_name' => 'Mi Taxonomía'
+            ],
+            'hierarchical' => true,
+            'show_in_rest' => true
+        ]);
+    }
+
+    private static function configurar_reescrituras(): void
+    {
+        add_rewrite_rule(
+            '^mi-endpoint/([^/]+)/?$',
+            'index.php?mi_parametro=$matches[1]',
+            'top'
+        );
+
+        add_rewrite_tag('%mi_parametro%', '([^&]+)');
+    }
+}
+```
+
+### Integrar el Manager en Setup
+
+```php
+// En functions.php
+add_action('after_setup_theme', function() {
+    // Inicializar manager personalizado
+    MiTema\Managers\MiManagerPersonalizado::register();
+}, 20); // Después de que Glory esté inicializado
+```
+
+## Extender Renderers
+
+### Crear un Renderer Personalizado
+
+```php
+<?php
+namespace MiTema\Renderers;
+
+use Glory\Components\ContentRender;
+
+class MiRendererPersonalizado extends ContentRender
+{
+    protected function get_default_args(): array
+    {
+        return array_merge(parent::get_default_args(), [
+            'mi_opcion_personalizada' => 'valor_por_defecto',
+            'layout_personalizado' => 'default'
+        ]);
+    }
+
+    protected function render_contenido(array $args): string
+    {
+        // Lógica personalizada de renderizado
+        $query = $this->build_query($args);
+
+        if ($args['layout_personalizado'] === 'grid') {
+            return $this->render_grid_layout($query, $args);
+        }
+
+        return $this->render_list_layout($query, $args);
+    }
+
+    private function render_grid_layout(WP_Query $query, array $args): string
+    {
+        $html = '<div class="mi-grid-layout">';
+
+        while ($query->have_posts()) {
+            $query->the_post();
+
+            $html .= '<div class="mi-grid-item">';
+            $html .= '<h3>' . get_the_title() . '</h3>';
+            $html .= '<div class="mi-contenido-personalizado">';
+            $html .= get_the_excerpt();
+            $html .= '</div>';
+            $html .= '</div>';
+        }
+
+        $html .= '</div>';
+
+        wp_reset_postdata();
+        return $html;
+    }
+
+    private function render_list_layout(WP_Query $query, array $args): string
+    {
+        // Usar el método padre para layout de lista estándar
+        return parent::render_contenido($args);
+    }
+
+    protected function aplicar_filtros(array $args): array
+    {
+        $args = parent::aplicar_filtros($args);
+
+        // Aplicar filtros personalizados
+        $args['meta_query'] = $this->build_meta_query($args);
+
+        return $args;
+    }
+
+    private function build_meta_query(array $args): array
+    {
+        $meta_query = [];
+
+        if (!empty($args['mi_filtro_personalizado'])) {
+            $meta_query[] = [
+                'key' => 'mi_campo_personalizado',
+                'value' => $args['mi_filtro_personalizado'],
+                'compare' => '='
+            ];
+        }
+
+        return $meta_query;
+    }
+}
+
+// Registrar el renderer personalizado
+add_action('init', function() {
+    if (class_exists('MiTema\Renderers\MiRendererPersonalizado')) {
+        // Registrar shortcode
+        add_shortcode('mi_renderer', function($atts) {
+            $renderer = new MiTema\Renderers\MiRendererPersonalizado();
+            return $renderer->render($atts);
+        });
+    }
+});
+```
+
+## Crear Servicios Personalizados
+
+### Patrón para Servicios
+
+```php
+<?php
+namespace MiTema\Services;
+
+use Glory\Services\EventBus;
+use Glory\Core\GloryLogger;
+
+class MiServicioPersonalizado
+{
+    private static ?MiServicioPersonalizado $instancia = null;
+
+    private function __construct()
+    {
+        $this->inicializar_hooks();
+    }
+
+    public static function get_instancia(): self
+    {
+        if (self::$instancia === null) {
+            self::$instancia = new self();
+        }
+        return self::$instancia;
+    }
+
+    private function inicializar_hooks(): void
+    {
+        // Hooks de inicialización
+        add_action('init', [$this, 'inicializar']);
+        add_action('wp_loaded', [$this, 'cargar_datos']);
+
+        // Hooks AJAX si es necesario
+        add_action('wp_ajax_mi_servicio_accion', [$this, 'manejar_ajax']);
+    }
+
+    public function inicializar(): void
+    {
+        // Lógica de inicialización
+        $this->registrar_opciones();
+        $this->programar_tareas();
+    }
+
+    public function cargar_datos(): void
+    {
+        // Cargar datos necesarios
+        $this->datos_cache = get_transient('mi_servicio_cache');
+
+        if ($this->datos_cache === false) {
+            $this->datos_cache = $this->generar_datos_cache();
+            set_transient('mi_servicio_cache', $this->datos_cache, HOUR_IN_SECONDS);
+        }
+    }
+
+    public function manejar_ajax(): void
+    {
+        try {
+            $accion = sanitize_text_field($_POST['accion'] ?? '');
+            $resultado = $this->procesar_accion($accion, $_POST);
+
+            EventBus::emit('mi_servicio_accion_procesada', [
+                'accion' => $accion,
+                'timestamp' => time()
+            ]);
+
+            wp_send_json_success($resultado);
+
+        } catch (Exception $e) {
+            GloryLogger::error('Error en servicio personalizado', [
+                'error' => $e->getMessage(),
+                'accion' => $_POST['accion'] ?? 'desconocida'
+            ]);
+
+            wp_send_json_error(['mensaje' => 'Error interno del servicio']);
+        }
+    }
+
+    public function procesar_accion(string $accion, array $datos): array
+    {
+        switch ($accion) {
+            case 'guardar_configuracion':
+                return $this->guardar_configuracion($datos);
+            case 'obtener_estadisticas':
+                return $this->obtener_estadisticas($datos);
+            default:
+                throw new Exception("Acción no soportada: {$accion}");
+        }
+    }
+
+    private function guardar_configuracion(array $datos): array
+    {
+        // Lógica para guardar configuración
+        update_option('mi_servicio_config', $datos['config']);
+
+        EventBus::emit('mi_servicio_config_actualizada', [
+            'config' => $datos['config']
+        ]);
+
+        return ['mensaje' => 'Configuración guardada'];
+    }
+
+    private function obtener_estadisticas(array $datos): array
+    {
+        // Lógica para obtener estadísticas
+        return [
+            'total_procesos' => $this->contar_procesos(),
+            'ultima_ejecucion' => get_option('mi_servicio_ultima_ejecucion'),
+            'estado' => 'activo'
+        ];
+    }
+
+    private function registrar_opciones(): void
+    {
+        // Registrar opciones usando OpcionManager de Glory
+        if (class_exists('Glory\Manager\OpcionManager')) {
+            \Glory\Manager\OpcionManager::registrar('mi_servicio_config', [
+                'tipo' => 'object',
+                'titulo' => 'Configuración de Mi Servicio',
+                'descripcion' => 'Configuración personalizada para mi servicio',
+                'default' => ['activo' => true, 'intervalo' => 3600]
+            ]);
+        }
+    }
+
+    private function programar_tareas(): void
+    {
+        if (!wp_next_scheduled('mi_servicio_tarea_programada')) {
+            wp_schedule_event(time(), 'hourly', 'mi_servicio_tarea_programada');
+        }
+
+        add_action('mi_servicio_tarea_programada', [$this, 'ejecutar_tarea_programada']);
+    }
+
+    public function ejecutar_tarea_programada(): void
+    {
+        GloryLogger::info('Ejecutando tarea programada de mi servicio');
+
+        try {
+            // Lógica de la tarea programada
+            $this->procesar_datos_pendientes();
+            $this->limpiar_cache_antiguo();
+            $this->generar_reportes();
+
+            update_option('mi_servicio_ultima_ejecucion', time());
+
+            EventBus::emit('mi_servicio_tarea_completada', [
+                'timestamp' => time()
+            ]);
+
+        } catch (Exception $e) {
+            GloryLogger::error('Error en tarea programada', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    // Métodos auxiliares...
+    private function contar_procesos(): int { /* ... */ }
+    private function procesar_datos_pendientes(): void { /* ... */ }
+    private function limpiar_cache_antiguo(): void { /* ... */ }
+    private function generar_reportes(): void { /* ... */ }
+    private function generar_datos_cache(): array { /* ... */ }
+}
+
+// Inicializar el servicio
+add_action('after_setup_theme', function() {
+    MiTema\Services\MiServicioPersonalizado::get_instancia();
+}, 15);
+```
+
+## Extender el Sistema de Opciones
+
+### Crear Opciones Personalizadas
+
+```php
+// Registrar opciones personalizadas
+add_action('init', 'registrar_opciones_personalizadas');
+
+function registrar_opciones_personalizadas() {
+    if (!class_exists('Glory\Manager\OpcionManager')) {
+        return;
+    }
+
+    // Opción simple
+    \Glory\Manager\OpcionManager::registrar('mi_opcion_simple', [
+        'tipo' => 'text',
+        'titulo' => 'Mi Opción Simple',
+        'descripcion' => 'Una opción de texto simple',
+        'default' => 'valor_por_defecto'
+    ]);
+
+    // Opción compleja
+    \Glory\Manager\OpcionManager::registrar('mi_opcion_compleja', [
+        'tipo' => 'object',
+        'titulo' => 'Mi Opción Compleja',
+        'descripcion' => 'Una opción con múltiples campos',
+        'default' => [
+            'activo' => true,
+            'titulo' => 'Título por defecto',
+            'configuracion' => [
+                'color' => '#007cba',
+                'tamaño' => 'medium'
+            ]
+        ]
+    ]);
+
+    // Opción con validación
+    \Glory\Manager\OpcionManager::registrar('mi_opcion_validada', [
+        'tipo' => 'select',
+        'titulo' => 'Mi Opción con Validación',
+        'descripcion' => 'Selecciona una opción válida',
+        'opciones' => [
+            'opcion1' => 'Opción 1',
+            'opcion2' => 'Opción 2',
+            'opcion3' => 'Opción 3'
+        ],
+        'validacion' => function($valor) {
+            $opciones_validas = ['opcion1', 'opcion2', 'opcion3'];
+            return in_array($valor, $opciones_validas);
+        },
+        'default' => 'opcion1'
+    ]);
+}
+
+// Hook para procesar cuando se guarda una opción
+add_action('glory_opcion_registered', 'procesar_opcion_registrada', 10, 2);
+
+function procesar_opcion_registrada($opcion_key, $definicion) {
+    // Procesar cuando se registra una opción específica
+    if (strpos($opcion_key, 'mi_opcion') === 0) {
+        // Limpiar caches relacionados
+        wp_cache_flush();
+
+        // Loggear el registro
+        GloryLogger::info('Opción personalizada registrada', [
+            'opcion' => $opcion_key,
+            'tipo' => $definicion['tipo']
+        ]);
+    }
+}
+```
+
+## Crear Metaboxes Personalizados
+
+### Extender Sistema de Metaboxes
+
+```php
+<?php
+namespace MiTema\Admin;
+
+use Glory\Admin\PageContentModeMetabox;
+
+class MiMetaboxPersonalizado extends PageContentModeMetabox
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->meta_key = 'mi_metabox_config';
+        $this->titulo = 'Mi Configuración Personalizada';
+    }
+
+    public function registrar_hooks(): void
+    {
+        add_action('add_meta_boxes', [$this, 'agregar_metabox']);
+        add_action('save_post', [$this, 'guardar'], 10, 2);
+    }
+
+    public function agregar_metabox(): void
+    {
+        $post_types = ['page', 'post', 'mi_post_type'];
+
+        foreach ($post_types as $post_type) {
+            add_meta_box(
+                'mi-metabox-personalizado',
+                $this->titulo,
+                [$this, 'renderizar_metabox'],
+                $post_type,
+                'side',
+                'default'
+            );
+        }
+    }
+
+    public function renderizar_metabox($post): void
+    {
+        wp_nonce_field('mi_metabox_nonce', 'mi_metabox_nonce_field');
+
+        $valor = get_post_meta($post->ID, $this->meta_key, true) ?: $this->get_default_config();
+
+        echo '<div class="mi-metabox-content">';
+
+        // Campo de texto
+        echo '<p>';
+        echo '<label for="mi_campo_texto">Campo de Texto:</label>';
+        echo '<input type="text" id="mi_campo_texto" name="mi_config[texto]" ';
+        echo 'value="' . esc_attr($valor['texto'] ?? '') . '" style="width:100%" />';
+        echo '</p>';
+
+        // Checkbox
+        echo '<p>';
+        echo '<label>';
+        echo '<input type="checkbox" name="mi_config[activo]" value="1" ';
+        echo checked($valor['activo'] ?? false, true, false) . ' />';
+        echo ' Activar funcionalidad';
+        echo '</label>';
+        echo '</p>';
+
+        // Select
+        echo '<p>';
+        echo '<label for="mi_campo_select">Opción:</label>';
+        echo '<select id="mi_campo_select" name="mi_config[opcion]" style="width:100%">';
+        $opciones = ['opcion1' => 'Opción 1', 'opcion2' => 'Opción 2', 'opcion3' => 'Opción 3'];
+        $seleccionado = $valor['opcion'] ?? 'opcion1';
+
+        foreach ($opciones as $key => $label) {
+            echo '<option value="' . esc_attr($key) . '" ';
+            echo selected($seleccionado, $key, false) . '>';
+            echo esc_html($label);
+            echo '</option>';
+        }
+        echo '</select>';
+        echo '</p>';
+
+        echo '</div>';
+    }
+
+    public function guardar($post_id, $post): void
+    {
+        // Validaciones estándar
+        if (!isset($_POST['mi_metabox_nonce_field']) ||
+            !wp_verify_nonce($_POST['mi_metabox_nonce_field'], 'mi_metabox_nonce')) {
+            return;
+        }
+
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        // Procesar y sanitizar datos
+        $datos = $_POST['mi_config'] ?? [];
+
+        $config_sanitizada = [
+            'texto' => sanitize_text_field($datos['texto'] ?? ''),
+            'activo' => isset($datos['activo']),
+            'opcion' => sanitize_key($datos['opcion'] ?? 'opcion1')
+        ];
+
+        // Guardar
+        update_post_meta($post_id, $this->meta_key, $config_sanitizada);
+
+        // Loggear
+        GloryLogger::info('Metabox personalizado guardado', [
+            'post_id' => $post_id,
+            'config' => $config_sanitizada
+        ]);
+
+        // Emitir evento
+        EventBus::emit('mi_metabox_guardado', [
+            'post_id' => $post_id,
+            'config' => $config_sanitizada
+        ]);
+    }
+
+    private function get_default_config(): array
+    {
+        return [
+            'texto' => '',
+            'activo' => false,
+            'opcion' => 'opcion1'
+        ];
+    }
+}
+
+// Inicializar el metabox
+add_action('admin_init', function() {
+    (new MiTema\Admin\MiMetaboxPersonalizado())->registrar_hooks();
+});
+```
+
+## Integración con Glory Features
+
+### Crear Features Personalizadas
+
+```php
+// En functions.php
+add_action('after_setup_theme', 'registrar_features_personalizadas', 5);
+
+function registrar_features_personalizadas() {
+    // Desactivar feature si no se necesita
+    if (!defined('MI_PLUGIN_ACTIVO')) {
+        GloryFeatures::disable('miFeaturePersonalizada');
+    }
+
+    // Activar feature condicionalmente
+    if (class_exists('MiClaseRequerida')) {
+        GloryFeatures::enable('miFeatureAvanzada');
+    }
+}
+
+// Usar features en el código
+add_action('init', 'inicializar_segun_features');
+
+function inicializar_segun_features() {
+    if (GloryFeatures::isActive('miFeaturePersonalizada')) {
+        // Inicializar funcionalidad personalizada
+        MiServicioPersonalizado::init();
+    }
+
+    if (GloryFeatures::isActive('miFeatureAvanzada')) {
+        // Inicializar funcionalidad avanzada
+        MiServicioAvanzado::init();
+    }
+}
+```
+
+## Mejores Prácticas de Extensibilidad
+
+### 1. Mantener el Agnosticismo
+
+```php
+// ✅ Bueno: Código agnóstico
+class MiExtensionAgnostica
+{
+    public function procesar_datos(array $datos): array
+    {
+        // Lógica genérica que funciona con cualquier estructura de datos
+        return array_map(function($item) {
+            return $this->procesar_item_generico($item);
+        }, $datos);
+    }
+}
+
+// ❌ Evitar: Código específico del proyecto
+class MiExtensionEspecifica
+{
+    public function procesar_pedidos_tienda(array $pedidos): array
+    {
+        // Lógica específica para tienda online
+        // Esto rompe el agnosticismo de Glory
+    }
+}
+```
+
+### 2. Usar Interfaces y Contratos
+
+```php
+// Definir interfaces para extensión
+interface MiProveedorDatosInterface
+{
+    public function obtener_datos(): array;
+    public function guardar_datos(array $datos): bool;
+    public function validar_datos(array $datos): array;
+}
+
+// Implementar interfaces
+class MiProveedorDatos implements MiProveedorDatosInterface
+{
+    // Implementación específica pero contractualmente compatible
+}
+```
+
+### 3. Documentar Extensiones
+
+```php
+/**
+ * Mi Servicio Personalizado
+ *
+ * Extiende Glory para proporcionar funcionalidad específica de [descripción].
+ *
+ * @package MiTema\Services
+ * @since 1.0.0
+ *
+ * Uso típico:
+ * $servicio = new MiServicioPersonalizado();
+ * $resultado = $servicio->procesar($datos);
+ *
+ * Hooks disponibles:
+ * - mi_servicio_procesado: Se ejecuta después del procesamiento
+ * - mi_servicio_error: Se ejecuta cuando ocurre un error
+ *
+ * Filtros disponibles:
+ * - mi_servicio_datos_entrada: Filtra datos de entrada
+ * - mi_servicio_datos_salida: Filtra datos de salida
+ */
+class MiServicioPersonalizado
+{
+    // ...
+}
+```
+
+### 4. Manejo de Errores Robusto
+
+```php
+class MiExtensionSegura
+{
+    public function procesar_seguro(array $datos): array
+    {
+        try {
+            $this->validar_datos_entrada($datos);
+            $resultado = $this->procesar_datos($datos);
+            $this->validar_datos_salida($resultado);
+
+            do_action('mi_extension_procesamiento_exitoso', $resultado, $datos);
+            return $resultado;
+
+        } catch (Exception $e) {
+            GloryLogger::error('Error en extensión personalizada', [
+                'error' => $e->getMessage(),
+                'datos_entrada' => $datos,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            do_action('mi_extension_error', $e, $datos);
+            throw $e;
+        }
+    }
+}
+```
+
+### 5. Testing y Compatibilidad
+
+```php
+// Crear tests para extensiones
+class TestMiExtension extends WP_UnitTestCase
+{
+    public function test_procesamiento_basico()
+    {
+        $extension = new MiExtension();
+        $datos = ['campo' => 'valor'];
+
+        $resultado = $extension->procesar($datos);
+
+        $this->assertIsArray($resultado);
+        $this->assertArrayHasKey('procesado', $resultado);
+    }
+
+    public function test_manejo_errores()
+    {
+        $extension = new MiExtension();
+        $datos = ['campo_invalido' => 'valor'];
+
+        $this->expectException(Exception::class);
+        $extension->procesar($datos);
+    }
+}
+```
+
+<Aside type="tip">
+La extensibilidad es la clave de Glory. Siempre diseña tus extensiones para ser reutilizables, bien documentadas y compatibles con el ecosistema de Glory. Usa hooks, eventos y interfaces para mantener la cohesión con el framework.
+</Aside>

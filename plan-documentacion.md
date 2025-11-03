@@ -3,7 +3,7 @@
 ## 🎯 Objetivo
 Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress. Toda la documentación debe ser profesional, detallada y facil de entender. No intentar ejecutar astro, no existe en local.
 
-Nota del usuario: documenta paso a paso, lo que ya parece documentado, se tiene que revisar de nuevo y marcar como doble revisión, mantener la documentación facil de entender. Cada cosa documentada debe enviarse un commit para la revisión (commit del repositorio de glory_docs), te detienes con cada commit que envias y esperas la confirmación de usuario para continuar.
+Nota del usuario: documenta paso a paso, lo que ya parece documentado, se tiene que revisar de nuevo y marcar como doble revisión, mantener la documentación facil de entender. Cada cosa documentada debe enviarse un commit para la revisión (commit del repositorio de glory_docs), te detienes con cada commit que envias y esperas la confirmación de usuario para continuar. **🔴 PRIORIDAD: Crear página de resumen en introducción que resuma todo el framework en pocas palabras de forma organizada**.
 
 **✅ REVISIÓN CRÍTICA COMPLETADA Y OPTIMIZADA (2025-11-03)**: Plan completamente desactualizado. Se corrigieron porcentajes inflados (de ~45% a ~25-30%), se identificaron componentes/scripts faltantes, se corrigieron errores sobre existencia de archivos. **CORRECCIÓN CRÍTICA**: Eliminados scripts duplicados que funcionan obligatoriamente con componentes PHP ya documentados. **ACTUALIZACIÓN 2025-11-03**: Fase 4 (Utilidades básicas) COMPLETADA. Progreso incrementado a ~48-52%.
 
@@ -20,7 +20,8 @@ CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE NO REPETIR DOCUMENTACIONES; R
 
 ## 📝 Plan de Documentación Completo
 
-### 1. **Introducción y Primeros Pasos** ✅ (Ya existe, revisar)
+### 1. **Introducción y Primeros Pasos** 🔄 (REVISAR - PRIORIDAD: Añadir página resumen)
+- **Página de resumen** 🔴 (PRIORIDAD - Crear página que resuma todo el framework en pocas palabras de forma organizada)
 - Filosofía del framework
 - Instalación y setup
 - Estructura de archivos
@@ -173,6 +174,7 @@ CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE NO REPETIR DOCUMENTACIONES; R
 glory_docs/src/content/docs/
 ├── index.mdx
 ├── introduccion/
+│   ├── resumen.mdx
 │   ├── bienvenida.mdx
 │   ├── instalacion.mdx
 │   └── filosofia.mdx
@@ -221,6 +223,149 @@ glory_docs/src/content/docs/
     └── ejemplos.mdx
 ```
 
+## 📋 Plan Detallado de la Página de Resumen
+
+### 🎯 **Estructura General de `introduccion/resumen.mdx`**
+
+```markdown
+---
+title: Resumen del Framework Glory
+description: Guía rápida de todos los componentes y funcionalidades disponibles en Glory Framework
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Resumen del Framework Glory
+
+**Última actualización:** [Fecha automática]
+
+Glory es un framework PHP agnóstico para WordPress que proporciona componentes reutilizables, managers, utilidades y servicios avanzados para acelerar el desarrollo de temas.
+
+## 🚀 Navegación Rápida
+- [Managers Principales](#managers-principales)
+- [Sistema AJAX y Formularios](#sistema-ajax-y-formularios)
+- [Componentes Reutilizables](#componentes-reutilizables)
+- [Utilidades y Helpers](#utilidades-y-helpers)
+- [Servicios Avanzados](#servicios-avanzados)
+- [Sistema de Administración](#sistema-de-administracion)
+
+---
+
+## 🔧 Managers Principales
+[Contenido de managers]
+
+## 🌐 Sistema AJAX y Formularios
+[Contenido de AJAX y formularios]
+
+## 🧩 Componentes Reutilizables
+[Contenido de componentes]
+
+## 🛠️ Utilidades y Helpers
+[Contenido de utilidades]
+
+## ⚡ Servicios Avanzados
+[Contenido de servicios]
+
+## 👥 Sistema de Administración
+[Contenido de administración]
+
+---
+
+## 📝 Notas de Actualización
+- ✅ **Componente documentado completamente**
+- 🔄 **En proceso de documentación**
+- ❌ **Pendiente de documentación**
+- 🆕 **Nuevo en esta versión**
+
+**Para añadir nuevos componentes:** Editar esta página siguiendo la estructura de la categoría correspondiente.
+```
+
+### 📊 **Contenido por Categorías (Basado en lo Ya Documentado)**
+
+#### **1. Managers Principales** ✅ (7/7 documentados)
+- **AssetManager**: Gestiona assets (CSS/JS) con auto-detección, defer, localización y cache
+- **OpcionManager**: Maneja opciones de tema con validación, sanitización y UI automática
+- **PageManager**: Crea páginas de administración con builders fluidos y validación
+- **DefaultContentManager**: Gestiona contenido por defecto con sincronización y plantillas
+- **PostTypeManager**: Registra tipos de contenido personalizados con metaboxes automáticos
+- **AdminPageManager**: Construye páginas de admin con componentes reutilizables
+- **MenuManager**: Gestiona menús con walkers personalizados y navegación AJAX
+
+#### **2. Sistema AJAX y Formularios** ✅ (5/5 documentados)
+- **gloryAjax.js**: Utilidad unificada para todas las peticiones AJAX con manejo de errores
+- **Sistema de formularios**: Framework completo para formularios dinámicos y validación
+- **FormBuilder**: Constructor fluido de formularios con validación automática
+- **FormHandler**: Procesa envíos de formularios con sanitización y respuestas JSON
+- **Handlers específicos**: Procesadores especializados para diferentes tipos de formularios
+
+#### **3. Componentes Reutilizables** ⚠️ (13/19 documentados)
+- **ContentRender**: Renderiza contenido dinámico con plantillas y filtros
+- **TermRender**: Maneja taxonomías y términos con navegación jerárquica
+- **BusquedaRenderer**: Componente de búsqueda avanzada con filtros y resultados en tiempo real
+- **LogoRenderer**: Gestiona logos responsive con fallback automático
+- **BarraFiltrosRenderer**: Filtros interactivos para listados y búsquedas
+- **FormBuilder**: Constructor visual de formularios con drag & drop
+- **Modal**: Sistema modal reutilizable con animaciones y accesibilidad
+- **BadgeList**: Lista de badges interactivos con estados dinámicos
+- **DataGridRenderer**: Tabla de datos con paginación, ordenamiento y filtros
+- **PaginationRenderer**: Paginación inteligente con navegación AJAX
+- **SchedulerRenderer**: Calendario y programador de eventos interactivo
+- **PerfilRenderer**: Gestión de perfiles de usuario con formularios integrados
+- **ThemeToggle**: Interruptor de tema claro/oscuro con persistencia
+
+#### **4. Utilidades y Helpers** ✅ (7/7 documentados)
+- **AssetsUtility**: Utilidades para gestión avanzada de assets y dependencias
+- **EmailUtility**: Envío de emails con plantillas y colas de procesamiento
+- **PostUtility**: Funciones helper para manipulación avanzada de posts
+- **UserUtility**: Utilidades para gestión de usuarios y roles
+- **ScheduleManager**: Programador de tareas con cron jobs y eventos
+- **ImageUtility**: Procesamiento y optimización de imágenes
+- **TemplateRegistry**: Registro y gestión de plantillas reutilizables
+
+#### **5. Servicios Avanzados** ✅ (12/12 documentados)
+- **EventBus**: Sistema de eventos desacoplado para comunicación entre componentes
+- **GloryLogger**: Logging avanzado con niveles, contextos y rotación
+- **AnalyticsEngine**: Motor de analíticas con tracking y reportes
+- **BusquedaService**: Servicio de búsqueda inteligente con índices y filtros
+- **LicenseManager**: Gestión de licencias y validación de productos
+- **ServidorChat**: Sistema de chat en tiempo real con WebSockets
+- **ManejadorGit**: Integración con Git para despliegues y versionado
+- **GestorCssCritico**: Generación automática de CSS crítico para performance
+- **LocalCriticalCss**: Cache local de CSS crítico por página
+- **QueryProfiler**: Perfilado de consultas de base de datos
+- **PerformanceProfiler**: Monitoreo de performance y optimización
+- **TokenManager**: Gestión segura de tokens JWT y sesiones
+
+#### **6. Sistema de Administración** ✅ (2/2 documentados)
+- **SyncManager**: Sincronización de contenido entre entornos
+- **TaxonomyMetaManager**: Gestión de metadatos en taxonomías
+
+### 🔄 **Sistema de Actualización Automática**
+
+Cada vez que se documente algo nuevo:
+
+1. **Identificar la categoría** del nuevo componente
+2. **Añadir entrada** en el formato: `**NombreComponente**: Descripción breve (1-2 líneas)`
+3. **Marcar con 🆕** si es nuevo en la versión actual
+4. **Actualizar contador** de la categoría (ej: 14/19 documentados)
+5. **Actualizar fecha** de última modificación
+6. **Verificar enlaces** a documentación detallada
+
+### 🎨 **Formato Visual**
+
+- **Cards de Starlight** para cada categoría principal
+- **Listas limpias** con viñetas para componentes
+- **Badges de estado** (✅ 🔄 ❌ 🆕) para visibilidad rápida
+- **Enlaces internos** a documentación detallada
+- **Índice navegable** al inicio de la página
+
+### 📅 **Mantenimiento**
+
+- **Actualización obligatoria** con cada commit de nueva documentación
+- **Revisión mensual** del contenido para mantenerlo actualizado
+- **Validación automática** de enlaces rotos
+- **Feedback del usuario** para mejoras en la organización
+
 ## ✅ Checklist de implementación ACTUALIZADO
 
 ### ✅ Fase 1: Revisar y corregir plan
@@ -229,6 +374,7 @@ glory_docs/src/content/docs/
 - [x] **CORRECCIÓN**: Identificar 30+ componentes/scripts faltantes en documentación
 - [x] **ACTUALIZACIÓN**: Corregir porcentajes de progreso (de 75% a ~45%)
 - [x] **PRIORIDAD**: Reorganizar fases por criticidad real
+- [ ] **🔴 PRIORIDAD CRÍTICA**: Crear página de resumen en introducción que resuma todo el framework en pocas palabras de forma organizada
 
 ### ❌ Fase 2: Componentes básicos críticos (PENDIENTE - PRIORIDAD CRÍTICA)
 - [x] ContentRender - ✅ DOCUMENTADO

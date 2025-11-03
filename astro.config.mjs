@@ -13,6 +13,7 @@ export default defineConfig({
                 {
                     label: 'Introducción',
                     items: [
+                        'introduccion/resumen',
                         'introduccion/bienvenida',
                         'introduccion/instalacion',
                         'introduccion/primeros-pasos',

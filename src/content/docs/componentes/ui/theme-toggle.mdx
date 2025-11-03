@@ -1,0 +1,96 @@
+---
+title: Theme Toggle
+description: Componente para alternar entre temas claro y oscuro
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Descripción
+
+El componente `ThemeToggle` proporciona un botón interactivo que permite a los usuarios alternar entre temas claro y oscuro en el sitio web. El componente incluye tanto la parte visual (botón) como la funcionalidad JavaScript necesaria para el cambio de tema.
+
+## Funcionalidades
+
+- **Alternancia automática**: Detecta la preferencia del sistema operativo
+- **Persistencia**: Guarda la selección del usuario en localStorage
+- **Iconos dinámicos**: Cambia entre íconos de sol y luna según el tema actual
+- **Accesibilidad**: Incluye atributos ARIA apropiados
+- **Recarga parcial**: Se reinicializa automáticamente con eventos de recarga AJAX
+
+## Uso básico
+
+### PHP - Renderizado del componente
+
+```php
+<?php
+use Glory\Components\ThemeToggle;
+
+// Renderizar el botón toggle
+echo ThemeToggle::render();
+?>
+```
+
+### HTML generado
+
+```html
+<button id="themeToggle" class="borde gloryThemeToggle" aria-label="Alternar tema" title="Alternar tema" type="button">
+</button>
+```
+
+## Estilos CSS
+
+El componente requiere estilos específicos que se incluyen en `Glory/assets/css/init.css`:
+
+```css
+.gloryThemeToggle {
+  /* Estilos del botón toggle */
+}
+```
+
+## JavaScript
+
+La funcionalidad se maneja automáticamente a través del script `Glory/assets/js/UI/gloryThemeToggle.js`, que se carga con el AssetManager.
+
+### Registro del script
+
+```php
+AssetManager::define('script', 'glory-theme-toggle', 'Glory/assets/js/UI/gloryThemeToggle.js', [
+    'area' => 'frontend',
+    'deps' => [],
+    'defer' => true
+]);
+```
+
+## Funcionamiento técnico
+
+1. **Inicialización**: El script busca elementos con ID `themeToggle` o clase `gloryThemeToggle`
+2. **Detección inicial**: Verifica localStorage o preferencia del sistema
+3. **Aplicación del tema**: Establece el atributo `data-theme` en el elemento raíz
+4. **Interacción**: Escucha clics para alternar entre temas
+5. **Persistencia**: Guarda la selección en localStorage
+
+## Eventos
+
+El componente responde automáticamente al evento `gloryRecarga` para reinicializarse después de recargas parciales de contenido.
+
+## Ejemplo completo
+
+```php
+<?php
+// En functions.php o archivo de configuración
+AssetManager::define('script', 'glory-theme-toggle', 'Glory/assets/js/UI/gloryThemeToggle.js', [
+    'area' => 'frontend',
+    'defer' => true
+]);
+
+// En la plantilla
+<div class="header-controls">
+    <?php echo ThemeToggle::render(); ?>
+</div>
+```
+
+## Notas importantes
+
+- El componente es agnóstico y puede usarse en cualquier tema
+- Los estilos visuales deben definirse en el tema específico
+- Compatible con recargas AJAX a través del sistema gloryRecarga

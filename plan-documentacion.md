@@ -5,9 +5,11 @@ Crear documentación completa y organizada para el framework Glory, enfocada en 
 
 Nota del usuario: documenta paso a paso, lo que ya parece documentado, se tiene que revisar de nuevo y marcar como doble revisión, mantener la documentación facil de entender. Cada cosa documentada debe enviarse un commit para la revisión (commit del repositorio de glory_docs), te detienes con cada commit que envias y esperas la confirmación de usuario para continuar.
 
-Entender la esencia, Glory va dentro del tema, y App es una plantilla de Glory donde viven las configuraciones especificas del tema. Glory debe ser agnostico. Glory esta en fase beta por lo que es impotante tener en cuenta.
+Entender la esencia, Glory va dentro del tema, y App es una plantilla de Glory donde viven las configuraciones especificas del tema. Glory debe ser agnostico. Glory esta en fase beta por lo que es impotante tener en cuenta. (Por momento no documentes nada que tenga que ver con las integraciones de Avada)
 
-Antes de continuar con el resto de tareas
+Antes de continuar con el resto de tareas, necesito que en la introduccion exista paginas sencilla de como instalar glory, creo que en readme de glory explica brevemente, pero, necesitamos explicar como usar glory en wordpress detalladamente, tambien, como empezar usarlo para las cosas basicas, tal vez hacer paginas explicando, ¿como crear paginas con glory?, como usar un componente de glory, como crear un nuevo componente, etc. 
+
+Glory tendra un contructor que todavía no esta listo, solo para tener en cuenta, gbn no se documenta todavía porque se esta iniciando. 
 
 ## 📋 Estructura Actual de glory_docs
 - **Introducción**: Bienvenida básica

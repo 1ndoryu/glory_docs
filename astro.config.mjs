@@ -79,6 +79,11 @@ export default defineConfig({
                 {
                     label: 'Utilidades',
                     items: [
+                        'utilidades/assets-utility',
+                        'utilidades/email-utility',
+                        'utilidades/post-utility',
+                        'utilidades/user-utility',
+                        'utilidades/schedule-manager',
                         'utilidades/image-utility',
                         'utilidades/template-registry'
                     ]

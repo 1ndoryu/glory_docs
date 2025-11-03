@@ -1,0 +1,314 @@
+---
+title: EmailUtility
+description: Utilidad simple y segura para envío de correos electrónicos a administradores del sitio
+sidebar:
+  label: EmailUtility
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## Descripción General
+
+`EmailUtility` es una clase de utilidad especializada en el envío seguro y confiable de correos electrónicos a los administradores del sitio WordPress. Proporciona una interfaz simplificada sobre `wp_mail()` con configuración automática de cabeceras HTML y logging integrado.
+
+Esta utilidad es ideal para notificaciones del sistema, alertas administrativas y comunicaciones automáticas que requieren envío confiable a administradores.
+
+## Uso Básico
+
+### Envío Simple a Administradores
+
+```php
+use Glory\Utility\EmailUtility;
+
+// Enviar notificación básica
+$enviado = EmailUtility::sendToAdmins(
+    'Notificación del Sistema',
+    '<p>El sistema ha procesado una nueva solicitud.</p>'
+);
+
+if ($enviado) {
+    // Correo enviado exitosamente
+} else {
+    // Error en el envío
+}
+```
+
+### Envío con Cabeceras Personalizadas
+
+```php
+// Enviar con cabeceras adicionales
+$headers = [
+    'Reply-To: soporte@miempresa.com',
+    'CC: admin2@miempresa.com'
+];
+
+EmailUtility::sendToAdmins(
+    'Alerta de Seguridad',
+    '<h2>Alerta Importante</h2><p>Se detectó actividad sospechosa.</p>',
+    $headers
+);
+```
+
+## Características
+
+### Configuración Automática
+
+- **Content-Type HTML**: Automáticamente configura `Content-Type: text/html; charset=UTF-8`
+- **Destinatario**: Usa automáticamente el email del administrador principal (`admin_email`)
+- **Codificación**: UTF-8 por defecto para soporte internacional
+
+### Logging Integrado
+
+Todos los envíos se registran automáticamente:
+
+```php
+// Éxito: registra información del envío
+// Error: registra detalles del fallo para debugging
+```
+
+### Validación de Configuración
+
+- Verifica que `admin_email` esté configurado
+- Maneja errores de `wp_mail()` de forma segura
+- Proporciona feedback detallado en logs
+
+## Casos de Uso Comunes
+
+### 1. Notificaciones de Sistema
+
+```php
+// En un plugin o módulo personalizado
+function notificar_error_sistema($error) {
+    $mensaje = "
+        <div style='background: #f8f9fa; padding: 20px; border-left: 4px solid #dc3545;'>
+            <h3 style='color: #dc3545; margin-top: 0;'>Error del Sistema</h3>
+            <p><strong>Detalles:</strong> {$error}</p>
+            <p><small>Generado el: " . date('Y-m-d H:i:s') . "</small></p>
+        </div>
+    ";
+
+    EmailUtility::sendToAdmins('Error Crítico del Sistema', $mensaje);
+}
+```
+
+### 2. Alertas de Seguridad
+
+```php
+function alerta_login_fallido($usuario, $ip) {
+    $asunto = 'Intento de Acceso Fallido';
+    $mensaje = "
+        <h2>Alerta de Seguridad</h2>
+        <p><strong>Usuario:</strong> {$usuario}</p>
+        <p><strong>IP:</strong> {$ip}</p>
+        <p><strong>Fecha:</strong> " . date('Y-m-d H:i:s') . "</p>
+        <p style='color: #856404; background: #fff3cd; padding: 10px; border-radius: 4px;'>
+            Se recomienda revisar los logs de acceso.
+        </p>
+    ";
+
+    EmailUtility::sendToAdmins($asunto, $mensaje);
+}
+```
+
+### 3. Notificaciones de Contenido
+
+```php
+// Notificar nuevo contenido pendiente
+function notificar_contenido_pendiente($post_id) {
+    $post = get_post($post_id);
+    $autor = get_userdata($post->post_author);
+
+    $mensaje = "
+        <div style='background: #e7f3ff; padding: 15px; border-radius: 5px;'>
+            <h3>Nuevo Contenido Pendiente de Revisión</h3>
+            <p><strong>Título:</strong> {$post->post_title}</p>
+            <p><strong>Autor:</strong> {$autor->display_name}</p>
+            <p><strong>Tipo:</strong> " . get_post_type_object($post->post_type)->labels->singular_name . "</p>
+            <p><a href='" . admin_url("post.php?post={$post_id}&action=edit") . "'>Revisar Contenido</a></p>
+        </div>
+    ";
+
+    EmailUtility::sendToAdmins('Nuevo Contenido Pendiente', $mensaje);
+}
+```
+
+### 4. Reportes Periódicos
+
+```php
+function enviar_reporte_diario() {
+    $stats = obtener_estadisticas_diarias();
+
+    $mensaje = "
+        <h2>Reporte Diario del Sistema</h2>
+        <table style='border-collapse: collapse; width: 100%;'>
+            <tr style='background: #f8f9fa;'>
+                <th style='border: 1px solid #dee2e6; padding: 8px; text-align: left;'>Métrica</th>
+                <th style='border: 1px solid #dee2e6; padding: 8px; text-align: right;'>Valor</th>
+            </tr>
+            <tr>
+                <td style='border: 1px solid #dee2e6; padding: 8px;'>Usuarios Activos</td>
+                <td style='border: 1px solid #dee2e6; padding: 8px; text-align: right;'>{$stats['usuarios_activos']}</td>
+            </tr>
+            <tr>
+                <td style='border: 1px solid #dee2e6; padding: 8px;'>Posts Publicados</td>
+                <td style='border: 1px solid #dee2e6; padding: 8px; text-align: right;'>{$stats['posts_publicados']}</td>
+            </tr>
+        </table>
+    ";
+
+    EmailUtility::sendToAdmins('Reporte Diario - ' . date('Y-m-d'), $mensaje);
+}
+```
+
+## Mejores Prácticas
+
+### Formato HTML Estructurado
+
+```php
+function enviar_notificacion_estilizada($titulo, $contenido) {
+    $mensaje = "
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset='UTF-8'></head>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+            <div style='max-width: 600px; margin: 0 auto; background: #ffffff;'>
+                <header style='background: #007cba; color: white; padding: 20px; text-align: center;'>
+                    <h1>{$titulo}</h1>
+                </header>
+                <main style='padding: 20px;'>
+                    {$contenido}
+                </main>
+                <footer style='background: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d;'>
+                    <p>Este es un mensaje automático del sistema.</p>
+                </footer>
+            </div>
+        </body>
+        </html>
+    ";
+
+    return EmailUtility::sendToAdmins($titulo, $mensaje);
+}
+```
+
+### Manejo de Errores
+
+```php
+function enviar_notificacion_segura($asunto, $mensaje) {
+    try {
+        $resultado = EmailUtility::sendToAdmins($asunto, $mensaje);
+
+        if (!$resultado) {
+            // Log adicional o fallback
+            error_log("Fallo en envío de email: {$asunto}");
+            // Podrías implementar un sistema de reintento aquí
+        }
+
+        return $resultado;
+    } catch (Exception $e) {
+        error_log("Excepción en EmailUtility: " . $e->getMessage());
+        return false;
+    }
+}
+```
+
+### Rate Limiting
+
+```php
+class NotificacionesEmail {
+    private static $ultimo_envio = 0;
+
+    public static function enviarConLimite($asunto, $mensaje, $intervalo = 300) { // 5 minutos
+        $ahora = time();
+
+        if ($ahora - self::$ultimo_envio < $intervalo) {
+            return false; // Muy pronto para enviar otro email
+        }
+
+        $resultado = EmailUtility::sendToAdmins($asunto, $mensaje);
+
+        if ($resultado) {
+            self::$ultimo_envio = $ahora;
+        }
+
+        return $resultado;
+    }
+}
+```
+
+## Configuración Avanzada
+
+### Cabeceras Personalizadas
+
+```php
+$headers = [
+    'From: Sistema Automático <noreply@miempresa.com>',
+    'Reply-To: soporte@miempresa.com',
+    'X-Mailer: Glory Framework',
+    'X-Priority: 1', // Alta prioridad
+    'BCC: backup@miempresa.com'
+];
+
+EmailUtility::sendToAdmins('Alerta Crítica', $mensaje, $headers);
+```
+
+### Integración con Hooks de WordPress
+
+```php
+// En functions.php o plugin
+add_action('wp_mail_failed', function($wp_error) {
+    // Log detallado de errores de email
+    error_log('WP Mail Error: ' . $wp_error->get_error_message());
+});
+
+// Notificar sobre cambios importantes
+add_action('user_register', function($user_id) {
+    $user = get_userdata($user_id);
+    $mensaje = "<p>Nuevo usuario registrado: <strong>{$user->user_login}</strong></p>";
+
+    EmailUtility::sendToAdmins('Nuevo Usuario Registrado', $mensaje);
+});
+```
+
+## Resolución de Problemas
+
+### Correos No Llegan
+
+1. **Verificar configuración SMTP**: WordPress usa `wp_mail()` que depende de la configuración del servidor
+2. **Revisar spam**: Los correos pueden ir a carpeta de spam
+3. **Configurar SMTP plugin**: Considerar plugins como WP Mail SMTP para mejor deliverability
+
+### Errores Comunes
+
+```php
+// Error: admin_email no configurado
+// Solución: Configurar en Ajustes > Generales
+
+// Error: Contenido vacío
+// Solución: Siempre proporcionar asunto y mensaje no vacíos
+```
+
+### Debugging
+
+```php
+// Habilitar logging detallado
+add_filter('wp_mail', function($args) {
+    error_log('Email enviado: ' . print_r($args, true));
+    return $args;
+});
+```
+
+## Consideraciones de Seguridad
+
+- **Sanitización**: No sanitiza automáticamente el contenido HTML (debes hacerlo tú)
+- **Privacidad**: Evita incluir datos sensibles en correos
+- **Rate limiting**: Implementa control de frecuencia para evitar abuso
+- **Validación**: Verifica que los datos sean seguros antes de enviar
+
+## Alternativas y Extensiones
+
+Para funcionalidades más avanzadas, considera:
+
+- **WP Mail SMTP**: Para configuración SMTP avanzada
+- **Post SMTP Mailer**: Para logging detallado y debugging
+- **Email Templates**: Para plantillas reutilizables
+- **Queues**: Para envío masivo o programado

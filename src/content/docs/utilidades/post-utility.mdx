@@ -1,0 +1,341 @@
+---
+title: PostUtility
+description: Utilidad ligera para acceso simplificado a metadatos de posts en WordPress
+sidebar:
+  label: PostUtility
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## Descripción General
+
+`PostUtility` es una clase de utilidad minimalista que proporciona acceso simplificado y seguro a los metadatos de posts en WordPress. Reemplaza funciones procedurales con una interfaz orientada a objetos, facilitando el acceso a metadatos con validación automática de IDs de post.
+
+Esta utilidad es ideal para temas y plugins que necesitan acceder frecuentemente a metadatos de posts sin repetir validaciones básicas.
+
+## Uso Básico
+
+### Obtener Metadatos de Post
+
+```php
+use Glory\Utility\PostUtility;
+
+// Obtener metadato del post actual (en loop)
+$valor = PostUtility::meta('mi_metadato');
+
+// Obtener metadato de un post específico
+$valor = PostUtility::meta('mi_metadato', 123);
+
+// Metadato no existe retorna null
+$valor = PostUtility::meta('metadato_inexistente', 123); // null
+```
+
+## Características
+
+### Validación Automática
+
+- **ID de Post**: Valida que el ID sea válido (> 0)
+- **Post Actual**: Detecta automáticamente el post actual en loops de WordPress
+- **Null Safety**: Retorna `null` para posts inválidos o metadatos inexistentes
+
+### Compatibilidad con WordPress
+
+Utiliza internamente `get_post_meta()` manteniendo toda la funcionalidad estándar:
+
+```php
+// Equivalente a:
+get_post_meta(get_the_ID(), 'mi_metadato', true)
+```
+
+## Casos de Uso Comunes
+
+### 1. Templates de Post
+
+```php
+<?php
+// En single.php o template de post
+$precio = PostUtility::meta('precio');
+$disponibilidad = PostUtility::meta('disponibilidad');
+$galeria = PostUtility::meta('galeria_imagenes'); // array
+
+if ($precio) {
+    echo "<div class='precio'>$" . esc_html($precio) . "</div>";
+}
+
+if ($disponibilidad === 'disponible') {
+    echo "<span class='badge disponible'>Disponible</span>";
+}
+?>
+```
+
+### 2. Custom Post Types
+
+```php
+<?php
+// En template de producto
+$producto_id = get_the_ID();
+
+$especificaciones = PostUtility::meta('especificaciones', $producto_id);
+$marca = PostUtility::meta('marca', $producto_id);
+$modelo = PostUtility::meta('modelo', $producto_id);
+
+if ($especificaciones) {
+    echo "<div class='especificaciones'>";
+    foreach ($especificaciones as $espec) {
+        echo "<div class='espec-item'>{$espec}</div>";
+    }
+    echo "</div>";
+}
+?>
+```
+
+### 3. Componentes Reutilizables
+
+```php
+<?php
+// components/testimonial.php
+function mostrar_testimonial($post_id) {
+    $autor = PostUtility::meta('testimonial_autor', $post_id);
+    $empresa = PostUtility::meta('testimonial_empresa', $post_id);
+    $rating = PostUtility::meta('testimonial_rating', $post_id);
+
+    if (!$autor) return;
+
+    echo "<div class='testimonial'>";
+    echo "<blockquote>" . get_the_content(null, false, $post_id) . "</blockquote>";
+    echo "<cite>{$autor}</cite>";
+    if ($empresa) echo "<span class='empresa'>{$empresa}</span>";
+    if ($rating) echo "<div class='rating'>{$rating} estrellas</div>";
+    echo "</div>";
+}
+?>
+```
+
+### 4. Metaboxes Personalizados
+
+```php
+<?php
+// En save_post hook o metabox rendering
+function guardar_metadatos_personalizados($post_id) {
+    if (!isset($_POST['mi_metabox_nonce'])) return;
+
+    $campos = ['titulo_personalizado', 'descripcion', 'enlace_externo'];
+
+    foreach ($campos as $campo) {
+        if (isset($_POST[$campo])) {
+            update_post_meta($post_id, $campo, sanitize_text_field($_POST[$campo]));
+        }
+    }
+}
+
+// En metabox display
+function mostrar_metabox_personalizado($post) {
+    $titulo = PostUtility::meta('titulo_personalizado', $post->ID);
+    $descripcion = PostUtility::meta('descripcion', $post->ID);
+    $enlace = PostUtility::meta('enlace_externo', $post->ID);
+
+    // Renderizar campos del metabox
+    wp_nonce_field('mi_metabox_nonce', 'mi_metabox_nonce');
+    ?>
+    <p>
+        <label>Título Personalizado:</label>
+        <input type="text" name="titulo_personalizado" value="<?php echo esc_attr($titulo); ?>">
+    </p>
+    <p>
+        <label>Descripción:</label>
+        <textarea name="descripcion"><?php echo esc_textarea($descripcion); ?></textarea>
+    </p>
+    <p>
+        <label>Enlace Externo:</label>
+        <input type="url" name="enlace_externo" value="<?php echo esc_url($enlace); ?>">
+    </p>
+    <?php
+}
+?>
+```
+
+## Mejores Prácticas
+
+### Validación de Datos
+
+```php
+// Siempre validar y sanitizar datos de metadatos
+$email = PostUtility::meta('email_contacto');
+if ($email && is_email($email)) {
+    echo "<a href='mailto:" . esc_attr($email) . "'>Contactar</a>";
+}
+
+// Para arrays, verificar estructura
+$galeria = PostUtility::meta('galeria');
+if (is_array($galeria)) {
+    foreach ($galeria as $imagen_id) {
+        if (is_numeric($imagen_id)) {
+            echo wp_get_attachment_image($imagen_id, 'medium');
+        }
+    }
+}
+```
+
+### Valores por Defecto
+
+```php
+// Implementar valores por defecto
+function obtener_precio($post_id = null) {
+    $precio = PostUtility::meta('precio', $post_id);
+    return $precio ?: 0; // Retorna 0 si no existe
+}
+
+function obtener_estatus($post_id = null) {
+    $estatus = PostUtility::meta('estatus', $post_id);
+    return $estatus ?: 'borrador'; // Valor por defecto
+}
+```
+
+### Cache de Metadatos
+
+```php
+// Para metadatos accedidos frecuentemente, considerar cache
+class PostMetaCache {
+    private static $cache = [];
+
+    public static function get($key, $post_id = null) {
+        $cache_key = $key . '_' . ($post_id ?: get_the_ID());
+
+        if (!isset(self::$cache[$cache_key])) {
+            self::$cache[$cache_key] = PostUtility::meta($key, $post_id);
+        }
+
+        return self::$cache[$cache_key];
+    }
+}
+```
+
+## Integración con Otros Componentes
+
+### Con FormBuilder
+
+```php
+<?php
+// Guardar datos de formulario en metadatos
+$formulario = new FormBuilder('contacto');
+$formulario->campo('telefono', 'tel', 'Teléfono');
+$formulario->procesar(function($datos) {
+    $post_id = wp_insert_post([
+        'post_title' => $datos['titulo'],
+        'post_type' => 'contacto',
+        'post_status' => 'publish'
+    ]);
+
+    foreach ($datos as $key => $value) {
+        update_post_meta($post_id, $key, $value);
+    }
+});
+
+// Mostrar datos guardados
+$telefono = PostUtility::meta('telefono');
+if ($telefono) {
+    echo "<p>Teléfono: " . esc_html($telefono) . "</p>";
+}
+?>
+```
+
+### Con AssetsUtility
+
+```php
+<?php
+// Metadatos que referencian assets
+$logo_personalizado = PostUtility::meta('logo_personalizado'); // referencia como 'logos::cliente.png'
+
+if ($logo_personalizado) {
+    AssetsUtility::imagen($logo_personalizado, [
+        'class' => 'logo-cliente',
+        'alt' => 'Logo del cliente'
+    ]);
+}
+?>
+```
+
+## Consideraciones de Rendimiento
+
+### Múltiples Metadatos
+
+```php
+// Evitar múltiples llamadas individuales
+$post_id = get_the_ID();
+
+// ❌ Ineficiente - múltiples queries
+$titulo = PostUtility::meta('titulo', $post_id);
+$descripcion = PostUtility::meta('descripcion', $post_id);
+$imagen = PostUtility::meta('imagen', $post_id);
+
+// ✅ Mejor - usar get_post_meta con array
+$metadatos = get_post_meta($post_id);
+$titulo = $metadatos['titulo'][0] ?? null;
+$descripcion = $metadatos['descripcion'][0] ?? null;
+$imagen = $metadatos['imagen'][0] ?? null;
+```
+
+### Cache Transients
+
+```php
+function obtener_configuracion_post($post_id) {
+    $cache_key = "post_config_{$post_id}";
+    $config = get_transient($cache_key);
+
+    if ($config === false) {
+        $config = [
+            'color' => PostUtility::meta('color_principal', $post_id),
+            'layout' => PostUtility::meta('tipo_layout', $post_id),
+            'mostrar_sidebar' => PostUtility::meta('mostrar_sidebar', $post_id)
+        ];
+        set_transient($cache_key, $config, HOUR_IN_SECONDS);
+    }
+
+    return $config;
+}
+```
+
+## Resolución de Problemas
+
+### Metadato No Retorna Valor Esperado
+
+1. **Verificar clave**: Asegurarse que el nombre del metadato sea correcto
+2. **Post ID**: Confirmar que el post ID es válido
+3. **Serialización**: Arrays y objetos se serializan automáticamente por WordPress
+
+### Problemas de Contexto
+
+```php
+// Dentro del loop de WordPress
+while (have_posts()) {
+    the_post();
+    $valor = PostUtility::meta('mi_campo'); // OK - usa get_the_ID()
+
+    // En funciones anidadas, pasar explícitamente
+    mostrar_campo_adicional(get_the_ID());
+}
+
+function mostrar_campo_adicional($post_id) {
+    $adicional = PostUtility::meta('campo_adicional', $post_id); // OK
+}
+```
+
+## Alternativas y Migración
+
+### Migración desde Funciones Procedurales
+
+```php
+// Código antiguo
+$valor = get_post_meta(get_the_ID(), 'mi_campo', true);
+
+// Código nuevo
+$valor = PostUtility::meta('mi_campo');
+```
+
+### Extensiones Recomendadas
+
+Para funcionalidades avanzadas:
+
+- **Advanced Custom Fields (ACF)**: Para campos personalizados complejos
+- **Meta Box**: Framework alternativo para metaboxes
+- **Carbon Fields**: Campos personalizados orientados a objetos

@@ -1,0 +1,285 @@
+---
+title: AssetsUtility
+description: Utilidad completa para gestión de assets, aliases de rutas, importación automática a WordPress y funciones avanzadas de imagen
+sidebar:
+  label: AssetsUtility
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## Descripción General
+
+`AssetsUtility` es una clase de utilidad completa que proporciona un sistema robusto para gestionar assets (imágenes, archivos) en temas WordPress. Ofrece funcionalidades avanzadas como aliases de rutas, resolución flexible de archivos, importación automática a la biblioteca de medios y funciones especializadas para trabajar con imágenes.
+
+Esta utilidad es fundamental para el manejo agnóstico de assets en Glory Framework, permitiendo trabajar con archivos sin importar su ubicación exacta en el sistema de archivos.
+
+## Inicialización
+
+La utilidad se inicializa automáticamente, registrando aliases de rutas predeterminados:
+
+```php
+AssetsUtility::init();
+```
+
+### Aliases Registrados por Defecto
+
+- `glory` → `Glory/assets/images`
+- `elements` → `Glory/assets/images/elements`
+- `tema` → `App/Assets/images` (específico del tema)
+- `colors` → `Glory/assets/images/colors`
+- `logos` → `Glory/assets/images/logos`
+
+## Uso Básico
+
+### Referencias a Assets
+
+Las referencias a assets pueden ser simples o usar aliases:
+
+```php
+// Asset en el alias 'glory'
+$ref1 = 'logo.png';           // Busca en Glory/assets/images/logo.png
+$ref2 = 'logos::marca.png';   // Busca en Glory/assets/images/logos/marca.png
+$ref3 = 'tema::hero.jpg';     // Busca en App/Assets/images/hero.jpg
+```
+
+### Verificar Existencia de Assets
+
+```php
+$existe = AssetsUtility::assetExists('logos::marca.png');
+// Retorna true si el archivo existe físicamente
+```
+
+### Obtener URLs de Assets
+
+```php
+$url = AssetsUtility::imagenUrl('logos::marca.png');
+// Retorna la URL completa del asset, o null si no existe
+```
+
+### Renderizar Imágenes HTML
+
+```php
+// Renderiza una etiqueta <img> completa
+AssetsUtility::imagen('hero.jpg', [
+    'class' => 'hero-image',
+    'alt' => 'Imagen principal'
+]);
+```
+
+## Funciones Avanzadas
+
+### Gestión de Imágenes Aleatorias
+
+#### Imagen Aleatoria por Patrón
+
+```php
+$imagenAleatoria = AssetsUtility::getRandomDefaultImageName('colors');
+// Retorna el nombre de una imagen que coincida con 'default*.jpg|png|etc' en el alias 'colors'
+```
+
+#### Selección Múltiple de Imágenes Únicas
+
+```php
+$imagenes = AssetsUtility::getRandomUniqueImagesFromAlias('colors', 5);
+// Retorna array con 5 nombres de archivos únicos del alias 'colors'
+```
+
+#### Seleccionar Imágenes con Filtro de Tamaño
+
+```php
+$imagenesGrandes = AssetsUtility::pickRandomImages('colors', 3, 50000);
+// Selecciona 3 imágenes aleatorias de al menos 50KB del alias 'colors'
+```
+
+### Listado de Imágenes
+
+```php
+// Listar todas las imágenes de un alias
+$todas = AssetsUtility::listImagesForAlias('logos');
+
+// Listar con filtro de tamaño mínimo
+$grandes = AssetsUtility::listImagesForAliasWithMinSize('logos', 100000);
+```
+
+## Integración con WordPress Media Library
+
+### Importación Automática
+
+AssetsUtility puede importar automáticamente archivos a la biblioteca de medios de WordPress:
+
+```php
+$idAdjunto = AssetsUtility::get_attachment_id_from_asset('logos::marca.png');
+// Retorna el ID del adjunto en WordPress, importándolo si es necesario
+```
+
+### Búsqueda de Adjuntos Existentes
+
+```php
+$idExistente = AssetsUtility::findExistingAttachmentIdForAsset('hero.jpg');
+// Busca si ya existe un adjunto para este asset sin importarlo
+```
+
+### Características de la Importación
+
+- **Cache inteligente**: Evita reimportaciones innecesarias
+- **Resolución flexible**: Maneja diferencias de mayúsculas/minúsculas y extensiones
+- **Metadatos**: Agrega metadatos personalizados para trazabilidad
+- **Reparación automática**: Reemplaza archivos faltantes en adjuntos existentes
+
+## Registro de Nuevos Aliases
+
+Puedes registrar tus propios aliases de rutas:
+
+```php
+AssetsUtility::registerAssetPath('iconos', 'App/Assets/iconos');
+AssetsUtility::registerAssetPath('uploads', 'uploads/custom');
+```
+
+## Casos de Uso Comunes
+
+### 1. Sistema de Logos Dinámicos
+
+```php
+// En un template
+$logos = AssetsUtility::listImagesForAlias('logos');
+foreach ($logos as $logo) {
+    $url = AssetsUtility::imagenUrl("logos::{$logo}");
+    echo "<img src='{$url}' alt='Logo' class='logo-item'>";
+}
+```
+
+### 2. Carrusel de Imágenes Aleatorias
+
+```php
+// Obtener 5 imágenes aleatorias del directorio de colores
+$imagenes = AssetsUtility::getRandomUniqueImagesFromAlias('colors', 5);
+
+echo '<div class="color-carousel">';
+foreach ($imagenes as $imagen) {
+    AssetsUtility::imagen("colors::{$imagen}", [
+        'class' => 'color-slide'
+    ]);
+}
+echo '</div>';
+```
+
+### 3. Hero Image con Fallback
+
+```php
+// Intentar imagen específica, fallback a aleatoria si no existe
+$heroRef = 'tema::hero-principal.jpg';
+if (!AssetsUtility::assetExists($heroRef)) {
+    $heroRef = 'colors::' . AssetsUtility::getRandomDefaultImageName('colors');
+}
+
+AssetsUtility::imagen($heroRef, [
+    'class' => 'hero-image',
+    'id' => 'main-hero'
+]);
+```
+
+### 4. Importación Masiva para Contenido Inicial
+
+```php
+// Importar todas las imágenes de un alias a WordPress
+$imagenes = AssetsUtility::listImagesForAlias('tema');
+foreach ($imagenes as $imagen) {
+    $attachmentId = AssetsUtility::get_attachment_id_from_asset("tema::{$imagen}");
+    // Ahora puedes usar $attachmentId con funciones estándar de WordPress
+    echo wp_get_attachment_image($attachmentId, 'medium');
+}
+```
+
+## Resolución Inteligente de Assets
+
+AssetsUtility implementa una resolución inteligente que:
+
+1. **Maneja extensiones faltantes**: Busca automáticamente en múltiples formatos (jpg, png, svg, webp, gif)
+2. **Ignora mayúsculas/minúsculas**: `LOGO.PNG` encuentra `logo.png`
+3. **Prioriza por tipo**: Prefiere ciertos formatos según el contexto
+4. **Fallback inteligente**: Si no encuentra el archivo exacto, puede seleccionar alternativas
+
+## Configuración y Optimizaciones
+
+### Modo Desarrollo vs Producción
+
+- **Desarrollo**: Importa assets automáticamente desde frontend
+- **Producción**: Solo importa desde admin para mejor rendimiento
+
+### Cache de URLs
+
+Las URLs se cachean temporalmente para mejorar rendimiento:
+
+```php
+// Cache automático por 1 hora para URLs
+// Cache automático por 1 día para intentos fallidos de importación
+```
+
+## Consideraciones de Seguridad
+
+- Todos los paths se sanitizan automáticamente
+- Se valida existencia física de archivos antes de procesar
+- Integración con funciones de escape de WordPress (`esc_url`, `esc_attr`)
+- Logging detallado para debugging y auditoría
+
+## Ejemplos Prácticos en Templates
+
+### Template de Galería Dinámica
+
+```php
+<?php
+// template-parts/galeria-colores.php
+$colores = AssetsUtility::getRandomUniqueImagesFromAlias('colors', 6);
+
+if (!empty($colores)): ?>
+<div class="galeria-colores">
+    <?php foreach ($colores as $color): ?>
+        <div class="color-item">
+            <?php AssetsUtility::imagen("colors::{$color}", [
+                'class' => 'color-imagen',
+                'loading' => 'lazy'
+            ]); ?>
+        </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+```
+
+### Sistema de Logos de Marcas
+
+```php
+<?php
+// components/logos-marcas.php
+$logos = AssetsUtility::listImagesForAlias('logos');
+
+if (!empty($logos)): ?>
+<section class="marcas-logos">
+    <h3>Nuestras Marcas</h3>
+    <div class="logos-grid">
+        <?php foreach ($logos as $logo): ?>
+            <?php AssetsUtility::imagen("logos::{$logo}", [
+                'class' => 'marca-logo',
+                'alt' => ucwords(str_replace(['-', '_'], ' ', pathinfo($logo, PATHINFO_FILENAME)))
+            ]); ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+```
+
+## Resolución de Problemas
+
+### Asset no se encuentra
+1. Verificar que el alias esté registrado
+2. Confirmar que el archivo existe físicamente
+3. Revisar logs de Glory para mensajes de error
+
+### Importación falla
+1. Verificar permisos de escritura en uploads/
+2. Comprobar configuración de memoria PHP
+3. Revisar logs para errores específicos de `wp_handle_sideload`
+
+### Rendimiento lento
+1. Considerar precargar assets críticos en `admin_init`
+2. Usar cache de transients para URLs frecuentes
+3. Limitar llamadas a `listImagesForAlias` en producción

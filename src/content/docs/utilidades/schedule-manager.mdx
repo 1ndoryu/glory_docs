@@ -1,0 +1,645 @@
+---
+title: ScheduleManager
+description: Utilidad avanzada para gestión, normalización y verificación de horarios comerciales con soporte multi-zona horaria
+sidebar:
+  label: ScheduleManager
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## Descripción General
+
+`ScheduleManager` es una clase de utilidad especializada en el manejo completo de horarios comerciales y de apertura. Proporciona funcionalidades avanzadas para normalizar datos de horarios, verificar estados de apertura/cierre en tiempo real, y manejar zonas horarias de forma segura.
+
+Esta utilidad es esencial para negocios que necesitan mostrar horarios de apertura, verificar disponibilidad en tiempo real, o implementar funcionalidades basadas en horarios de operación.
+
+## Inicialización y Configuración
+
+### Estructura de Datos de Horario
+
+Los horarios se almacenan como arrays con esta estructura:
+
+```php
+$horario = [
+    [
+        'day' => 'Lunes',
+        'status' => 'open', // 'open' | 'closed'
+        'open' => '09:00', // formato HH:MM (opcional si status='closed')
+        'close' => '18:00', // formato HH:MM (opcional si status='closed')
+        'hours' => '09:00-18:00' // formato alternativo
+    ],
+    [
+        'day' => 'Martes',
+        'status' => 'closed',
+        'hours' => 'Cerrado'
+    ]
+];
+```
+
+## Uso Básico
+
+### Normalizar Datos de Horario
+
+```php
+use Glory\Utility\ScheduleManager;
+
+// Normalizar horario desde opciones
+$horario = ScheduleManager::getScheduleData('horario_tienda', [
+    // horario por defecto si no existe
+    ['day' => 'Lunes', 'status' => 'closed', 'hours' => 'Cerrado']
+]);
+
+// Resultado normalizado
+/*
+[
+    [
+        'day' => 'Lunes',
+        'status' => 'open',
+        'open' => '09:00',
+        'close' => '17:00',
+        'hours' => '09:00-17:00'
+    ]
+]
+*/
+```
+
+### Verificar Estado Actual
+
+```php
+// Obtener estado actual de apertura
+$estado = ScheduleManager::getCurrentScheduleStatus(
+    'horario_restaurante',
+    [], // sin horario por defecto
+    'Europe/Madrid' // zona horaria
+);
+
+// Resultado
+/*
+[
+    'status_class' => 'opened', // 'opened' | 'closed'
+    'message' => 'Abierto. Cerramos a las 22:00.'
+]
+*/
+```
+
+## Características Avanzadas
+
+### Normalización Inteligente
+
+ScheduleManager normaliza automáticamente diferentes formatos de entrada:
+
+```php
+// Diferentes formatos de entrada se normalizan al mismo resultado
+
+// Formato 1: Campos separados
+$formato1 = [
+    'day' => 'Lunes',
+    'status' => 'open',
+    'open' => '09:00',
+    'close' => '18:00'
+];
+
+// Formato 2: Campo hours combinado
+$formato2 = [
+    'day' => 'Lunes',
+    'hours' => '09:00-18:00'
+];
+
+// Ambos producen el mismo resultado normalizado
+$resultado = [
+    'day' => 'Lunes',
+    'status' => 'open',
+    'open' => '09:00',
+    'close' => '18:00',
+    'hours' => '09:00-18:00'
+];
+```
+
+### Validación de Horarios
+
+- **Formato HH:MM**: Valida formato de 24 horas
+- **Rango válido**: Verifica que close > open
+- **Horarios extendidos**: Maneja cierres después de medianoche
+- **Días de la semana**: Valida nombres en español
+
+### Soporte Multi-Zona Horaria
+
+```php
+// Diferentes zonas horarias
+$estado_us = ScheduleManager::getCurrentScheduleStatus('horario', [], 'America/New_York');
+$estado_es = ScheduleManager::getCurrentScheduleStatus('horario', [], 'Europe/Madrid');
+$estado_mx = ScheduleManager::getCurrentScheduleStatus('horario', [], 'America/Mexico_City');
+```
+
+## Casos de Uso Comunes
+
+### 1. Mostrar Horarios en Sitio Web
+
+```php
+<?php
+// En template de contacto o footer
+function mostrar_horarios_tienda() {
+    $horario = ScheduleManager::getScheduleData('horario_tienda');
+
+    if (empty($horario)) {
+        echo "<p>Horario no disponible</p>";
+        return;
+    }
+
+    echo "<div class='horarios-tienda'>";
+    echo "<h3>Nuestro Horario</h3>";
+    echo "<ul class='lista-horarios'>";
+
+    foreach ($horario as $dia) {
+        $clase = $dia['status'] === 'open' ? 'abierto' : 'cerrado';
+        echo "<li class='dia-{$clase}'>";
+        echo "<span class='dia-nombre'>{$dia['day']}</span>";
+        echo "<span class='dia-horario'>{$dia['hours']}</span>";
+        echo "</li>";
+    }
+
+    echo "</ul>";
+    echo "</div>";
+}
+?>
+```
+
+### 2. Badge de Estado de Apertura
+
+```php
+<?php
+// En header o hero section
+function mostrar_estado_apertura() {
+    $estado = ScheduleManager::getCurrentScheduleStatus('horario_principal');
+
+    $clase_css = $estado['status_class']; // 'opened' o 'closed'
+    $mensaje = $estado['message'];
+
+    echo "<div class='estado-apertura {$clase_css}'>";
+    echo "<span class='estado-indicador'></span>";
+    echo "<span class='estado-texto'>{$mensaje}</span>";
+    echo "</div>";
+}
+?>
+
+<style>
+.estado-apertura.opened { background: #d4edda; color: #155724; }
+.estado-apertura.closed { background: #f8d7da; color: #721c24; }
+.estado-indicador {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+.estado-apertura.opened .estado-indicador { background: #28a745; }
+.estado-apertura.closed .estado-indicador { background: #dc3545; }
+</style>
+```
+
+### 3. Sistema de Reserva con Validación Horaria
+
+```php
+<?php
+class SistemaReservas {
+    public static function validar_hora_reserva($fecha_hora) {
+        // Convertir fecha de reserva a timestamp
+        $timestamp_reserva = strtotime($fecha_hora);
+        $dia_semana = date('l', $timestamp_reserva); // inglés
+
+        // Mapear a español
+        $dias_map = [
+            'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles',
+            'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado',
+            'Sunday' => 'Domingo'
+        ];
+
+        $dia_espanol = $dias_map[$dia_semana] ?? $dia_semana;
+
+        // Obtener horario del día
+        $horario = ScheduleManager::getScheduleData('horario_reservas');
+        $horario_dia = null;
+
+        foreach ($horario as $dia) {
+            if ($dia['day'] === $dia_espanol) {
+                $horario_dia = $dia;
+                break;
+            }
+        }
+
+        if (!$horario_dia || $horario_dia['status'] !== 'open') {
+            return ['valido' => false, 'mensaje' => 'Reservas no disponibles este día'];
+        }
+
+        // Verificar hora dentro del rango
+        $hora_reserva = date('H:i', $timestamp_reserva);
+        $hora_apertura = $horario_dia['open'];
+        $hora_cierre = $horario_dia['close'];
+
+        if ($hora_reserva < $hora_apertura || $hora_reserva > $hora_cierre) {
+            return [
+                'valido' => false,
+                'mensaje' => "Horario de reservas: {$hora_apertura} - {$hora_cierre}"
+            ];
+        }
+
+        return ['valido' => true, 'mensaje' => 'Hora válida para reserva'];
+    }
+}
+
+// Uso en formulario
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $validacion = SistemaReservas::validar_hora_reserva($_POST['fecha_reserva']);
+
+    if (!$validacion['valido']) {
+        echo "<div class='error'>{$validacion['mensaje']}</div>";
+    } else {
+        // Procesar reserva
+        echo "<div class='success'>Reserva confirmada</div>";
+    }
+}
+?>
+```
+
+### 4. Widget de Horarios Interactivo
+
+```php
+<?php
+// Widget para mostrar horarios con estado actual
+class WidgetHorarios extends WP_Widget {
+    public function widget($args, $instance) {
+        echo $args['before_widget'];
+
+        if (!empty($instance['titulo'])) {
+            echo $args['before_title'] . $instance['titulo'] . $args['after_title'];
+        }
+
+        // Estado actual
+        $estado = ScheduleManager::getCurrentScheduleStatus(
+            $instance['opcion_horario'] ?? 'horario_default'
+        );
+
+        echo "<div class='widget-horarios'>";
+        echo "<div class='estado-actual {$estado['status_class']}'>";
+        echo "<i class='icono-estado'></i> {$estado['message']}";
+        echo "</div>";
+
+        // Próximos horarios
+        $this->mostrar_proximos_horarios($instance['opcion_horario'] ?? 'horario_default');
+
+        echo "</div>";
+        echo $args['after_widget'];
+    }
+
+    private function mostrar_proximos_horarios($opcion) {
+        $horario = ScheduleManager::getScheduleData($opcion);
+        $dias_ordenados = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+        echo "<div class='proximos-horarios'>";
+        echo "<h4>Horarios Semanales</h4>";
+        echo "<ul>";
+
+        foreach ($dias_ordenados as $dia) {
+            $horario_dia = array_filter($horario, fn($h) => $h['day'] === $dia);
+            $horario_dia = reset($horario_dia);
+
+            if ($horario_dia) {
+                $clase = $horario_dia['status'] === 'open' ? 'dia-abierto' : 'dia-cerrado';
+                echo "<li class='{$clase}'>";
+                echo "<span class='dia'>{$dia}</span>";
+                echo "<span class='horas'>{$horario_dia['hours']}</span>";
+                echo "</li>";
+            }
+        }
+
+        echo "</ul>";
+        echo "</div>";
+    }
+}
+?>
+```
+
+### 5. Sistema de Notificaciones por Horario
+
+```php
+<?php
+// Notificar antes del cierre
+function notificar_cierre_proximo() {
+    $estado = ScheduleManager::getCurrentScheduleStatus('horario_principal');
+
+    if ($estado['status_class'] === 'opened' &&
+        strpos($estado['message'], 'Cerramos a las') !== false) {
+
+        // Extraer hora de cierre del mensaje
+        preg_match('/Cerramos a las (\d{2}:\d{2})/', $estado['message'], $matches);
+
+        if (isset($matches[1])) {
+            $hora_cierre = $matches[1];
+            $minutos_para_cierre = calcular_minutos_para_cierre($hora_cierre);
+
+            // Notificar si faltan menos de 30 minutos
+            if ($minutos_para_cierre <= 30 && $minutos_para_cierre > 0) {
+                echo "<div class='aviso-cierre'>";
+                echo "<i class='icono-reloj'></i>";
+                echo "Cerramos en {$minutos_para_cierre} minutos";
+                echo "</div>";
+            }
+        }
+    }
+}
+
+function calcular_minutos_para_cierre($hora_cierre) {
+    $ahora = current_time('timestamp');
+    $cierre_timestamp = strtotime(date('Y-m-d') . ' ' . $hora_cierre);
+
+    // Si ya pasó la medianoche
+    if ($cierre_timestamp < $ahora) {
+        $cierre_timestamp += DAY_IN_SECONDS;
+    }
+
+    return ceil(($cierre_timestamp - $ahora) / MINUTE_IN_SECONDS);
+}
+?>
+```
+
+## Configuración Avanzada
+
+### Horarios Especiales y Temporadas
+
+```php
+// Sistema de horarios por temporada
+function obtener_horario_por_temporada() {
+    $mes_actual = date('n');
+    $opcion_horario = 'horario_default';
+
+    // Horarios de verano (junio-agosto)
+    if ($mes_actual >= 6 && $mes_actual <= 8) {
+        $opcion_horario = 'horario_verano';
+    }
+    // Horarios de invierno (diciembre-febrero)
+    elseif ($mes_actual >= 12 || $mes_actual <= 2) {
+        $opcion_horario = 'horario_invierno';
+    }
+
+    return ScheduleManager::getScheduleData($opcion_horario);
+}
+```
+
+### Manejo de Horarios 24/7
+
+```php
+// Horarios especiales para servicios 24/7
+$horario_24_7 = [
+    ['day' => 'Lunes', 'status' => 'open', 'open' => '00:00', 'close' => '23:59', 'hours' => '24 horas'],
+    ['day' => 'Martes', 'status' => 'open', 'open' => '00:00', 'close' => '23:59', 'hours' => '24 horas'],
+    // ... todos los días
+];
+
+// O usando el campo especial
+$horario_24_7_simple = [
+    ['day' => 'Lunes', 'status' => 'open', 'hours' => '24 horas'],
+    ['day' => 'Martes', 'status' => 'open', 'hours' => '24 horas'],
+];
+```
+
+### Zonas Horarias Múltiples
+
+```php
+// Para negocios con presencia internacional
+function obtener_estado_por_zona($pais) {
+    $zonas = [
+        'es' => 'Europe/Madrid',
+        'mx' => 'America/Mexico_City',
+        'us' => 'America/New_York',
+        'ar' => 'America/Argentina/Buenos_Aires'
+    ];
+
+    $zona = $zonas[$pais] ?? 'Europe/Madrid';
+
+    return ScheduleManager::getCurrentScheduleStatus('horario_global', [], $zona);
+}
+```
+
+## Mejores Prácticas
+
+### Validación de Entrada
+
+```php
+function validar_y_guardar_horario($horario_raw) {
+    $horario_validado = [];
+
+    foreach ($horario_raw as $dia) {
+        // Sanitizar entrada
+        $dia_validado = [
+            'day' => sanitize_text_field($dia['day'] ?? ''),
+            'status' => in_array($dia['status'] ?? '', ['open', 'closed']) ? $dia['status'] : 'closed'
+        ];
+
+        if ($dia_validado['status'] === 'open') {
+            $open = sanitize_text_field($dia['open'] ?? '');
+            $close = sanitize_text_field($dia['close'] ?? '');
+
+            // Validar formato HH:MM
+            if (preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $open) &&
+                preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $close)) {
+                $dia_validado['open'] = $open;
+                $dia_validado['close'] = $close;
+            } else {
+                $dia_validado['status'] = 'closed';
+            }
+        }
+
+        $horario_validado[] = $dia_validado;
+    }
+
+    // Guardar horario validado
+    OpcionManager::set('horario_tienda', $horario_validado);
+
+    return $horario_validado;
+}
+```
+
+### Cache para Rendimiento
+
+```php
+class ScheduleCache {
+    private static $cache_tiempo = 300; // 5 minutos
+
+    public static function getScheduleDataCached($key, $default = []) {
+        $cache_key = "schedule_{$key}";
+        $cached = get_transient($cache_key);
+
+        if ($cached === false) {
+            $cached = ScheduleManager::getScheduleData($key, $default);
+            set_transient($cache_key, $cached, self::$cache_tiempo);
+        }
+
+        return $cached;
+    }
+
+    public static function getCurrentStatusCached($key, $default = [], $timezone = 'Europe/Madrid') {
+        $cache_key = "schedule_status_{$key}";
+        $cached = get_transient($cache_key);
+
+        if ($cached === false) {
+            $cached = ScheduleManager::getScheduleData($key, $default);
+            set_transient($cache_key, $cached, 60); // Cache por 1 minuto para estado actual
+        }
+
+        return $cached;
+    }
+
+    public static function clearCache($key) {
+        delete_transient("schedule_{$key}");
+        delete_transient("schedule_status_{$key}");
+    }
+}
+```
+
+### Manejo de Errores
+
+```php
+function obtener_estado_seguro($opcion_horario) {
+    try {
+        $estado = ScheduleManager::getCurrentScheduleStatus(
+            $opcion_horario,
+            [
+                ['day' => 'Lunes', 'status' => 'closed', 'hours' => 'Cerrado']
+            ]
+        );
+
+        return $estado;
+    } catch (Exception $e) {
+        // Log del error
+        GloryLogger::error('Error obteniendo estado de horario', [
+            'opcion' => $opcion_horario,
+            'error' => $e->getMessage()
+        ]);
+
+        // Retornar estado seguro por defecto
+        return [
+            'status_class' => 'unknown',
+            'message' => 'Horario no disponible temporalmente'
+        ];
+    }
+}
+```
+
+## Resolución de Problemas
+
+### Horarios No se Muestran Correctamente
+
+1. **Verificar formato de datos**: Asegurarse que los datos en OpcionManager estén en el formato correcto
+2. **Zona horaria**: Confirmar que la zona horaria sea válida
+3. **Cache**: Limpiar transients si los cambios no se reflejan
+
+### Problemas de Validación
+
+```php
+// Debug de horario
+function debug_horario($key) {
+    $raw = OpcionManager::get($key);
+    $normalized = ScheduleManager::getScheduleData($key);
+    $status = ScheduleManager::getCurrentScheduleStatus($key);
+
+    echo "<h3>Debug Horario: {$key}</h3>";
+    echo "<h4>Datos Raw:</h4><pre>" . print_r($raw, true) . "</pre>";
+    echo "<h4>Datos Normalizados:</h4><pre>" . print_r($normalized, true) . "</pre>";
+    echo "<h4>Estado Actual:</h4><pre>" . print_r($status, true) . "</pre>";
+}
+```
+
+### Estados Incorrectos
+
+1. **Servidor time**: Verificar que el servidor tenga la hora correcta
+2. **Timezone PHP**: Confirmar configuración de zona horaria en PHP
+3. **WordPress time**: Verificar ajustes de zona horaria en WordPress
+
+## Consideraciones de Rendimiento
+
+### Evitar Llamadas en Loops
+
+```php
+// ✅ Correcto - obtener una vez fuera del loop
+$estado_apertura = ScheduleManager::getCurrentScheduleStatus('horario');
+
+while (have_posts()) {
+    the_post();
+    // usar $estado_apertura aquí
+}
+
+// ❌ Incorrecto - llamar en cada iteración
+while (have_posts()) {
+    the_post();
+    $estado = ScheduleManager::getCurrentScheduleStatus('horario'); // Lento!
+}
+```
+
+### Precálculo para Widgets
+
+```php
+// En init o cron job
+function precalcular_estados_horarios() {
+    $opciones_horario = ['horario_tienda', 'horario_restaurante', 'horario_oficina'];
+
+    foreach ($opciones_horario as $opcion) {
+        $estado = ScheduleManager::getCurrentScheduleStatus($opcion);
+        set_transient("horario_status_{$opcion}", $estado, 5 * MINUTE_IN_SECONDS);
+    }
+}
+
+// En widgets usar datos precacheados
+function obtener_estado_cacheado($opcion) {
+    return get_transient("horario_status_{$opcion}") ?: [
+        'status_class' => 'unknown',
+        'message' => 'Horario no disponible'
+    ];
+}
+```
+
+## Integración con Calendarios
+
+### Sincronización con Google Calendar
+
+```php
+function exportar_horario_google_calendar($opcion_horario) {
+    $horario = ScheduleManager::getScheduleData($opcion_horario);
+    $eventos = [];
+
+    foreach ($horario as $dia) {
+        if ($dia['status'] === 'open') {
+            $eventos[] = [
+                'summary' => 'Horario de Apertura',
+                'start' => [
+                    'dateTime' => date('c', strtotime("next {$dia['day']} {$dia['open']}")),
+                    'timeZone' => wp_timezone_string()
+                ],
+                'end' => [
+                    'dateTime' => date('c', strtotime("next {$dia['day']} {$dia['close']}")),
+                    'timeZone' => wp_timezone_string()
+                ],
+                'recurrence' => ['RRULE:FREQ=WEEKLY']
+            ];
+        }
+    }
+
+    return $eventos;
+}
+```
+
+## Alternativas y Extensiones
+
+### Plugins de Horarios
+
+- **Opening Hours**: Plugin especializado en horarios comerciales
+- **Store Hours Manager**: Para tiendas online
+- **Business Hours Pro**: Versión premium con más funcionalidades
+
+### Extensiones Recomendadas
+
+Para funcionalidades avanzadas:
+
+- **Horarios por temporada**: Cambiar automáticamente según fecha
+- **Horarios de vacaciones**: Fechas especiales de cierre
+- **Múltiples ubicaciones**: Horarios diferentes por sucursal
+- **Integración reservas**: Sincronización con sistemas de reservas

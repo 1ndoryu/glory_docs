@@ -1,0 +1,486 @@
+---
+title: UserUtility
+description: Utilidad ligera para gestión de usuarios, roles y metadatos de usuario en WordPress
+sidebar:
+  label: UserUtility
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+## Descripción General
+
+`UserUtility` es una clase de utilidad especializada en operaciones comunes con usuarios de WordPress. Proporciona métodos simplificados para verificar estado de login, validar roles y acceder a metadatos de usuario con validación automática.
+
+Esta utilidad es esencial para temas y plugins que implementan funcionalidades específicas por rol de usuario o requieren acceso frecuente a metadatos de usuario.
+
+## Uso Básico
+
+### Verificar Estado de Login
+
+```php
+use Glory\Utility\UserUtility;
+
+// Verificar si usuario está logueado
+if (UserUtility::logeado()) {
+    echo "Bienvenido, usuario registrado";
+} else {
+    echo "Por favor, inicia sesión";
+}
+```
+
+### Verificar Roles de Usuario
+
+```php
+// Verificar rol específico
+if (UserUtility::tieneRoles('administrator')) {
+    echo "Panel de administración";
+}
+
+// Verificar múltiples roles (OR)
+if (UserUtility::tieneRoles(['editor', 'administrator'])) {
+    echo "Acceso a edición avanzada";
+}
+```
+
+### Acceder a Metadatos de Usuario
+
+```php
+// Metadato del usuario actual
+$telefono = UserUtility::meta('telefono');
+
+// Metadato de usuario específico
+$telefono = UserUtility::meta('telefono', 123);
+
+// Metadato inexistente retorna null
+$campo_inexistente = UserUtility::meta('campo_que_no_existe'); // null
+```
+
+## Características
+
+### Validación Automática
+
+- **Estado de Login**: Verifica automáticamente antes de operaciones de rol
+- **ID de Usuario**: Valida que el ID sea válido (> 0)
+- **Usuario Actual**: Detecta automáticamente el usuario actual cuando no se especifica ID
+
+### Compatibilidad con WordPress
+
+Utiliza funciones nativas de WordPress manteniendo compatibilidad completa:
+
+```php
+// Equivalente interno:
+// is_user_logged_in()
+// current_user_can()
+// get_user_meta()
+```
+
+## Casos de Uso Comunes
+
+### 1. Control de Acceso por Roles
+
+```php
+<?php
+// En template restringido
+if (!UserUtility::logeado()) {
+    wp_redirect(wp_login_url());
+    exit;
+}
+
+if (!UserUtility::tieneRoles(['subscriber', 'customer'])) {
+    wp_die('Acceso denegado - Se requiere rol de suscriptor o cliente');
+}
+
+// Contenido para usuarios autorizados
+echo "<h1>Área de Miembros</h1>";
+?>
+```
+
+### 2. Personalización por Rol
+
+```php
+<?php
+// En header.php o template principal
+function mostrar_menu_usuario() {
+    if (!UserUtility::logeado()) {
+        echo "<a href='" . wp_login_url() . "'>Iniciar Sesión</a>";
+        return;
+    }
+
+    $usuario = wp_get_current_user();
+
+    echo "<div class='user-menu'>";
+    echo "<span>Bienvenido, {$usuario->display_name}</span>";
+
+    if (UserUtility::tieneRoles('administrator')) {
+        echo "<a href='" . admin_url() . "'>Administración</a>";
+    }
+
+    if (UserUtility::tieneRoles(['editor', 'administrator'])) {
+        echo "<a href='" . admin_url('post-new.php') . "'>Nuevo Post</a>";
+    }
+
+    echo "<a href='" . wp_logout_url() . "'>Cerrar Sesión</a>";
+    echo "</div>";
+}
+?>
+```
+
+### 3. Campos de Perfil Personalizados
+
+```php
+<?php
+// En perfil de usuario o checkout
+$telefono = UserUtility::meta('telefono');
+$direccion = UserUtility::meta('direccion_envio');
+$preferencias = UserUtility::meta('preferencias_notificacion'); // array
+
+if ($telefono) {
+    echo "<p>Teléfono: " . esc_html($telefono) . "</p>";
+}
+
+if (is_array($preferencias)) {
+    echo "<h3>Preferencias de Notificación</h3>";
+    foreach ($preferencias as $pref) {
+        echo "<div class='preference-item'>{$pref}</div>";
+    }
+}
+?>
+```
+
+### 4. Sistema de Membresías
+
+```php
+<?php
+class SistemaMembresia {
+    public static function verificar_acceso_premium() {
+        if (!UserUtility::logeado()) {
+            return false;
+        }
+
+        // Verificar rol premium
+        if (!UserUtility::tieneRoles('premium_member')) {
+            return false;
+        }
+
+        // Verificar fecha de expiración
+        $expiracion = UserUtility::meta('membresia_expiracion');
+        if (!$expiracion || strtotime($expiracion) < time()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function mostrar_contenido_premium() {
+        if (!self::verificar_acceso_premium()) {
+            echo "<div class='premium-teaser'>";
+            echo "<p>Este contenido requiere membresía premium</p>";
+            echo "<a href='/upgrade'>Actualizar Membresía</a>";
+            echo "</div>";
+            return;
+        }
+
+        // Mostrar contenido premium
+        echo "<div class='premium-content'>";
+        echo "<h2>Contenido Exclusivo para Miembros Premium</h2>";
+        // ... contenido premium ...
+        echo "</div>";
+    }
+}
+?>
+```
+
+### 5. Formularios de Perfil
+
+```php
+<?php
+// En página de perfil personalizado
+function actualizar_perfil_usuario() {
+    if (!UserUtility::logeado()) return;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil'])) {
+        $user_id = get_current_user_id();
+
+        // Actualizar metadatos
+        $campos = ['telefono', 'direccion', 'fecha_nacimiento'];
+        foreach ($campos as $campo) {
+            if (isset($_POST[$campo])) {
+                update_user_meta($user_id, $campo, sanitize_text_field($_POST[$campo]));
+            }
+        }
+
+        echo "<div class='success'>Perfil actualizado correctamente</div>";
+    }
+}
+
+// Mostrar formulario
+function mostrar_formulario_perfil() {
+    if (!UserUtility::logeado()) return;
+
+    $telefono = UserUtility::meta('telefono');
+    $direccion = UserUtility::meta('direccion');
+
+    ?>
+    <form method="post">
+        <p>
+            <label>Teléfono:</label>
+            <input type="tel" name="telefono" value="<?php echo esc_attr($telefono); ?>">
+        </p>
+        <p>
+            <label>Dirección:</label>
+            <textarea name="direccion"><?php echo esc_textarea($direccion); ?></textarea>
+        </p>
+        <button type="submit" name="actualizar_perfil">Actualizar Perfil</button>
+    </form>
+    <?php
+}
+?>
+```
+
+## Mejores Prácticas
+
+### Verificación de Roles Segura
+
+```php
+// ✅ Correcto - verificar permisos apropiados
+function eliminar_post($post_id) {
+    if (!UserUtility::tieneRoles(['editor', 'administrator'])) {
+        wp_die('No tienes permisos para eliminar posts');
+    }
+
+    wp_delete_post($post_id, true);
+}
+
+// ❌ Incorrecto - asumir permisos por rol
+function publicar_post($post_id) {
+    // NO asumir que 'author' puede publicar
+    if (!UserUtility::tieneRoles(['author', 'editor', 'administrator'])) {
+        wp_die('No tienes permisos para publicar');
+    }
+
+    wp_publish_post($post_id);
+}
+```
+
+### Manejo de Metadatos de Usuario
+
+```php
+// Sanitización apropiada por tipo de dato
+function guardar_metadatos_usuario_seguro($user_id) {
+    $metadatos = [
+        'telefono' => sanitize_text_field($_POST['telefono'] ?? ''),
+        'sitio_web' => esc_url_raw($_POST['sitio_web'] ?? ''),
+        'edad' => intval($_POST['edad'] ?? 0),
+        'notificaciones' => isset($_POST['notificaciones']) ? array_map('sanitize_text_field', $_POST['notificaciones']) : []
+    ];
+
+    foreach ($metadatos as $key => $value) {
+        update_user_meta($user_id, $key, $value);
+    }
+}
+```
+
+### Cache de Verificaciones
+
+```php
+class UserPermissionsCache {
+    private static $permisos_cache = [];
+
+    public static function puede_editar_post($post_id) {
+        $user_id = get_current_user_id();
+        $cache_key = "edit_post_{$user_id}_{$post_id}";
+
+        if (!isset(self::$permisos_cache[$cache_key])) {
+            $post = get_post($post_id);
+            $puede = user_can($user_id, 'edit_post', $post_id) ||
+                    ($post && $post->post_author == $user_id && UserUtility::tieneRoles(['author', 'contributor']));
+
+            self::$permisos_cache[$cache_key] = $puede;
+        }
+
+        return self::$permisos_cache[$cache_key];
+    }
+}
+```
+
+## Integración con Otros Componentes
+
+### Con FormBuilder
+
+```php
+<?php
+// Formulario de registro personalizado
+$formulario = new FormBuilder('registro_usuario');
+$formulario->campo('telefono', 'tel', 'Teléfono', ['required' => true]);
+$formulario->campo('terminos', 'checkbox', 'Acepto términos y condiciones', ['required' => true]);
+
+$formulario->procesar(function($datos) {
+    $user_id = wp_insert_user([
+        'user_login' => $datos['username'],
+        'user_email' => $datos['email'],
+        'user_pass' => $datos['password'],
+        'role' => 'subscriber'
+    ]);
+
+    if (!is_wp_error($user_id)) {
+        // Guardar metadatos adicionales
+        update_user_meta($user_id, 'telefono', $datos['telefono']);
+        update_user_meta($user_id, 'terminos_aceptados', current_time('timestamp'));
+    }
+});
+?>
+```
+
+### Con EmailUtility
+
+```php
+<?php
+// Notificar cambios de perfil
+add_action('profile_update', function($user_id, $old_user_data) {
+    $user = get_userdata($user_id);
+    $telefono_anterior = UserUtility::meta('telefono', $user_id); // del old_user_data si está disponible
+
+    $mensaje = "
+        <h3>Perfil de Usuario Actualizado</h3>
+        <p><strong>Usuario:</strong> {$user->display_name}</p>
+        <p><strong>Email:</strong> {$user->user_email}</p>
+        <p><strong>Teléfono:</strong> " . UserUtility::meta('telefono', $user_id) . "</p>
+    ";
+
+    EmailUtility::sendToAdmins('Perfil de Usuario Actualizado', $mensaje);
+}, 10, 2);
+?>
+```
+
+## Consideraciones de Rendimiento
+
+### Verificaciones Múltiples
+
+```php
+// ✅ Eficiente - verificar una vez y reutilizar
+function mostrar_panel_usuario() {
+    $logeado = UserUtility::logeado();
+    $es_admin = $logeado && UserUtility::tieneRoles('administrator');
+
+    if (!$logeado) {
+        echo "<a href='" . wp_login_url() . "'>Login</a>";
+        return;
+    }
+
+    echo "<div class='user-panel'>";
+
+    if ($es_admin) {
+        echo "<a href='" . admin_url() . "'>Admin</a>";
+    }
+
+    echo "<a href='" . wp_logout_url() . "'>Logout</a>";
+    echo "</div>";
+}
+
+// ❌ Ineficiente - múltiples verificaciones
+function mostrar_panel_usuario_lento() {
+    if (!UserUtility::logeado()) {
+        echo "<a href='" . wp_login_url() . "'>Login</a>";
+        return;
+    }
+
+    echo "<div class='user-panel'>";
+
+    // Verificación redundante
+    if (UserUtility::logeado() && UserUtility::tieneRoles('administrator')) {
+        echo "<a href='" . admin_url() . "'>Admin</a>";
+    }
+
+    echo "<a href='" . wp_logout_url() . "'>Logout</a>";
+    echo "</div>";
+}
+```
+
+### Cache de Metadatos
+
+```php
+function obtener_perfil_usuario_completo($user_id = null) {
+    static $cache = [];
+
+    $user_id = $user_id ?: get_current_user_id();
+    $cache_key = "user_profile_{$user_id}";
+
+    if (!isset($cache[$cache_key])) {
+        $cache[$cache_key] = [
+            'telefono' => UserUtility::meta('telefono', $user_id),
+            'direccion' => UserUtility::meta('direccion', $user_id),
+            'preferencias' => UserUtility::meta('preferencias', $user_id),
+        ];
+    }
+
+    return $cache[$cache_key];
+}
+```
+
+## Resolución de Problemas
+
+### Problemas de Contexto de Usuario
+
+```php
+// En AJAX handlers o cron jobs
+add_action('wp_ajax_mi_accion', function() {
+    // Forzar verificación de usuario logueado
+    if (!UserUtility::logeado()) {
+        wp_send_json_error('Usuario no autenticado');
+    }
+
+    $user_id = get_current_user_id();
+    $metadato = UserUtility::meta('mi_campo', $user_id);
+
+    wp_send_json_success(['data' => $metadato]);
+});
+```
+
+### Roles No Reconocidos
+
+```php
+// Verificar roles disponibles
+function debug_roles_usuario() {
+    if (!UserUtility::logeado()) return;
+
+    $user = wp_get_current_user();
+    $roles = $user->roles;
+
+    echo "<h3>Roles del usuario actual:</h3>";
+    echo "<ul>";
+    foreach ($roles as $role) {
+        echo "<li>{$role}</li>";
+    }
+    echo "</ul>";
+
+    // Verificar permisos específicos
+    echo "<h3>Permisos específicos:</h3>";
+    $permisos = ['edit_posts', 'publish_posts', 'delete_posts'];
+    foreach ($permisos as $permiso) {
+        $tiene = UserUtility::tieneRoles($permiso);
+        echo "<p>{$permiso}: " . ($tiene ? 'Sí' : 'No') . "</p>";
+    }
+}
+```
+
+## Alternativas y Extensiones
+
+### Plugins Recomendados
+
+- **Members**: Control granular de permisos y roles
+- **User Role Editor**: Edición avanzada de roles y capacidades
+- **Advanced Access Manager**: Control de acceso basado en roles
+
+### Funciones Relacionadas de WordPress
+
+```php
+// Alternativas nativas
+$current_user = wp_get_current_user();
+$user_id = get_current_user_id();
+$user_meta = get_user_meta($user_id, 'meta_key', true);
+
+// Con UserUtility
+$current_user = wp_get_current_user(); // igual
+$user_id = get_current_user_id(); // igual
+$user_meta = UserUtility::meta('meta_key'); // simplificado
+```

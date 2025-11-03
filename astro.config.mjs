@@ -78,7 +78,8 @@ export default defineConfig({
                 {
                     label: 'Servicios',
                     items: [
-                        'servicios/event-bus'
+                        'servicios/event-bus',
+                        'servicios/glory-logger'
                     ]
                 },
                 {

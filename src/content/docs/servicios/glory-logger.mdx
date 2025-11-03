@@ -1,0 +1,378 @@
+---
+title: GloryLogger
+description: Sistema de logging avanzado para registro de eventos y errores
+sidebar:
+  label: GloryLogger
+  order: 2
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# GloryLogger
+
+El **GloryLogger** es un sistema de logging avanzado diseñado para el registro eficiente de eventos, advertencias y errores en aplicaciones WordPress. Utiliza un sistema de buffering para optimizar el rendimiento y agrupa los logs por función/método llamador.
+
+## Filosofía
+
+GloryLogger está diseñado para ser:
+- **Eficiente**: Usa buffering para minimizar operaciones I/O
+- **Organizado**: Agrupa logs por contexto/método
+- **Flexible**: Múltiples niveles de severidad
+- **No intrusivo**: Se integra con el sistema de logs nativo de PHP
+
+## Niveles de Log
+
+GloryLogger define cuatro niveles de severidad:
+
+```php
+const NIVEL_INFO        = 10; // Información general
+const NIVEL_ADVERTENCIA = 20; // Problemas no críticos
+const NIVEL_ERROR       = 30; // Errores que afectan funcionalidad
+const NIVEL_CRITICO     = 50; // Errores que requieren atención inmediata
+```
+
+## Configuración Inicial
+
+### Inicialización Básica
+
+```php
+use Glory\Core\GloryLogger;
+
+// Inicializar con nivel mínimo INFO (registra todo)
+GloryLogger::init();
+
+// O inicializar con nivel mínimo ERROR (solo errores y críticos)
+GloryLogger::init(GloryLogger::NIVEL_ERROR);
+```
+
+### Cambiar Nivel Mínimo en Tiempo de Ejecución
+
+```php
+use Glory\Core\GloryLogger;
+
+// Cambiar a registrar solo advertencias y superiores
+GloryLogger::setNivelMinimoGuardado(GloryLogger::NIVEL_ADVERTENCIA);
+```
+
+## Uso Básico
+
+### Registrar Mensajes Simples
+
+```php
+use Glory\Core\GloryLogger;
+
+// Información general
+GloryLogger::info("Usuario inició sesión", ["user_id" => 123]);
+
+// Advertencia
+GloryLogger::warning("Archivo no encontrado", ["path" => "/uploads/imagen.jpg"]);
+
+// Error
+GloryLogger::error("Error de conexión a base de datos", [
+    "error" => "Connection timeout",
+    "query" => "SELECT * FROM users"
+]);
+
+// Error crítico
+GloryLogger::critical("Error fatal del sistema", [
+    "exception" => "OutOfMemoryException",
+    "memory_usage" => "512MB"
+]);
+```
+
+### Contexto Estructurado
+
+El contexto permite añadir datos adicionales que se serializan automáticamente:
+
+```php
+GloryLogger::error("Error al procesar pago", [
+    "user_id" => 123,
+    "order_id" => "ORD-2024-001",
+    "payment_method" => "stripe",
+    "amount" => 99.99,
+    "currency" => "USD",
+    "error_code" => "card_declined",
+    "timestamp" => time()
+]);
+```
+
+## Arquitectura Interna
+
+### Sistema de Buffering
+
+GloryLogger utiliza un buffer interno que acumula todos los logs durante la ejecución:
+
+```php
+// Los logs se almacenan en memoria hasta el final de la ejecución
+private static array $bufferLogs = [];
+
+// Se guardan automáticamente al finalizar la petición (hook 'shutdown')
+add_action('shutdown', [GloryLogger::class, 'guardarLogsEnBuffer'], 100);
+```
+
+### Agrupación por Llamador
+
+Los logs se agrupan automáticamente por la función o método que los originó:
+
+```php
+// Ejemplo de salida en logs:
+--- GloryLogger Inicio: MiClase::procesarPago ---
+[2024-01-15 10:30:45.123456] [ERROR] Error al procesar pago | Contexto: Array ( [user_id] => 123 [order_id] => ORD-2024-001 ... )
+[2024-01-15 10:30:45.234567] [INFO] Pago procesado exitosamente | Contexto: Array ( [transaction_id] => txn_abc123 ... )
+--- GloryLogger Fin: MiClase::procesarPago ---
+```
+
+### Prevención de Duplicados
+
+GloryLogger evita logs duplicados exactos en la misma ejecución usando hashes únicos:
+
+```php
+// Genera hash basado en: nivel + mensaje + contexto serializado
+$huellaLog = md5($nivel . '|' . $mensaje . '|' . serialize($contexto));
+```
+
+## Integración con WordPress
+
+### Logs en Debug.log
+
+En entornos de desarrollo, los logs aparecen en `wp-content/debug.log`:
+
+```php
+// Asegurar que WP_DEBUG está activado
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+```
+
+### Personalización del Destino de Logs
+
+Por defecto usa `error_log()`, pero puedes modificar el comportamiento creando un wrapper:
+
+```php
+class MiLoggerPersonalizado extends Glory\Core\GloryLogger
+{
+    protected static function crearEntradaLog(string $nombreFuncion, array $datosLog): void
+    {
+        // Lógica personalizada para guardar logs
+        // Por ejemplo: enviar a servicio externo, base de datos, etc.
+    }
+}
+```
+
+## Ejemplos Prácticos
+
+### Logging en Handlers AJAX
+
+```php
+class ProcesarPagoHandler implements FormHandlerInterface
+{
+    public function procesar(array $datos): array
+    {
+        GloryLogger::info("Iniciando procesamiento de pago", [
+            "order_id" => $datos['order_id'],
+            "amount" => $datos['amount']
+        ]);
+
+        try {
+            $resultado = $this->procesarPago($datos);
+
+            GloryLogger::info("Pago procesado exitosamente", [
+                "transaction_id" => $resultado['transaction_id']
+            ]);
+
+            return ['success' => true, 'transaction_id' => $resultado['transaction_id']];
+
+        } catch (Exception $e) {
+            GloryLogger::error("Error en procesamiento de pago", [
+                "error" => $e->getMessage(),
+                "order_id" => $datos['order_id']
+            ]);
+
+            return ['success' => false, 'error' => 'Error interno del servidor'];
+        }
+    }
+}
+```
+
+### Logging en Componentes
+
+```php
+class ContentRender
+{
+    public function render(array $args = []): string
+    {
+        GloryLogger::info("Renderizando contenido", [
+            "post_type" => $args['post_type'] ?? 'post',
+            "posts_per_page" => $args['posts_per_page'] ?? 10
+        ]);
+
+        $query = $this->buildQuery($args);
+
+        if ($query->found_posts === 0) {
+            GloryLogger::warning("No se encontraron posts para la query", [
+                "args" => $args,
+                "sql" => $query->request
+            ]);
+        }
+
+        return $this->renderPosts($query);
+    }
+}
+```
+
+### Logging de Errores Críticos
+
+```php
+class DatabaseManager
+{
+    public function ejecutarQuery(string $sql, array $params = []): array
+    {
+        try {
+            $resultado = $this->db->query($sql, $params);
+            return $resultado;
+        } catch (Exception $e) {
+            GloryLogger::critical("Error crítico de base de datos", [
+                "sql" => $this->sanitizeSql($sql), // No loggear datos sensibles
+                "error" => $e->getMessage(),
+                "trace" => $e->getTraceAsString(),
+                "memory_usage" => memory_get_peak_usage(true)
+            ]);
+
+            throw $e; // Relanzar la excepción
+        }
+    }
+}
+```
+
+## Configuración por Entorno
+
+### Desarrollo
+
+```php
+// En wp-config.php o functions.php para desarrollo
+if (WP_DEBUG) {
+    GloryLogger::init(GloryLogger::NIVEL_INFO); // Registrar todo
+}
+```
+
+### Producción
+
+```php
+// En producción, solo errores y superiores
+GloryLogger::init(GloryLogger::NIVEL_ERROR);
+
+// O desactivar completamente configurando un nivel muy alto
+GloryLogger::setNivelMinimoGuardado(100);
+```
+
+## Monitoreo y Análisis
+
+### Filtrado de Logs
+
+Los logs se pueden filtrar por patrón en sistemas como Logstash o ELK:
+
+```
+# GloryLogger - Filtrar solo errores
+--- GloryLogger Inicio: * ---
+[*] [ERROR] *
+--- GloryLogger Fin: * ---
+
+# GloryLogger - Filtrar por componente específico
+--- GloryLogger Inicio: MiComponente::* ---
+```
+
+### Métricas de Rendimiento
+
+GloryLogger incluye timestamps de microsegundos para análisis de rendimiento:
+
+```php
+GloryLogger::info("Inicio de operación pesada");
+$inicio = microtime(true);
+
+// ... operación ...
+
+$duracion = microtime(true) - $inicio;
+GloryLogger::info("Operación completada", [
+    "duracion_ms" => round($duracion * 1000, 2)
+]);
+```
+
+## Mejores Prácticas
+
+### 1. Elegir el Nivel Adecuado
+
+- **INFO**: Eventos normales de funcionamiento
+- **WARNING**: Situaciones que requieren atención pero no detienen el flujo
+- **ERROR**: Errores que afectan funcionalidad específica
+- **CRITICAL**: Errores que pueden comprometer todo el sistema
+
+### 2. Contexto Relevante
+
+```php
+// ✅ Bueno: contexto útil para debugging
+GloryLogger::error("Error al enviar email", [
+    "user_id" => 123,
+    "email" => "user@example.com",
+    "template" => "welcome",
+    "error_code" => "SMTP_CONNECTION_FAILED"
+]);
+
+// ❌ Malo: contexto irrelevante o excesivo
+GloryLogger::error("Error", ["todo_el_objeto_request" => $_REQUEST]);
+```
+
+### 3. Evitar Datos Sensibles
+
+```php
+// ✅ Sanitizar datos sensibles
+GloryLogger::info("Usuario autenticado", [
+    "user_id" => $user->ID,
+    "username" => $user->user_login,
+    // NO incluir: password, tokens de sesión, etc.
+]);
+```
+
+### 4. Logs Accionables
+
+```php
+// ✅ Logs que ayudan a resolver problemas
+GloryLogger::warning("Rate limit excedido", [
+    "user_id" => 123,
+    "requests_per_minute" => 150,
+    "limit" => 100,
+    "ip" => $this->anonymizeIp($ip)
+]);
+```
+
+### 5. Nombres Descriptivos
+
+Los logs se agrupan por nombre de función/método, así que usa nombres claros:
+
+```php
+class UserManager
+{
+    public function authenticateUser(string $username, string $password): bool
+    {
+        // Los logs aparecerán bajo "UserManager::authenticateUser"
+        GloryLogger::info("Verificando credenciales");
+        // ...
+    }
+}
+```
+
+## Solución de Problemas
+
+### Logs No Aparecen
+
+1. Verificar que `WP_DEBUG` esté activado
+2. Revisar permisos del archivo `debug.log`
+3. Confirmar nivel mínimo de logging
+
+### Rendimiento
+
+- En producción, usa niveles altos (`NIVEL_ERROR` o `NIVEL_CRITICO`)
+- El buffering minimiza el impacto en rendimiento
+- Evita logs excesivos en bucles
+
+<Aside type="tip">
+GloryLogger está optimizado para WordPress y se integra perfectamente con el ciclo de vida de las peticiones. En desarrollo, proporciona información detallada; en producción, registra solo eventos críticos.
+</Aside>

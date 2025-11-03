@@ -1,0 +1,571 @@
+---
+title: FormBuilder
+description: Constructor de formularios HTML con validación y envío AJAX integrado
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+# 🏗️ FormBuilder - Constructor de Formularios
+
+`FormBuilder` es un componente de Glory que permite construir formularios HTML complejos sin escribir markup repetitivo. Incluye validación del lado del cliente, envío AJAX automático y integración perfecta con los handlers del servidor.
+
+## 🎯 Características Principales
+
+- ✅ **Generación automática de HTML** - No más markup repetitivo
+- ✅ **Validación integrada** - Cliente y servidor
+- ✅ **Envío AJAX automático** - Sin JavaScript adicional
+- ✅ **Manejo de archivos** - Subida nativa de archivos
+- ✅ **Campos personalizables** - Estilos y atributos flexibles
+- ✅ **Integración con handlers** - Conexión directa con PHP
+
+## 🏗️ Arquitectura
+
+FormBuilder consta de tres componentes principales:
+
+1. **FormBuilder (PHP)** - Genera el HTML del formulario
+2. **gloryForm.js (JS)** - Maneja validación y envío
+3. **FormHandler (PHP)** - Procesa datos en el servidor
+
+## 🚀 Uso Básico
+
+### Formulario Simple de Contacto
+
+```php
+<?php
+use Glory\Components\FormBuilder;
+
+// Inicio del formulario
+echo FormBuilder::inicio([
+    'atributos' => [
+        'id' => 'form-contacto',
+        'class' => 'formulario-contacto'
+    ]
+]);
+
+// Campo de texto
+echo FormBuilder::campoTexto([
+    'nombre' => 'nombre_completo',
+    'label' => 'Nombre Completo',
+    'requerido' => true,
+    'placeholder' => 'Ingresa tu nombre completo'
+]);
+
+// Campo de email
+echo FormBuilder::campoEmail([
+    'nombre' => 'email',
+    'label' => 'Correo Electrónico',
+    'requerido' => true,
+    'placeholder' => 'tu@email.com'
+]);
+
+// Campo de textarea
+echo FormBuilder::campoTextarea([
+    'nombre' => 'mensaje',
+    'label' => 'Mensaje',
+    'requerido' => true,
+    'filas' => 5,
+    'placeholder' => 'Escribe tu mensaje aquí...'
+]);
+
+// Botón de envío
+echo FormBuilder::botonEnviar([
+    'accion' => 'procesarContacto',
+    'texto' => 'Enviar Mensaje',
+    'clases' => 'btn btn-primary'
+]);
+
+// Fin del formulario
+echo FormBuilder::fin();
+?>
+```
+
+## 📝 Tipos de Campos Disponibles
+
+### Campos de Texto
+
+```php
+// Campo de texto básico
+echo FormBuilder::campoTexto([
+    'nombre' => 'titulo',
+    'label' => 'Título',
+    'requerido' => true,
+    'placeholder' => 'Ingresa un título',
+    'valor' => 'Valor por defecto',
+    'maxLength' => 100
+]);
+
+// Campo de contraseña
+echo FormBuilder::campoPassword([
+    'nombre' => 'password',
+    'label' => 'Contraseña',
+    'requerido' => true,
+    'minLength' => 8
+]);
+
+// Campo de email
+echo FormBuilder::campoEmail([
+    'nombre' => 'email',
+    'label' => 'Email',
+    'requerido' => true,
+    'placeholder' => 'tu@email.com'
+]);
+
+// Campo numérico
+echo FormBuilder::campoNumero([
+    'nombre' => 'edad',
+    'label' => 'Edad',
+    'requerido' => true,
+    'min' => 18,
+    'max' => 99
+]);
+```
+
+### Campos de Selección
+
+```php
+// Campo select
+echo FormBuilder::campoSelect([
+    'nombre' => 'categoria',
+    'label' => 'Categoría',
+    'opciones' => [
+        '' => 'Selecciona una categoría',
+        'tecnologia' => 'Tecnología',
+        'marketing' => 'Marketing',
+        'ventas' => 'Ventas'
+    ],
+    'requerido' => true
+]);
+
+// Campo radio buttons
+echo FormBuilder::campoRadio([
+    'nombre' => 'genero',
+    'label' => 'Género',
+    'opciones' => [
+        'masculino' => 'Masculino',
+        'femenino' => 'Femenino',
+        'otro' => 'Otro'
+    ],
+    'requerido' => true
+]);
+
+// Campo checkboxes múltiple
+echo FormBuilder::campoCheckboxMultiple([
+    'nombre' => 'intereses',
+    'label' => 'Intereses',
+    'opciones' => [
+        'tecnologia' => 'Tecnología',
+        'deportes' => 'Deportes',
+        'musica' => 'Música',
+        'viajes' => 'Viajes'
+    ]
+]);
+```
+
+### Campos Especiales
+
+```php
+// Campo textarea
+echo FormBuilder::campoTextarea([
+    'nombre' => 'descripcion',
+    'label' => 'Descripción',
+    'requerido' => true,
+    'filas' => 4,
+    'columnas' => 50,
+    'placeholder' => 'Describe tu proyecto...'
+]);
+
+// Campo checkbox único
+echo FormBuilder::campoCheckbox([
+    'nombre' => 'acepto_terminos',
+    'label' => 'Acepto los términos y condiciones',
+    'requerido' => true,
+    'valor' => '1'
+]);
+
+// Campo de archivo
+echo FormBuilder::campoArchivo([
+    'nombre' => 'archivo_cv',
+    'label' => 'Curriculum Vitae',
+    'aceptar' => '.pdf,.doc,.docx',
+    'multiple' => false,
+    'maxSize' => '5MB'
+]);
+
+// Campo oculto
+echo FormBuilder::campoOculto([
+    'nombre' => 'form_id',
+    'valor' => 'contacto_2024'
+]);
+```
+
+## 🎨 Personalización y Estilos
+
+### Atributos HTML Personalizados
+
+```php
+echo FormBuilder::campoTexto([
+    'nombre' => 'telefono',
+    'label' => 'Teléfono',
+    'atributos' => [
+        'data-mask' => '(99) 9999-9999',
+        'autocomplete' => 'tel',
+        'inputmode' => 'tel'
+    ],
+    'clases' => 'campo-telefono',
+    'estilos' => 'width: 200px;'
+]);
+```
+
+### Formularios con Diseño Personalizado
+
+```php
+// Formulario con grid layout
+echo FormBuilder::inicio([
+    'atributos' => ['class' => 'form-grid']
+]);
+
+echo '<div class="form-row">';
+echo FormBuilder::campoTexto([
+    'nombre' => 'nombre',
+    'label' => 'Nombre',
+    'contenedor' => false // No generar contenedor automático
+]);
+echo FormBuilder::campoTexto([
+    'nombre' => 'apellido',
+    'label' => 'Apellido',
+    'contenedor' => false
+]);
+echo '</div>';
+
+echo FormBuilder::campoEmail([
+    'nombre' => 'email',
+    'label' => 'Email'
+]);
+
+echo FormBuilder::fin();
+```
+
+## 🔄 Integración con Handlers
+
+### Crear un Handler Personalizado
+
+```php
+<?php
+use Glory\Handler\Form\FormHandler;
+
+class ProcesarContactoHandler extends FormHandler {
+
+    public function procesar() {
+        // Obtener datos sanitizados
+        $nombre = $this->getDato('nombre_completo');
+        $email = $this->getDato('email');
+        $mensaje = $this->getDato('mensaje');
+
+        // Validar email
+        if (!is_email($email)) {
+            return $this->error('Email inválido');
+        }
+
+        // Procesar el formulario
+        $this->enviarEmailContacto($nombre, $email, $mensaje);
+
+        // Respuesta de éxito
+        return $this->exito('Mensaje enviado correctamente');
+    }
+
+    private function enviarEmailContacto($nombre, $email, $mensaje) {
+        $asunto = "Nuevo mensaje de contacto de {$nombre}";
+        $contenido = "De: {$nombre} ({$email})\n\n{$mensaje}";
+
+        wp_mail(
+            get_option('admin_email'),
+            $asunto,
+            $contenido
+        );
+    }
+}
+```
+
+### Handler con Archivos
+
+```php
+<?php
+class SubirArchivoHandler extends FormHandler {
+
+    public function procesar() {
+        // Verificar que hay archivo
+        if (empty($_FILES['archivo'])) {
+            return $this->error('No se recibió ningún archivo');
+        }
+
+        $archivo = $_FILES['archivo'];
+
+        // Validar tipo de archivo
+        $tiposPermitidos = ['image/jpeg', 'image/png', 'application/pdf'];
+        if (!in_array($archivo['type'], $tiposPermitidos)) {
+            return $this->error('Tipo de archivo no permitido');
+        }
+
+        // Procesar subida
+        $resultado = $this->procesarSubidaArchivo($archivo);
+
+        if ($resultado['exito']) {
+            return $this->exito('Archivo subido correctamente', [
+                'url' => $resultado['url'],
+                'id' => $resultado['id']
+            ]);
+        } else {
+            return $this->error('Error al subir archivo: ' . $resultado['error']);
+        }
+    }
+
+    private function procesarSubidaArchivo($archivo) {
+        // Lógica de subida de archivo
+        // Retornar array con 'exito', 'url', 'id' o 'error'
+    }
+}
+```
+
+## ⚡ Funcionalidades Avanzadas
+
+### Formularios con Meta Datos
+
+```php
+// Formulario para guardar meta datos de usuario
+echo FormBuilder::inicio([
+    'atributos' => ['data-meta-target' => 'user']
+]);
+
+echo FormBuilder::campoTexto([
+    'nombre' => 'profesion',
+    'label' => 'Profesión',
+    'valor' => UserUtility::meta('profesion')
+]);
+
+echo FormBuilder::campoTexto([
+    'nombre' => 'telefono',
+    'label' => 'Teléfono',
+    'valor' => UserUtility::meta('telefono')
+]);
+
+echo FormBuilder::botonEnviar([
+    'accion' => 'guardarMetaUsuario',
+    'texto' => 'Guardar Perfil'
+]);
+
+echo FormBuilder::fin();
+```
+
+### Formularios con Validación Condicional
+
+```php
+echo FormBuilder::inicio([
+    'atributos' => ['id' => 'form-registro']
+]);
+
+echo FormBuilder::campoTexto([
+    'nombre' => 'tipo_usuario',
+    'label' => 'Tipo de Usuario',
+    'opciones' => [
+        'particular' => 'Particular',
+        'empresa' => 'Empresa'
+    ]
+]);
+
+// Campo condicional para empresas
+echo FormBuilder::campoTexto([
+    'nombre' => 'cif',
+    'label' => 'CIF',
+    'atributos' => [
+        'data-condicion' => 'tipo_usuario',
+        'data-valor' => 'empresa'
+    ],
+    'clases' => 'campo-condicional'
+]);
+
+echo FormBuilder::campoTexto([
+    'nombre' => 'nombre_empresa',
+    'label' => 'Nombre de Empresa',
+    'atributos' => [
+        'data-condicion' => 'tipo_usuario',
+        'data-valor' => 'empresa'
+    ],
+    'clases' => 'campo-condicional'
+]);
+
+echo FormBuilder::botonEnviar([
+    'accion' => 'registrarUsuario',
+    'texto' => 'Registrarse'
+]);
+
+echo FormBuilder::fin();
+```
+
+## 🎯 JavaScript y Eventos Personalizados
+
+### Escuchar Eventos del Formulario
+
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-contacto');
+
+    // Antes de enviar
+    form.addEventListener('gloryForm:beforeSubmit', function(e) {
+        console.log('Enviando formulario...');
+        // Mostrar spinner de carga
+        mostrarSpinner();
+    });
+
+    // Después de enviar (éxito)
+    form.addEventListener('gloryForm:success', function(e) {
+        console.log('Formulario enviado correctamente', e.detail);
+        ocultarSpinner();
+        mostrarMensajeExito(e.detail.message);
+    });
+
+    // Error en envío
+    form.addEventListener('gloryForm:error', function(e) {
+        console.log('Error en formulario', e.detail);
+        ocultarSpinner();
+        mostrarMensajeError(e.detail.message);
+    });
+
+    // Validación fallida
+    form.addEventListener('gloryForm:validationError', function(e) {
+        console.log('Errores de validación', e.detail.errors);
+        resaltarCamposConError(e.detail.errors);
+    });
+});
+```
+
+### Personalizar Validación
+
+```javascript
+// Añadir regla de validación personalizada
+gloryForm.addValidationRule('telefono', function(value) {
+    const regex = /^\(\d{2}\)\s\d{4}-\d{4}$/;
+    return regex.test(value) || 'Formato de teléfono inválido';
+});
+
+// Usar en campo
+echo FormBuilder::campoTexto([
+    'nombre' => 'telefono',
+    'label' => 'Teléfono',
+    'validacion' => 'telefono',
+    'atributos' => [
+        'data-mask' => '(99) 9999-9999'
+    ]
+]);
+```
+
+## 🛡️ Seguridad y Mejores Prácticas
+
+### Validación del Lado del Servidor
+
+```php
+<?php
+class FormHandlerSeguro extends FormHandler {
+
+    public function procesar() {
+        // Sanitizar todos los inputs
+        $datos = $this->sanitizarInputs();
+
+        // Validar permisos
+        if (!$this->usuarioPuedeEnviar()) {
+            return $this->error('No tienes permisos para realizar esta acción');
+        }
+
+        // Validar nonce
+        if (!$this->verificarNonce()) {
+            return $this->error('Sesión expirada. Recarga la página e intenta de nuevo');
+        }
+
+        // Validar rate limiting
+        if ($this->esExcesoDeEnvios()) {
+            return $this->error('Demasiados envíos. Espera unos minutos antes de intentar de nuevo');
+        }
+
+        // Procesar formulario
+        return $this->procesarFormulario($datos);
+    }
+
+    private function sanitizarInputs() {
+        return [
+            'nombre' => sanitize_text_field($this->getDato('nombre')),
+            'email' => sanitize_email($this->getDato('email')),
+            'mensaje' => sanitize_textarea_field($this->getDato('mensaje'))
+        ];
+    }
+}
+```
+
+### Prevención de Spam
+
+```php
+// Añadir campo honeypot
+echo FormBuilder::campoOculto([
+    'nombre' => 'website', // Nombre común para bots
+    'atributos' => ['style' => 'display: none;']
+]);
+
+// Validar en handler
+if (!empty($this->getDato('website'))) {
+    return $this->error('Detección de spam');
+}
+```
+
+## 🔍 Depuración y Testing
+
+### Modo Debug
+
+```php
+// Habilitar debug en desarrollo
+if (WP_DEBUG) {
+    echo FormBuilder::inicio([
+        'debug' => true, // Muestra información de debug
+        'atributos' => ['id' => 'form-debug']
+    ]);
+}
+```
+
+### Testing de Handlers
+
+```php
+<?php
+// tests/Handlers/ProcesarContactoHandlerTest.php
+class ProcesarContactoHandlerTest extends \PHPUnit\Framework\TestCase {
+
+    public function testProcesamientoExitoso() {
+        $handler = new ProcesarContactoHandler();
+
+        // Simular POST data
+        $_POST = [
+            'nombre_completo' => 'Juan Pérez',
+            'email' => 'juan@example.com',
+            'mensaje' => 'Mensaje de prueba'
+        ];
+
+        $resultado = $handler->procesar();
+
+        $this->assertTrue($resultado['success']);
+        $this->assertEquals('Mensaje enviado correctamente', $resultado['message']);
+    }
+
+    public function testValidacionEmailInvalido() {
+        $handler = new ProcesarContactoHandler();
+
+        $_POST = [
+            'nombre_completo' => 'Juan Pérez',
+            'email' => 'email-invalido',
+            'mensaje' => 'Mensaje de prueba'
+        ];
+
+        $resultado = $handler->procesar();
+
+        $this->assertFalse($resultado['success']);
+        $this->assertEquals('Email inválido', $resultado['message']);
+    }
+}
+```
+
+¡FormBuilder hace que crear formularios complejos sea tan simple como declarar campos! La integración automática con validación, AJAX y handlers del servidor elimina la necesidad de escribir JavaScript repetitivo y mejora la seguridad de tu aplicación.

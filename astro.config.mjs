@@ -43,6 +43,12 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'AJAX y Formularios',
+                    items: [
+                        'ajax-formularios/form-builder'
+                    ]
+                },
+                {
                     label: 'Componentes',
                     items: [
                         {

@@ -1,0 +1,243 @@
+---
+title: QueryProfiler
+description: Perfilador de consultas SQL para WordPress con widget flotante y logging opcional
+sidebar:
+  label: QueryProfiler
+  order: 3
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# QueryProfiler
+
+El **QueryProfiler** es un servicio avanzado de perfilado de consultas SQL diseñado para WordPress. Proporciona un widget flotante con el listado completo de consultas ejecutadas, sus tiempos de ejecución, y permite logging opcional del Top 10 más lentas al archivo `debug.log`.
+
+## Filosofía
+
+QueryProfiler está diseñado para ser:
+- **No intrusivo**: Solo se activa en modo desarrollo o cuando está explícitamente habilitado
+- **Completo**: Captura todas las consultas SQL de WordPress incluyendo las tardías
+- **Flexible**: Ofrece tanto interfaz visual como logging para análisis posterior
+- **Agnóstico**: Funciona independientemente del tema personalizado
+
+## Características Principales
+
+- **Widget flotante**: Muestra un listado ordenado por duración descendente
+- **Logging opcional**: Registra el Top 10 de consultas más lentas por petición
+- **Captura completa**: Incluye consultas ejecutadas en `wp_footer` y `admin_footer`
+- **Información detallada**: Muestra SQL, tiempo de ejecución, y función llamadora
+- **Modo desarrollo**: Se activa automáticamente en `WP_DEBUG = true`
+
+## Inicialización
+
+### Configuración Básica
+
+```php
+use Glory\Services\QueryProfiler;
+
+// Inicializar el perfilador (se activa automáticamente según configuración)
+QueryProfiler::init();
+```
+
+### Opciones de Configuración
+
+El QueryProfiler se controla mediante:
+
+1. **Feature flag**: `GloryFeatures::isActive('queryProfiler', 'glory_query_profiler_activado', false)`
+2. **Opción de BD**: `glory_query_profiler_activado` (checkbox en panel de opciones)
+3. **Logging adicional**: `GloryFeatures::isActive('queryProfilerLogs', null, false)` para activar logging del Top 10
+
+### Configuración en Panel de Opciones
+
+```php
+// En functions.php o archivo de configuración
+OpcionManager::register('glory_query_profiler_activado', [
+    'type' => 'checkbox',
+    'label' => 'Activar QueryProfiler',
+    'description' => 'Muestra widget flotante con consultas SQL en modo desarrollo',
+    'default' => false,
+    'section' => 'glory_debug'
+]);
+```
+
+## Funcionamiento
+
+### Activación Automática
+
+El perfilador se activa cuando:
+- Está en modo desarrollo (`WP_DEBUG = true`) Y
+- La opción `glory_query_profiler_activado` está activada, O
+- Se fuerza mediante `GloryFeatures::isActive('queryProfiler', true)`
+
+### Captura de Consultas
+
+1. **Define SAVEQUERIES**: Fuerza a WordPress a almacenar todas las consultas en `$wpdb->queries`
+2. **Assets automáticos**: Registra y encola CSS y JS necesarios
+3. **Inyección de datos**: Agrega datos en el footer para evitar interferir con el render inicial
+4. **Logging opcional**: Si está habilitado, escribe resumen al finalizar la petición
+
+### Widget Flotante
+
+El widget muestra:
+- **Total de consultas**: Número total ejecutado por WordPress
+- **Tiempo total**: Suma de todos los tiempos de consulta
+- **Lista ordenada**: Consultas ordenadas por duración descendente
+- **Detalles por consulta**: SQL completo, tiempo en segundos, función llamadora
+
+## Logging del Top 10
+
+### Activación
+
+```php
+// Activar logging del Top 10 más lentas
+GloryFeatures::setActive('queryProfilerLogs', true);
+```
+
+### Formato de Log
+
+```
+=== Glory QueryProfiler (Top 10 por duración) ===
+Total consultas: 45 | Tiempo total WP: 2.1456s
+#01 | 0.1234s | SELECT * FROM wp_posts WHERE post_type = 'page'
+#02 | 0.0987s | SELECT meta_value FROM wp_postmeta WHERE post_id = 123
+...
+===============================================
+```
+
+## Métodos de la API
+
+### `init()`
+Inicializa el perfilador y registra todos los hooks necesarios.
+
+```php
+public static function init(): void
+```
+
+### `injectData()`
+Inyecta los datos de consultas en el JavaScript del widget.
+
+```php
+public static function injectData(): void
+```
+
+### `logSummaryIfEnabled()`
+Escribe el Top 10 al log si el logging está habilitado.
+
+```php
+public static function logSummaryIfEnabled(): void
+```
+
+### `enqueueAssets()`
+Registra y encola los assets CSS y JS necesarios.
+
+```php
+public static function enqueueAssets(): void
+```
+
+## Consideraciones de Rendimiento
+
+### Overhead Mínimo
+
+- Solo se activa en desarrollo o cuando está explícitamente habilitado
+- No afecta el rendimiento en producción
+- Usa `SAVEQUERIES` que tiene impacto mínimo comparado con herramientas de profiling externas
+
+### Optimizaciones Incluidas
+
+- **Prevención de doble inyección**: Flag `dataInjected` evita inyección múltiple
+- **Verificación de assets**: Solo inyecta datos si los scripts están encolados
+- **Fallbacks seguros**: Maneja gracefully casos donde los assets no están disponibles
+
+## Casos de Uso
+
+### Desarrollo Local
+
+```php
+// En wp-config.php (desarrollo local)
+define('WP_DEBUG', true);
+
+// En functions.php
+add_action('after_setup_theme', function() {
+    QueryProfiler::init();
+});
+
+// Activar en panel de opciones del tema
+// ✓ Activar QueryProfiler
+```
+
+### Debugging de Rendimiento
+
+```php
+// Logging automático del Top 10
+GloryFeatures::setActive('queryProfilerLogs', true);
+
+// Verificar consultas lentas en debug.log después de cargar páginas problemáticas
+```
+
+### Análisis de Plugins
+
+```php
+// Identificar plugins que generan muchas consultas lentas
+// El widget muestra la función llamadora para cada consulta
+// Ejemplo: wp-includes/plugin.php, custom-plugin/functions.php, etc.
+```
+
+## Solución de Problemas
+
+### Widget no aparece
+
+**Posibles causas:**
+- No está en modo desarrollo y la opción no está activada
+- Assets no encontrados en `Glory/assets/css/query-profiler.css` y `Glory/assets/js/query-profiler.js`
+- Tema no usa AssetManager o los assets no están registrados
+
+**Solución:**
+```php
+// Forzar activación para debugging
+GloryFeatures::setActive('queryProfiler', true);
+```
+
+### Logging no funciona
+
+**Verificar:**
+- Que `WP_DEBUG_LOG` esté activado en `wp-config.php`
+- Que el directorio de logs tenga permisos de escritura
+- Que `GloryFeatures::isActive('queryProfilerLogs')` retorne `true`
+
+### Consultas no aparecen
+
+**Posibles causas:**
+- `SAVEQUERIES` ya estaba definido antes de la inicialización
+- Consultas ejecutadas después del `wp_print_footer_scripts` (muy raro)
+
+**Solución:**
+```php
+// Verificar que SAVEQUERIES se define correctamente
+if (!defined('SAVEQUERIES')) {
+    define('SAVEQUERIES', true);
+}
+```
+
+## Integración con Otros Servicios
+
+### GloryLogger
+
+El QueryProfiler usa internamente GloryLogger para logging interno (actualmente desactivado por defecto).
+
+### AssetManager
+
+Los assets se registran automáticamente en `Glory/Config/scriptSetup.php` con el handle `glory-query-profiler`.
+
+### GloryFeatures
+
+Se integra completamente con el sistema de features para control granular de activación.
+
+## Consideraciones de Seguridad
+
+- **Solo modo desarrollo**: No se debe activar en producción
+- **Información sensible**: El widget muestra consultas SQL completas que pueden contener datos sensibles
+- **Logging controlado**: El logging del Top 10 está separado del widget para evitar exposición accidental
+
+<Aside type="caution">
+⚠️ **Importante**: Nunca actives QueryProfiler en entornos de producción. Puede exponer información sensible en las consultas SQL mostradas en el widget flotante.
+</Aside>

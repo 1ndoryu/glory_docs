@@ -1,0 +1,468 @@
+---
+title: TokenManager
+description: Servicio de validación de tokens Bearer para autenticación de APIs
+sidebar:
+  label: TokenManager
+  order: 5
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# TokenManager
+
+El **TokenManager** es un servicio de autenticación básico diseñado para validar tokens Bearer en peticiones API. Proporciona una forma segura y simple de proteger endpoints REST o AJAX que requieren autenticación basada en tokens.
+
+## Filosofía
+
+TokenManager está diseñado para ser:
+- **Simple**: Una sola responsabilidad, validación de tokens
+- **Seguro**: Usa `hash_equals()` para comparación segura contra ataques de timing
+- **Flexible**: Se integra fácilmente con cualquier sistema de autenticación
+- **Agnóstico**: No depende de ningún framework específico de autenticación
+
+## Características Principales
+
+- **Validación segura**: Comparación de tokens usando `hash_equals()` para prevenir ataques de timing
+- **Configurable**: Token almacenado en opciones del tema
+- **Validación de existencia**: Verifica que el token esté configurado antes de validar
+- **Mensajes de error descriptivos**: Proporciona errores específicos en español
+- **Integración con WordPress**: Usa `WP_Error` para compatibilidad
+
+## Configuración
+
+### Configuración del Token
+
+Primero, debes configurar el token en las opciones del tema:
+
+```php
+// En functions.php o archivo de configuración
+OpcionManager::register('glory_api_token', [
+    'type' => 'text',
+    'label' => 'Token de API',
+    'description' => 'Token Bearer para autenticar peticiones API',
+    'default' => '',
+    'section' => 'glory_api'
+]);
+```
+
+### Panel de Opciones
+
+En el panel de administración de WordPress, ve a:
+**Apariencia → Opciones del Tema → [Sección API]** y configura el token.
+
+## Uso Básico
+
+### Validación en Handlers AJAX
+
+```php
+use Glory\Services\TokenManager;
+use Glory\Handler\FormHandler;
+
+class MiApiHandler extends FormHandler
+{
+    protected function validarToken()
+    {
+        $token = $this->obtenerTokenDeHeaders();
+
+        $validacion = TokenManager::validarToken($token);
+
+        if (is_wp_error($validacion)) {
+            return $validacion; // Retorna WP_Error con detalles del error
+        }
+
+        return true; // Token válido
+    }
+
+    private function obtenerTokenDeHeaders()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+
+        // Extraer token de "Bearer <token>"
+        if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return '';
+    }
+}
+```
+
+### Validación en Endpoints REST
+
+```php
+add_action('rest_api_init', function() {
+    register_rest_route('glory/v1', '/datos-protegidos', [
+        'methods' => 'GET',
+        'callback' => 'manejar_endpoint_protegido',
+        'permission_callback' => 'validar_token_rest'
+    ]);
+});
+
+function validar_token_rest(WP_REST_Request $request)
+{
+    $token = $request->get_header('authorization');
+
+    if (preg_match('/Bearer\s+(.*)$/i', $token, $matches)) {
+        $token = trim($matches[1]);
+    }
+
+    $validacion = TokenManager::validarToken($token);
+
+    if (is_wp_error($validacion)) {
+        return new WP_Error(
+            'token_invalido',
+            $validacion->get_error_message(),
+            ['status' => $validacion->get_error_data()['status']]
+        );
+    }
+
+    return true;
+}
+
+function manejar_endpoint_protegido(WP_REST_Request $request)
+{
+    // Endpoint protegido - solo accesible con token válido
+    return [
+        'mensaje' => 'Datos protegidos accedidos correctamente',
+        'timestamp' => time()
+    ];
+}
+```
+
+### Validación en Hooks Personalizados
+
+```php
+// Hook personalizado para validación
+add_filter('glory_validar_token_personalizado', function($token) {
+    return TokenManager::validarToken($token);
+});
+
+// Uso en código
+function procesarDatosProtegidos($datos, $token)
+{
+    $validacion = apply_filters('glory_validar_token_personalizado', $token);
+
+    if (is_wp_error($validacion)) {
+        throw new Exception($validacion->get_error_message());
+    }
+
+    // Procesar datos...
+    return $datos;
+}
+```
+
+## API del Servicio
+
+### `validarToken(string $token)`
+
+Valida un token Bearer contra el configurado en las opciones del tema.
+
+**Parámetros:**
+- `$token` (string): Token a validar
+
+**Retorno:**
+- `true`: Token válido
+- `WP_Error`: Token inválido o error de configuración
+
+**Ejemplos de errores:**
+
+```php
+// Token no configurado
+WP_Error(
+    'token_no_configurado',
+    'El token de la API no está configurado. Defínelo en las opciones del tema.',
+    ['status' => 403]
+)
+
+// Token inválido
+WP_Error(
+    'token_invalido',
+    'Token inválido.',
+    ['status' => 401]
+)
+```
+
+## Casos de Uso
+
+### API Privada para Aplicación Móvil
+
+```php
+class ApiMovilHandler
+{
+    public function manejarPeticion()
+    {
+        $token = $this->obtenerTokenBearer();
+
+        $validacion = TokenManager::validarToken($token);
+
+        if (is_wp_error($validacion)) {
+            return $this->respuestaError($validacion);
+        }
+
+        // Procesar petición autenticada
+        return $this->procesarDatosUsuario();
+    }
+
+    private function obtenerTokenBearer()
+    {
+        $headers = apache_request_headers();
+        $auth = $headers['Authorization'] ?? '';
+
+        if (preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return '';
+    }
+}
+```
+
+### Webhook de Servicios Externos
+
+```php
+// Webhook para recibir notificaciones de servicios externos
+add_action('wp_ajax_nopriv_webhook_servicio_externo', 'manejar_webhook');
+
+function manejar_webhook()
+{
+    $token = $_SERVER['HTTP_X_WEBHOOK_TOKEN'] ?? '';
+
+    $validacion = TokenManager::validarToken($token);
+
+    if (is_wp_error($validacion)) {
+        wp_send_json_error([
+            'error' => $validacion->get_error_message()
+        ], $validacion->get_error_data()['status']);
+    }
+
+    // Procesar webhook...
+    $datos = json_decode(file_get_contents('php://input'), true);
+
+    // Procesar notificación...
+    wp_send_json_success(['procesado' => true]);
+}
+```
+
+### Integración con Sistema de Usuarios
+
+```php
+class ApiUsuarioHandler
+{
+    public function obtenerPerfilUsuario()
+    {
+        $token = $this->obtenerTokenDeUsuario();
+        $userId = $this->extraerUserIdDelToken($token);
+
+        if (!$userId) {
+            return new WP_Error('token_invalido', 'Token de usuario inválido', ['status' => 401]);
+        }
+
+        // Verificar que el usuario existe y está activo
+        $user = get_user_by('ID', $userId);
+        if (!$user) {
+            return new WP_Error('usuario_no_encontrado', 'Usuario no encontrado', ['status' => 404]);
+        }
+
+        // Retornar perfil
+        return $this->obtenerDatosPerfil($user);
+    }
+
+    private function obtenerTokenDeUsuario()
+    {
+        // Token específico del usuario (diferente del API token global)
+        return $_COOKIE['user_session_token'] ?? '';
+    }
+}
+```
+
+## Consideraciones de Seguridad
+
+### Almacenamiento Seguro
+
+- **Nunca logs tokens**: Los tokens nunca deben aparecer en logs
+- **Transmisión HTTPS**: Siempre usar HTTPS para transmitir tokens
+- **Rotación periódica**: Cambiar tokens regularmente
+- **Entornos separados**: Usar tokens diferentes para desarrollo y producción
+
+### Validación Robusta
+
+```php
+// ✅ Validación segura
+$token = trim($request->get_header('authorization'));
+if (preg_match('/Bearer\s+(.*)$/i', $token, $matches)) {
+    $token = trim($matches[1]);
+}
+
+$validacion = TokenManager::validarToken($token);
+
+// ❌ No hagas esto
+$token = str_replace('Bearer ', '', $token); // Vulnerable a manipulación
+```
+
+### Manejo de Errores
+
+```php
+// ✅ Manejo seguro de errores
+$validacion = TokenManager::validarToken($token);
+
+if (is_wp_error($validacion)) {
+    // Log para debugging interno (sin el token)
+    error_log('Token inválido recibido en: ' . $_SERVER['REQUEST_URI']);
+
+    // Respuesta genérica al cliente
+    return new WP_Error(
+        'acceso_denegado',
+        'Acceso denegado. Verifica tus credenciales.',
+        ['status' => 401]
+    );
+}
+```
+
+## Integración con Glory Framework
+
+### GloryAjax
+
+```php
+// Enviar token en peticiones AJAX
+wp_localize_script('mi-script', 'gloryAjaxConfig', [
+    'token' => get_option('glory_api_token'), // Solo para admin autenticado
+    'ajaxUrl' => admin_url('admin-ajax.php')
+]);
+```
+
+### OpcionManager
+
+El TokenManager se integra completamente con OpcionManager para configuración:
+
+```php
+// Verificar si el token está configurado
+$tokenConfigurado = OpcionManager::get('glory_api_token', '');
+if (empty($tokenConfigurado)) {
+    add_action('admin_notices', function() {
+        echo '<div class="notice notice-warning"><p>⚠️ Configura el token de API en las opciones del tema.</p></div>';
+    });
+}
+```
+
+## Solución de Problemas
+
+### Token no configurado
+
+**Error:** `El token de la API no está configurado`
+**Solución:**
+1. Ve a **Apariencia → Opciones del Tema**
+2. Busca la sección de configuración de API
+3. Configura un token seguro y único
+
+### Token inválido
+
+**Error:** `Token inválido`
+**Posibles causas:**
+- Token incorrecto en la petición
+- Espacios extra en el token
+- Token expirado o revocado
+- Diferencia entre mayúsculas/minúsculas
+
+**Verificación:**
+```php
+// Debug: verificar token configurado (solo en desarrollo)
+if (WP_DEBUG) {
+    $tokenConfigurado = OpcionManager::get('glory_api_token', '');
+    error_log('Token configurado: ' . substr($tokenConfigurado, 0, 10) . '...');
+}
+```
+
+### Problemas con Headers
+
+**Error:** Token no recibido
+**Posibles causas:**
+- Headers no enviados correctamente
+- Servidor web no pasa headers Authorization
+- CORS bloqueando headers
+
+**Verificación:**
+```php
+// Debug headers (desarrollo)
+if (WP_DEBUG) {
+    error_log('Headers recibidos: ' . print_r(getallheaders(), true));
+}
+```
+
+### Problemas con Apache
+
+Si usas Apache, asegúrate de que el header Authorization se pase correctamente:
+
+```apache
+# .htaccess
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+```
+
+## Mejores Prácticas
+
+### Generación de Tokens
+
+```php
+// Generar token seguro
+function generarTokenApi()
+{
+    return bin2hex(random_bytes(32)); // 64 caracteres hexadecimales
+}
+
+// Configurar token automáticamente (solo una vez)
+if (!OpcionManager::get('glory_api_token')) {
+    OpcionManager::set('glory_api_token', generarTokenApi());
+}
+```
+
+### Validación en Capas
+
+```php
+class ApiSeguraHandler
+{
+    public function procesarPeticion()
+    {
+        // 1. Validar token
+        $tokenValido = $this->validarToken();
+        if (is_wp_error($tokenValido)) {
+            return $tokenValido;
+        }
+
+        // 2. Validar permisos adicionales
+        $permisosValidos = $this->validarPermisos();
+        if (is_wp_error($permisosValidos)) {
+            return $permisosValidos;
+        }
+
+        // 3. Procesar petición
+        return $this->ejecutarLogica();
+    }
+}
+```
+
+### Logging Seguro
+
+```php
+// ✅ Logging sin exponer tokens
+function logPeticionApi($endpoint, $ip, $userAgent)
+{
+    error_log(sprintf(
+        'API Request: %s | IP: %s | UA: %s',
+        $endpoint,
+        $ip,
+        substr($userAgent, 0, 100)
+    ));
+}
+
+// ❌ Nunca logs tokens
+// error_log('Token recibido: ' . $token); // PELIGROSO
+```
+
+<Aside type="caution">
+⚠️ **Importante**: Los tokens de API son credenciales sensibles. Nunca los incluyas en logs, commits de código, o respuestas de error. Usa HTTPS siempre para transmisiones.
+</Aside>
+
+<Aside type="tip">
+💡 **Tip**: Para aplicaciones complejas, considera usar JWT (JSON Web Tokens) o OAuth2 en lugar de tokens simples. TokenManager está diseñado para casos de uso simples.
+</Aside>

@@ -82,6 +82,7 @@ export default defineConfig({
                         'servicios/glory-logger',
                         'servicios/query-profiler',
                         'servicios/performance-profiler',
+                        'servicios/token-manager',
                         'servicios/analytics-engine',
                         'servicios/busqueda-service',
                         'servicios/license-manager',

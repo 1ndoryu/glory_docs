@@ -1,0 +1,1084 @@
+---
+title: ServidorChat
+description: Sistema de comunicación en tiempo real basado en WebSocket para chat y notificaciones
+sidebar:
+  label: ServidorChat
+  order: 6
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# ServidorChat
+
+El **ServidorChat** es el sistema de comunicación en tiempo real de Glory Framework, implementado con WebSocket para permitir chat, notificaciones push y comunicación bidireccional entre el servidor y los clientes conectados.
+
+## Filosofía
+
+ServidorChat está diseñado para ser:
+- **Escalable**: Soporte para múltiples conexiones simultáneas
+- **Robusto**: Manejo automático de reconexiones y errores
+- **Flexible**: Comunicación genérica para múltiples propósitos
+- **Seguro**: Validación de conexiones y mensajes
+
+## Arquitectura
+
+### Componentes Principales
+
+- **Servidor WebSocket**: Gestiona conexiones en tiempo real
+- **Mapeo de usuarios**: Asocia IDs de usuario con conexiones activas
+- **Servidor HTTP interno**: API para envío de mensajes desde backend
+- **Gestión de conexiones**: Manejo del ciclo de vida de las conexiones
+- **Protocolo de mensajes**: Sistema estructurado para comunicación
+
+### Puertos y Endpoints
+
+- **WebSocket público**: `ws://servidor:8080` - Conexiones de clientes
+- **HTTP interno**: `http://localhost:8081/send-message` - API backend
+- **Ejecución**: Solo en CLI, separado del proceso web de WordPress
+
+## Configuración Inicial
+
+### Requisitos del Sistema
+
+```json
+{
+  "php": ">=8.0",
+  "ext-sockets": "*",
+  "ext-pcntl": "*",
+  "ratchet/pawl": "^0.4",
+  "cboden/ratchet": "^0.4",
+  "react/socket": "^1.12",
+  "react/http": "^1.8"
+}
+```
+
+### Instalación de Dependencias
+
+```bash
+composer require cboden/ratchet react/socket react/http
+```
+
+### Inicio del Servidor
+
+```bash
+# Ejecutar el servidor (desde el directorio de Glory)
+php src/Services/ServidorChat.php
+```
+
+<Aside type="caution">
+**Importante**: El servidor debe ejecutarse en un proceso separado, nunca como parte del proceso web normal de WordPress. Usa un supervisor de procesos como systemd, supervisor, o screen.
+</Aside>
+
+## Conexión Cliente
+
+### JavaScript - Conexión Básica
+
+```javascript
+class ClienteChat {
+    constructor(url = 'ws://localhost:8080') {
+        this.url = url;
+        this.ws = null;
+        this.conectado = false;
+        this.reintentos = 0;
+        this.maxReintentos = 5;
+    }
+
+    conectar(idUsuario) {
+        try {
+            this.ws = new WebSocket(this.url);
+
+            this.ws.onopen = () => {
+                console.log('Conectado al servidor de chat');
+                this.conectado = true;
+                this.reintentos = 0;
+
+                // Registrar usuario
+                this.enviarMensaje({
+                    accion: 'registrar',
+                    idUsuario: idUsuario
+                });
+            };
+
+            this.ws.onmessage = (event) => {
+                try {
+                    const mensaje = JSON.parse(event.data);
+                    this.procesarMensaje(mensaje);
+                } catch (e) {
+                    console.error('Error procesando mensaje:', e);
+                }
+            };
+
+            this.ws.onclose = () => {
+                console.log('Conexión cerrada');
+                this.conectado = false;
+                this.intentarReconectar(idUsuario);
+            };
+
+            this.ws.onerror = (error) => {
+                console.error('Error de WebSocket:', error);
+            };
+
+        } catch (e) {
+            console.error('Error creando conexión:', e);
+            this.intentarReconectar(idUsuario);
+        }
+    }
+
+    enviarMensaje(mensaje) {
+        if (this.conectado && this.ws) {
+            this.ws.send(JSON.stringify(mensaje));
+        }
+    }
+
+    intentarReconectar(idUsuario) {
+        if (this.reintentos < this.maxReintentos) {
+            this.reintentos++;
+            const delay = Math.min(1000 * Math.pow(2, this.reintentos), 30000);
+
+            setTimeout(() => {
+                console.log(`Intentando reconectar... (${this.reintentos}/${this.maxReintentos})`);
+                this.conectar(idUsuario);
+            }, delay);
+        } else {
+            console.error('Máximo número de reintentos alcanzado');
+        }
+    }
+
+    procesarMensaje(mensaje) {
+        // Implementar lógica específica de la aplicación
+        console.log('Mensaje recibido:', mensaje);
+    }
+}
+
+// Uso
+const cliente = new ClienteChat();
+cliente.conectar(123); // ID del usuario actual
+```
+
+### JavaScript - Con React/Vue
+
+```javascript
+// React Hook personalizado
+import { useEffect, useRef, useState } from 'react';
+
+export function useWebSocket(idUsuario) {
+    const [conectado, setConectado] = useState(false);
+    const [mensajes, setMensajes] = useState([]);
+    const ws = useRef(null);
+
+    useEffect(() => {
+        const conectar = () => {
+            ws.current = new WebSocket('ws://localhost:8080');
+
+            ws.current.onopen = () => {
+                setConectado(true);
+                ws.current.send(JSON.stringify({
+                    accion: 'registrar',
+                    idUsuario: idUsuario
+                }));
+            };
+
+            ws.current.onmessage = (event) => {
+                const mensaje = JSON.parse(event.data);
+                setMensajes(prev => [...prev, mensaje]);
+            };
+
+            ws.current.onclose = () => {
+                setConectado(false);
+                // Reconectar automáticamente
+                setTimeout(conectar, 5000);
+            };
+        };
+
+        conectar();
+
+        return () => {
+            if (ws.current) {
+                ws.current.close();
+            }
+        };
+    }, [idUsuario]);
+
+    const enviarMensaje = (mensaje) => {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify(mensaje));
+        }
+    };
+
+    return { conectado, mensajes, enviarMensaje };
+}
+
+// Uso en componente React
+function ChatComponent() {
+    const { conectado, mensajes, enviarMensaje } = useWebSocket(123);
+
+    return (
+        <div>
+            <div>Estado: {conectado ? 'Conectado' : 'Desconectado'}</div>
+            <div>
+                {mensajes.map((msg, index) => (
+                    <div key={index}>{JSON.stringify(msg)}</div>
+                ))}
+            </div>
+            <button onClick={() => enviarMensaje({ tipo: 'ping' })}>
+                Enviar Ping
+            </button>
+        </div>
+    );
+}
+```
+
+## Envío de Mensajes desde Backend
+
+### API HTTP Interna
+
+```php
+<?php
+/**
+ * Función para enviar mensajes a usuarios conectados desde WordPress
+ */
+function enviarMensajeChat($idUsuario, $payload) {
+    $url = 'http://localhost:8081/send-message';
+
+    $response = wp_remote_post($url, [
+        'method' => 'POST',
+        'headers' => [
+            'Content-Type' => 'application/json',
+        ],
+        'body' => json_encode([
+            'idUsuario' => $idUsuario,
+            'payload' => $payload
+        ]),
+        'timeout' => 5,
+    ]);
+
+    if (is_wp_error($response)) {
+        error_log('Error enviando mensaje de chat: ' . $response->get_error_message());
+        return false;
+    }
+
+    $body = json_decode(wp_remote_retrieve_body($response), true);
+
+    if ($body['estado'] === 'mensaje enviado') {
+        return true;
+    }
+
+    return false;
+}
+
+// Ejemplos de uso:
+
+// 1. Notificación de nuevo mensaje
+function notificarNuevoMensaje($idUsuarioDestino, $mensajeData) {
+    $payload = [
+        'tipo' => 'nuevo_mensaje',
+        'mensaje' => $mensajeData,
+        'timestamp' => time()
+    ];
+
+    enviarMensajeChat($idUsuarioDestino, $payload);
+}
+
+// 2. Actualización de estado
+function notificarCambioEstado($idUsuario, $estado) {
+    $payload = [
+        'tipo' => 'cambio_estado',
+        'estado' => $estado,
+        'usuario_id' => $idUsuario
+    ];
+
+    enviarMensajeChat($idUsuario, $payload);
+}
+
+// 3. Notificación de sistema
+function enviarNotificacionSistema($idUsuario, $titulo, $mensaje) {
+    $payload = [
+        'tipo' => 'notificacion_sistema',
+        'titulo' => $titulo,
+        'mensaje' => $mensaje,
+        'icono' => 'bell'
+    ];
+
+    enviarMensajeChat($idUsuario, $payload);
+}
+?>
+```
+
+### Integración con WordPress Hooks
+
+```php
+<?php
+// Notificar cuando se publica un nuevo post
+add_action('publish_post', function($postId, $post) {
+    // Obtener usuarios suscritos al autor
+    $autorId = $post->post_author;
+    $suscriptores = get_user_meta($autorId, 'suscriptores_chat', true) ?: [];
+
+    foreach ($suscriptores as $suscriptorId) {
+        enviarMensajeChat($suscriptorId, [
+            'tipo' => 'nuevo_post',
+            'post_id' => $postId,
+            'titulo' => $post->post_title,
+            'autor' => get_the_author_meta('display_name', $autorId),
+            'url' => get_permalink($postId)
+        ]);
+    }
+}, 10, 2);
+
+// Notificar cambios de estado de usuario
+add_action('wp_login', function($userLogin, $user) {
+    enviarMensajeChat($user->ID, [
+        'tipo' => 'usuario_online',
+        'usuario' => $user->display_name,
+        'timestamp' => time()
+    ]);
+}, 10, 2);
+
+add_action('wp_logout', function($userId) {
+    enviarMensajeChat($userId, [
+        'tipo' => 'usuario_offline',
+        'usuario_id' => $userId,
+        'timestamp' => time()
+    ]);
+}, 10, 1);
+?>
+```
+
+## Protocolo de Mensajes
+
+### Mensajes del Cliente al Servidor
+
+#### Registro de Usuario
+```json
+{
+  "accion": "registrar",
+  "idUsuario": 123
+}
+```
+
+#### Mensaje de Chat
+```json
+{
+  "tipo": "mensaje_chat",
+  "destinatario": 456,
+  "contenido": "Hola, ¿cómo estás?",
+  "timestamp": 1640995200
+}
+```
+
+#### Ping/Pong
+```json
+{
+  "tipo": "ping",
+  "timestamp": 1640995200
+}
+```
+
+### Mensajes del Servidor al Cliente
+
+#### Mensaje Recibido
+```json
+{
+  "tipo": "mensaje_recibido",
+  "de_usuario": 123,
+  "contenido": "Hola, ¿cómo estás?",
+  "timestamp": 1640995200
+}
+```
+
+#### Notificación del Sistema
+```json
+{
+  "tipo": "notificacion_sistema",
+  "titulo": "Nuevo mensaje",
+  "mensaje": "Tienes un nuevo mensaje privado",
+  "icono": "envelope"
+}
+```
+
+#### Actualización de Estado
+```json
+{
+  "tipo": "estado_usuario",
+  "usuario_id": 123,
+  "estado": "online",
+  "ultima_actividad": 1640995200
+}
+```
+
+## Gestión Avanzada
+
+### Sistema de Salas/Chat Rooms
+
+```php
+<?php
+class ServidorChatSalas extends Glory\Services\ServidorChat
+{
+    protected $salas = []; // [idSala => [idUsuario => connection]]
+
+    public function onMessage(ConnectionInterface $from, $msg)
+    {
+        $datos = json_decode($msg, true);
+
+        // Procesar mensajes normales
+        parent::onMessage($from, $msg);
+
+        // Procesar mensajes de sala
+        if (isset($datos['tipo']) && $datos['tipo'] === 'mensaje_sala') {
+            $this->procesarMensajeSala($from, $datos);
+        }
+
+        if (isset($datos['accion']) && $datos['accion'] === 'unirse_sala') {
+            $this->unirseSala($from, $datos['idSala']);
+        }
+    }
+
+    private function unirseSala(ConnectionInterface $conn, $idSala)
+    {
+        if (!isset($this->salas[$idSala])) {
+            $this->salas[$idSala] = new \SplObjectStorage;
+        }
+
+        $this->salas[$idSala]->attach($conn);
+        echo "Usuario se unió a la sala {$idSala}\n";
+    }
+
+    private function procesarMensajeSala(ConnectionInterface $from, $datos)
+    {
+        $idSala = $datos['idSala'] ?? null;
+        if (!$idSala || !isset($this->salas[$idSala])) {
+            return;
+        }
+
+        $mensajeBroadcast = [
+            'tipo' => 'mensaje_sala',
+            'idSala' => $idSala,
+            'contenido' => $datos['contenido'],
+            'de_usuario' => $this->obtenerUsuarioPorConexion($from),
+            'timestamp' => time()
+        ];
+
+        foreach ($this->salas[$idSala] as $cliente) {
+            if ($cliente !== $from) {
+                $cliente->send(json_encode($mensajeBroadcast));
+            }
+        }
+    }
+
+    private function obtenerUsuarioPorConexion(ConnectionInterface $conn)
+    {
+        foreach ($this->mapeoUsuarios as $idUsuario => $connection) {
+            if ($connection === $conn) {
+                return $idUsuario;
+            }
+        }
+        return null;
+    }
+}
+?>
+```
+
+### Autenticación y Seguridad
+
+```php
+<?php
+class ServidorChatSeguro extends Glory\Services\ServidorChat
+{
+    protected $tokensValidos = [];
+
+    public function onOpen(ConnectionInterface $conn)
+    {
+        // Esperar autenticación antes de aceptar la conexión
+        $conn->send(json_encode([
+            'tipo' => 'autenticacion_requerida',
+            'mensaje' => 'Envía tu token de autenticación'
+        ]));
+    }
+
+    public function onMessage(ConnectionInterface $from, $msg)
+    {
+        $datos = json_decode($msg, true);
+
+        // Verificar autenticación
+        if (!isset($datos['token']) || !$this->validarToken($datos['token'])) {
+            $from->send(json_encode([
+                'tipo' => 'error',
+                'mensaje' => 'Token de autenticación inválido'
+            ]));
+            $from->close();
+            return;
+        }
+
+        // Marcar como autenticado
+        $from->authenticated = true;
+
+        // Procesar registro de usuario
+        if (isset($datos['accion']) && $datos['accion'] === 'registrar') {
+            $idUsuario = $this->obtenerUsuarioPorToken($datos['token']);
+            $this->mapeoUsuarios[$idUsuario] = $from;
+            echo "Usuario {$idUsuario} autenticado y registrado\n";
+        }
+
+        // Procesar otros mensajes solo si está autenticado
+        if ($from->authenticated) {
+            parent::onMessage($from, $msg);
+        }
+    }
+
+    private function validarToken($token)
+    {
+        // Validar token contra base de datos o servicio externo
+        return in_array($token, $this->tokensValidos);
+    }
+
+    private function obtenerUsuarioPorToken($token)
+    {
+        // Obtener ID de usuario desde token
+        return wp_validate_auth_cookie($token, 'logged_in') ? wp_get_current_user()->ID : null;
+    }
+}
+?>
+```
+
+### Generación de Tokens
+
+```php
+<?php
+function generarTokenChat($userId, $expiracion = 3600) {
+    $token = wp_generate_auth_cookie($userId, time() + $expiracion, 'chat_token');
+    // Almacenar token para validación
+    update_user_meta($userId, 'chat_token', $token);
+    return $token;
+}
+
+function validarTokenChat($token) {
+    $userId = wp_validate_auth_cookie($token, 'chat_token');
+    return $userId ? get_userdata($userId) : false;
+}
+
+// En functions.php
+add_action('wp_login', function($userLogin, $user) {
+    $token = generarTokenChat($user->ID);
+    // Enviar token al frontend para WebSocket
+    setcookie('chat_token', $token, time() + 3600, COOKIEPATH, COOKIE_DOMAIN);
+});
+?>
+```
+
+## Monitoreo y Debugging
+
+### Logging Avanzado
+
+```php
+<?php
+class ServidorChatDebug extends Glory\Services\ServidorChat
+{
+    protected $logFile;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->logFile = dirname(__DIR__) . '/logs/chat_server.log';
+        $this->asegurarDirectorioLog();
+    }
+
+    public function onOpen(ConnectionInterface $conn)
+    {
+        $this->log("Nueva conexión: {$conn->resourceId} desde {$conn->remoteAddress}");
+        parent::onOpen($conn);
+    }
+
+    public function onMessage(ConnectionInterface $from, $msg)
+    {
+        $this->log("Mensaje de {$from->resourceId}: {$msg}");
+        parent::onMessage($from, $msg);
+    }
+
+    public function onClose(ConnectionInterface $conn)
+    {
+        $this->log("Conexión cerrada: {$conn->resourceId}");
+        parent::onClose($conn);
+    }
+
+    public function onError(ConnectionInterface $conn, \Exception $e)
+    {
+        $this->log("ERROR en {$conn->resourceId}: {$e->getMessage()}", 'ERROR');
+        parent::onError($conn, $e);
+    }
+
+    private function log($mensaje, $nivel = 'INFO')
+    {
+        $timestamp = date('Y-m-d H:i:s');
+        $linea = "[{$timestamp}] [{$nivel}] {$mensaje}\n";
+        file_put_contents($this->logFile, $linea, FILE_APPEND | LOCK_EX);
+    }
+
+    private function asegurarDirectorioLog()
+    {
+        $directorio = dirname($this->logFile);
+        if (!is_dir($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+    }
+}
+?>
+```
+
+### Métricas de Rendimiento
+
+```php
+<?php
+class ServidorChatMetricas extends Glory\Services\ServidorChat
+{
+    protected $metricas = [
+        'conexiones_activas' => 0,
+        'mensajes_enviados' => 0,
+        'mensajes_recibidos' => 0,
+        'errores' => 0,
+        'inicio_servicio' => 0
+    ];
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->metricas['inicio_servicio'] = time();
+    }
+
+    public function onOpen(ConnectionInterface $conn)
+    {
+        $this->metricas['conexiones_activas']++;
+        parent::onOpen($conn);
+    }
+
+    public function onMessage(ConnectionInterface $from, $msg)
+    {
+        $this->metricas['mensajes_recibidos']++;
+        parent::onMessage($from, $msg);
+    }
+
+    public function onClose(ConnectionInterface $conn)
+    {
+        $this->metricas['conexiones_activas']--;
+        parent::onClose($conn);
+    }
+
+    public function onError(ConnectionInterface $conn, \Exception $e)
+    {
+        $this->metricas['errores']++;
+        parent::onError($conn, $e);
+    }
+
+    public function enviarMensajeAUsuario($idUsuario, $mensaje)
+    {
+        $resultado = parent::enviarMensajeAUsuario($idUsuario, $mensaje);
+        if ($resultado) {
+            $this->metricas['mensajes_enviados']++;
+        }
+        return $resultado;
+    }
+
+    public function obtenerMetricas()
+    {
+        return array_merge($this->metricas, [
+            'tiempo_activo' => time() - $this->metricas['inicio_servicio'],
+            'usuarios_registrados' => count($this->mapeoUsuarios)
+        ]);
+    }
+}
+?>
+```
+
+## Configuración de Producción
+
+### SystemD Service
+
+```ini
+# /etc/systemd/system/glory-chat.service
+[Unit]
+Description=Glory Chat WebSocket Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/html/wp-content/themes/your-theme/Glory/src/Services
+ExecStart=/usr/bin/php ServidorChat.php
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Nginx Reverse Proxy
+
+```nginx
+# Configuración para proxy WebSocket
+location /ws {
+    proxy_pass http://localhost:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 86400;
+}
+```
+
+### Monitoreo con Supervisor
+
+```ini
+# /etc/supervisor/conf.d/glory-chat.conf
+[program:glory-chat]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/html/wp-content/themes/your-theme/Glory/src/Services/ServidorChat.php
+directory=/var/www/html/wp-content/themes/your-theme/Glory
+numprocs=1
+autostart=true
+autorestart=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/glory-chat.log
+```
+
+## Casos de Uso Comunes
+
+### Chat de Soporte en Tiempo Real
+
+```php
+<?php
+class SistemaSoporteChat
+{
+    public static function init()
+    {
+        // Hook para cuando se crea un ticket
+        add_action('soporte_ticket_creado', [self::class, 'notificarAgente'], 10, 2);
+        add_action('soporte_mensaje_agente', [self::class, 'enviarMensajeCliente'], 10, 3);
+        add_action('soporte_mensaje_cliente', [self::class, 'enviarMensajeAgente'], 10, 3);
+    }
+
+    public static function notificarAgente($ticketId, $clienteId)
+    {
+        // Notificar a todos los agentes disponibles
+        $agentes = get_users(['role' => 'agente_soporte']);
+        $cliente = get_userdata($clienteId);
+
+        foreach ($agentes as $agente) {
+            enviarMensajeChat($agente->ID, [
+                'tipo' => 'nuevo_ticket_soporte',
+                'ticket_id' => $ticketId,
+                'cliente' => $cliente->display_name,
+                'mensaje' => 'Nuevo ticket de soporte requiere atención'
+            ]);
+        }
+    }
+
+    public static function enviarMensajeCliente($ticketId, $clienteId, $mensaje)
+    {
+        enviarMensajeChat($clienteId, [
+            'tipo' => 'mensaje_soporte',
+            'ticket_id' => $ticketId,
+            'de' => 'Agente',
+            'mensaje' => $mensaje,
+            'timestamp' => time()
+        ]);
+    }
+
+    public static function enviarMensajeAgente($ticketId, $agenteId, $mensaje)
+    {
+        enviarMensajeChat($agenteId, [
+            'tipo' => 'mensaje_soporte',
+            'ticket_id' => $ticketId,
+            'de' => 'Cliente',
+            'mensaje' => $mensaje,
+            'timestamp' => time()
+        ]);
+    }
+}
+
+SistemaSoporteChat::init();
+?>
+```
+
+### Notificaciones de Actividad
+
+```php
+<?php
+class NotificacionesActividad
+{
+    public static function init()
+    {
+        add_action('comment_post', [self::class, 'notificarComentario'], 10, 3);
+        add_action('wp_login', [self::class, 'notificarLogin'], 10, 2);
+        add_action('user_register', [self::class, 'notificarRegistro'], 10, 1);
+    }
+
+    public static function notificarComentario($commentId, $approved, $commentData)
+    {
+        if (!$approved) return;
+
+        $post = get_post($commentData['comment_post_ID']);
+        $autorPost = get_userdata($post->post_author);
+
+        // Notificar al autor del post
+        enviarMensajeChat($autorPost->ID, [
+            'tipo' => 'nuevo_comentario',
+            'post_id' => $post->ID,
+            'post_titulo' => $post->post_title,
+            'comentario_autor' => $commentData['comment_author'],
+            'comentario_contenido' => wp_trim_words($commentData['comment_content'], 10),
+            'url' => get_comment_link($commentId)
+        ]);
+    }
+
+    public static function notificarLogin($userLogin, $user)
+    {
+        // Notificar a amigos/conexiones
+        $amigos = get_user_meta($user->ID, 'amigos_chat', true) ?: [];
+
+        foreach ($amigos as $amigoId) {
+            enviarMensajeChat($amigoId, [
+                'tipo' => 'amigo_online',
+                'usuario' => $user->display_name,
+                'usuario_id' => $user->ID,
+                'timestamp' => time()
+            ]);
+        }
+    }
+
+    public static function notificarRegistro($userId)
+    {
+        $usuario = get_userdata($userId);
+
+        // Notificar administradores
+        $admins = get_users(['role' => 'administrator']);
+        foreach ($admins as $admin) {
+            enviarMensajeChat($admin->ID, [
+                'tipo' => 'nuevo_usuario_registrado',
+                'usuario' => $usuario->display_name,
+                'email' => $usuario->user_email,
+                'timestamp' => time()
+            ]);
+        }
+    }
+}
+
+NotificacionesActividad::init();
+?>
+```
+
+## Mejores Prácticas
+
+### 1. Gestión de Recursos
+
+```php
+// Limitar conexiones por usuario
+class ServidorChatLimitado extends Glory\Services\ServidorChat
+{
+    protected $conexionesPorUsuario = [];
+
+    public function onOpen(ConnectionInterface $conn)
+    {
+        // Limitar a 3 conexiones por usuario máximo
+        $userId = $this->obtenerUserIdDesdeQuery($conn);
+
+        if (!isset($this->conexionesPorUsuario[$userId])) {
+            $this->conexionesPorUsuario[$userId] = [];
+        }
+
+        if (count($this->conexionesPorUsuario[$userId]) >= 3) {
+            $conn->send(json_encode([
+                'tipo' => 'error',
+                'mensaje' => 'Demasiadas conexiones para este usuario'
+            ]));
+            $conn->close();
+            return;
+        }
+
+        $this->conexionesPorUsuario[$userId][] = $conn;
+        parent::onOpen($conn);
+    }
+
+    public function onClose(ConnectionInterface $conn)
+    {
+        parent::onClose($conn);
+
+        // Limpiar conexiones cerradas
+        foreach ($this->conexionesPorUsuario as $userId => $conexiones) {
+            $this->conexionesPorUsuario[$userId] = array_filter($conexiones, function($c) use ($conn) {
+                return $c !== $conn;
+            });
+        }
+    }
+}
+```
+
+### 2. Compresión de Mensajes
+
+```javascript
+// Cliente con compresión
+class ClienteChatComprimido extends ClienteChat {
+    enviarMensaje(mensaje) {
+        const mensajeString = JSON.stringify(mensaje);
+
+        // Comprimir si es mayor a 1KB
+        if (mensajeString.length > 1024) {
+            // Usar LZString u otra librería de compresión
+            const comprimido = LZString.compress(mensajeString);
+            super.enviarMensaje({
+                compressed: true,
+                data: comprimido
+            });
+        } else {
+            super.enviarMensaje(mensaje);
+        }
+    }
+
+    procesarMensaje(mensaje) {
+        if (mensaje.compressed) {
+            const descomprimido = LZString.decompress(mensaje.data);
+            mensaje = JSON.parse(descomprimido);
+        }
+        // Procesar mensaje normal
+    }
+}
+```
+
+### 3. Rate Limiting
+
+```php
+class ServidorChatRateLimit extends Glory\Services\ServidorChat
+{
+    protected $mensajesPorUsuario = [];
+    protected $limitePorMinuto = 60;
+
+    public function onMessage(ConnectionInterface $from, $msg)
+    {
+        $userId = $this->obtenerUsuarioPorConexion($from);
+
+        if ($this->excedeLimite($userId)) {
+            $from->send(json_encode([
+                'tipo' => 'error',
+                'mensaje' => 'Demasiados mensajes. Espera un momento.'
+            ]));
+            return;
+        }
+
+        parent::onMessage($from, $msg);
+    }
+
+    private function excedeLimite($userId)
+    {
+        $ahora = time();
+        $ventana = $ahora - 60; // Último minuto
+
+        if (!isset($this->mensajesPorUsuario[$userId])) {
+            $this->mensajesPorUsuario[$userId] = [];
+        }
+
+        // Limpiar mensajes antiguos
+        $this->mensajesPorUsuario[$userId] = array_filter(
+            $this->mensajesPorUsuario[$userId],
+            function($timestamp) use ($ventana) {
+                return $timestamp > $ventana;
+            }
+        );
+
+        // Verificar límite
+        if (count($this->mensajesPorUsuario[$userId]) >= $this->limitePorMinuto) {
+            return true;
+        }
+
+        // Registrar mensaje
+        $this->mensajesPorUsuario[$userId][] = $ahora;
+        return false;
+    }
+}
+```
+
+## Resolución de Problemas
+
+### Problema: Conexión se cierra inmediatamente
+
+**Posibles causas:**
+- Firewall bloqueando puerto 8080
+- Servidor no iniciado
+- Error en la inicialización del WebSocket
+
+**Solución:**
+```bash
+# Verificar que el puerto esté abierto
+netstat -tlnp | grep :8080
+
+# Verificar logs del servidor
+tail -f /var/log/supervisor/glory-chat.log
+
+# Test manual
+curl -I http://localhost:8080
+```
+
+### Problema: Mensajes no llegan al usuario
+
+**Posibles causas:**
+- Usuario no registrado correctamente
+- ID de usuario incorrecto
+- Conexión cerrada
+
+**Solución:**
+```php
+// Debug: verificar conexiones activas
+function debug_conexiones_chat() {
+    // Endpoint temporal para debugging
+    add_action('wp_ajax_debug_chat', function() {
+        $response = wp_remote_get('http://localhost:8081/debug');
+        if (!is_wp_error($response)) {
+            wp_send_json(json_decode(wp_remote_retrieve_body($response)));
+        } else {
+            wp_send_json_error('No se pudo conectar al servidor de chat');
+        }
+    });
+}
+```
+
+### Problema: Alto consumo de memoria
+
+**Causas comunes:**
+- Conexiones no cerradas correctamente
+- Mensajes muy grandes
+- Fugas de memoria en el event loop
+
+**Solución:**
+```php
+// Monitoreo de memoria
+class ServidorChatMemoria extends Glory\Services\ServidorChat
+{
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Monitoreo cada 5 minutos
+        Loop::get()->addPeriodicTimer(300, function() {
+            $memoria = memory_get_usage(true) / 1024 / 1024; // MB
+            echo "Uso de memoria: {$memoria}MB\n";
+
+            if ($memoria > 256) { // Reiniciar si > 256MB
+                echo "Reiniciando por alto consumo de memoria...\n";
+                exit(1);
+            }
+        });
+    }
+}
+```
+
+<Aside type="tip">
+**Consejo**: Para producción, considera usar Redis o una base de datos para persistir el mapeo de usuarios cuando el servidor se reinicie.
+</Aside>
+
+<Aside type="caution">
+**Importante**: El servidor WebSocket debe ejecutarse en un proceso separado y tener monitoreo adecuado para reinicio automático en caso de fallos.
+</Aside>

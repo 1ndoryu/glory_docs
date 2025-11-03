@@ -31,6 +31,30 @@ description: "Gestión programática de páginas: definir, sincronizar y control
 - `PageManager::getFuncionParaRenderizar(): ?string`
   - Devuelve el nombre de la función que la plantilla central debe invocar para renderizar el contenido.
 
+- `PageManager::setDefaultContentMode(string $mode): void`
+  - Configura el modo de contenido por defecto para páginas gestionadas ('code' o 'editor').
+
+- `PageManager::getDefaultContentMode(): string`
+  - Retorna el modo de contenido por defecto configurado.
+
+- `PageManager::setDefaultSeoMap(array $map): void`
+  - Define valores SEO por defecto por slug: ['title' => '', 'desc' => '', 'canonical' => ''].
+
+- `PageManager::getDefaultSeoForSlug(string $slug): array`
+  - Retorna los valores SEO por defecto para un slug específico.
+
+- `PageManager::getModoContenidoParaPagina(int $postId): string`
+  - Retorna el modo de contenido ('code' o 'editor') para una página específica.
+
+- `PageManager::getHandlerPorSlug(string $slug): ?string`
+  - Retorna el handler (función o plantilla) asociado a un slug.
+
+- `PageManager::getDefinicionPorSlug(string $slug): ?array`
+  - Retorna la definición completa de una página por su slug.
+
+- `PageManager::renderHandlerParaCopiar(string $handler): string`
+  - Genera código PHP para copiar y usar como handler personalizado.
+
 ## Comportamiento y consideraciones
 
 - Validación de `slug`: solo acepta slugs con `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Si el slug es inválido, registra un error y no define la página.
@@ -39,6 +63,8 @@ description: "Gestión programática de páginas: definir, sincronizar y control
 - Marcas en BD: las páginas creadas o gestionadas se marcan con meta `_page_manager_managed` para poder reconciliarlas y limpiar obsoletos.
 - Al crear páginas, el manager intenta publicar la página (`post_status => 'publish'`) y actualiza `_wp_page_template` con la plantilla configurada.
 - Evita eliminar la página frontal (`page_on_front`) o la página de entradas (`page_for_posts`) al reconciliar.
+- **Modo de contenido**: Las páginas gestionadas pueden tener modo 'code' (contenido definido por código) o 'editor' (editable desde el panel de WordPress). El modo por defecto se configura con `setDefaultContentMode()`.
+- **SEO por defecto**: Se pueden definir valores SEO por defecto para cada slug usando `setDefaultSeoMap()`, útiles para páginas que no tienen metaboxes SEO específicas.
 
 ## Ejemplos
 
@@ -66,6 +92,68 @@ PageManager::define('contacto', 'Contacto', 'TemplateContacto.php');
 
 ```php
 PageManager::define('panel-privado', 'panel_privado_func', null, ['administrator']);
+```
+
+### Configurar modo de contenido por defecto
+
+```php
+use Glory\Manager\PageManager;
+
+// Configurar que las páginas nuevas usen modo 'editor' por defecto
+PageManager::setDefaultContentMode('editor');
+
+// Verificar el modo actual
+$modoActual = PageManager::getDefaultContentMode(); // 'editor'
+```
+
+### Configurar SEO por defecto
+
+```php
+use Glory\Manager\PageManager;
+
+// Configurar valores SEO por defecto para diferentes slugs
+PageManager::setDefaultSeoMap([
+    'home' => [
+        'title' => 'Inicio - Mi Sitio Web',
+        'desc' => 'Página principal del sitio web',
+        'canonical' => home_url('/')
+    ],
+    'contacto' => [
+        'title' => 'Contacto - Mi Sitio Web',
+        'desc' => 'Ponte en contacto con nosotros',
+        'canonical' => home_url('/contacto/')
+    ]
+]);
+
+// Obtener SEO para un slug específico
+$seoHome = PageManager::getDefaultSeoForSlug('home');
+```
+
+### Consultar información de páginas
+
+```php
+use Glory\Manager\PageManager;
+
+// Obtener el handler de una página
+$handler = PageManager::getHandlerPorSlug('home'); // 'home_func'
+
+// Obtener definición completa
+$definicion = PageManager::getDefinicionPorSlug('home');
+// Retorna: ['titulo' => '...', 'plantilla' => '...', 'funcion' => '...', ...]
+
+// Verificar modo de contenido de una página existente
+$modo = PageManager::getModoContenidoParaPagina(123); // 'code' o 'editor'
+```
+
+### Generar código de handler
+
+```php
+use Glory\Manager\PageManager;
+
+// Generar código PHP para usar como base de un handler personalizado
+$codigoHandler = PageManager::renderHandlerParaCopiar('mi_nueva_funcion');
+echo $codigoHandler;
+// Imprime el código PHP que puedes copiar y modificar
 ```
 
 ## Buenas prácticas

@@ -27,6 +27,9 @@ description: "Gestión y sincronización de contenido por defecto para tipos de 
 - `DefaultContentManager::detectarEdicionManualHook(int $idPost, WP_Post $objetoPost, bool $esActualizacion): void`
   - Callback intermedio que delega en la instancia del sincronizador el manejo de ediciones manuales.
 
+- `DefaultContentManager::buildSamplePosts(array $titles, array $paragraphs, array $options = []): array`
+  - Helper para construir definiciones de posts de ejemplo automáticamente. Útil para desarrollo y testing.
+
 ## Comportamiento y consideraciones
 
 - El manager usa un singleton para la instancia del synchronizer por petición para evitar instancias múltiples.
@@ -34,10 +37,35 @@ description: "Gestión y sincronización de contenido por defecto para tipos de 
 - Tras sincronizar, el manager registra hooks `save_post_{tipo}` para los tipos gestionados y así detectar cambios manuales y actualizar el estado interno si es necesario.
 - `modoActualizacion` controla la estrategia: `'force'` reemplaza contenido, `'smart'` intenta aplicar cambios solo cuando es seguro y `'none'` desactiva sincronización.
 
-## Ejemplo
+## Método buildSamplePosts
+
+El método `buildSamplePosts` es un helper que genera automáticamente definiciones de posts de ejemplo usando:
+
+- **Títulos**: Array de títulos que se convierten en slugs kebab-case
+- **Párrafos**: Pool de párrafos para generar contenido automáticamente
+- **Opciones**: Configuración adicional como alias de imágenes y tamaño mínimo
+
+### Parámetros de buildSamplePosts
+
+- `$titles`: Array de strings con los títulos de las páginas/posts a crear
+- `$paragraphs`: Array de strings con párrafos para generar contenido
+- `$options`: Array opcional con:
+  - `'aliasImagenes'`: Alias para AssetsUtility (default: 'colors')
+  - `'minBytes'`: Tamaño mínimo de imágenes en bytes (default: 103424)
+
+### Comportamiento
+
+- Genera slugs determinísticos basados en los títulos
+- Selecciona imágenes destacadas e internas de forma determinista usando el slug
+- Distribuye párrafos aleatoriamente pero consistentemente entre las páginas
+- Incluye imágenes en el contenido de forma automática
+
+## Ejemplos
+
+### Contenido manual básico
 
 ```php
-use Glory\\Manager\\DefaultContentManager;
+use Glory\Manager\DefaultContentManager;
 
 $posts = [
     [
@@ -49,6 +77,38 @@ $posts = [
 ];
 
 DefaultContentManager::define('page', $posts, 'smart', false);
+DefaultContentManager::register();
+```
+
+### Contenido de ejemplo automático
+
+```php
+use Glory\Manager\DefaultContentManager;
+
+$titulos = [
+    'Arte Moderno',
+    'Diseño Contemporáneo',
+    'Fotografía Digital',
+    'Ilustración Digital'
+];
+
+$parrafos = [
+    'El arte moderno representa una evolución significativa en la expresión humana...',
+    'Los diseñadores contemporáneos utilizan herramientas digitales para crear experiencias visuales únicas...',
+    'La fotografía digital ha revolucionado la forma en que capturamos y compartimos momentos...',
+    'La ilustración digital combina técnica tradicional con posibilidades infinitas de la tecnología...',
+    'Las tendencias actuales en arte enfatizan la innovación y la experimentación...',
+    'El diseño gráfico moderno busca comunicar mensajes de manera efectiva y atractiva...'
+];
+
+$opciones = [
+    'aliasImagenes' => 'gallery',
+    'minBytes' => 200000  // Imágenes de al menos 200KB
+];
+
+$postsEjemplo = DefaultContentManager::buildSamplePosts($titulos, $parrafos, $opciones);
+
+DefaultContentManager::define('page', $postsEjemplo, 'smart', false);
 DefaultContentManager::register();
 ```
 

@@ -18,8 +18,9 @@ las decisiones de resolución de rutas y comportamiento recomendado al definir a
   - `$ruta`: ruta relativa al tema/framework (p. ej. `/assets/js/mi-script.js`).
   - `$config`: array con opciones (ver abajo).
 
-- `defineFolder($type, $carpeta, $config, $prefijoHandle = '')` — Auto-descubre archivos en una carpeta y registra handles con un prefijo.
- - `defineFolder($type, $carpeta, $config, $prefijoHandle = '')` — Auto-descubre archivos en una carpeta y registra handles con un prefijo.
+- `defineFolder($type, $carpeta, $config, $prefijoHandle = '', $exclusiones = [])` — Auto-descubre archivos en una carpeta y registra handles con un prefijo. El parámetro `$exclusiones` permite excluir archivos específicos.
+- `setGlobalDevMode(bool $activado)` — Establece el modo desarrollo globalmente para todos los assets.
+- `isGlobalDevMode()` — Retorna si el modo desarrollo global está activado.
 
 ### Opciones comunes en `$config`
 
@@ -87,8 +88,23 @@ AssetManager::defineFolder(
     'style',
     '/assets/css/',
     ['deps' => [], 'media' => 'all'],
-    'tema-' // Prefijo para los handles
+    'tema-', // Prefijo para los handles
+    ['admin.css', 'debug.css'] // Archivos a excluir
 );
+```
+
+### Ejemplo: configurar modo desarrollo global
+
+```php
+use Glory\Manager\AssetManager;
+
+// Activar modo desarrollo para todos los assets
+AssetManager::setGlobalDevMode(true);
+
+// Verificar si está en modo desarrollo
+if (AssetManager::isGlobalDevMode()) {
+    // Lógica específica para desarrollo
+}
 ```
 
 ### Cómo resuelve rutas y versiones
@@ -102,8 +118,9 @@ AssetManager::defineFolder(
 ### Comportamiento de `defineFolder`
 
 - `defineFolder` explora la carpeta indicada y registra cada archivo como un asset separado usando el `prefijoHandle`.
-- Fuera de `dev_mode` los resultados pueden ser cacheados para mejorar rendimiento; dentro de `dev_mode` se fuerza
-  la lectura directa para facilitar el desarrollo.
+- El parámetro `$exclusiones` permite excluir archivos específicos del descubrimiento automático.
+- Fuera de `dev_mode` los resultados se cachean en archivos PHP serializados para mejorar rendimiento; dentro de `dev_mode` se fuerza la lectura directa para facilitar el desarrollo.
+- El cache se invalida automáticamente cuando cambian los parámetros de configuración.
 
 ### Localize: formato y buenas prácticas
 
@@ -132,6 +149,26 @@ Ejemplo mínimo:
 
 - `defer` (bool) permite añadir el atributo `defer` al script para mejorar la carga. En general es recomendable
   usar `defer` para scripts que no necesitan ejecutarse antes del parseo del HTML.
+
+### CSS Crítico
+
+AssetManager incluye soporte integrado para CSS crítico, que permite servir estilos críticos inline en el `<head>` y cargar el resto de los estilos de forma asíncrona para mejorar el rendimiento.
+
+- **Activación**: Se activa automáticamente cuando `GloryFeatures::isActive('cssCritico', 'glory_css_critico_activado')` retorna `true`.
+- **Comportamiento**: Los estilos se cargan asíncronamente por defecto, pero se puede controlar con la opción `glory_css_critico_async_resto`.
+- **Método `imprimirCssCritico()`**: Imprime el CSS crítico inline en el hook `wp_head`.
+
+### URLs Externas y CDN
+
+AssetManager soporta URLs absolutas para assets externos (CDN):
+
+```php
+AssetManager::define('script', 'jquery-cdn', 'https://code.jquery.com/jquery-3.6.0.min.js');
+```
+
+- Las URLs que comienzan con `http://` o `https://` (o `//` para protocol-relative) se tratan como externas.
+- No se valida existencia en disco local para URLs externas.
+- Se usa la versión especificada en `$config['ver']` o el valor por defecto del tema.
 
 ### Consideraciones finales y errores comunes
 

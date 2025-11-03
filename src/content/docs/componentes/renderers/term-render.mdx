@@ -1,0 +1,505 @@
+---
+title: TermRender
+description: Componente para renderizar listas de términos de taxonomías con plantillas personalizables
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# TermRender
+
+El componente **TermRender** es un sistema agnóstico para renderizar listas de términos (categorías, etiquetas, taxonomías personalizadas) de WordPress. Similar a ContentRender pero enfocado en taxonomías, permite consultas flexibles y plantillas completamente personalizables.
+
+## Características Principales
+
+- **Consultas flexibles**: Soporte completo para parámetros de `WP_Term_Query`
+- **Taxonomías múltiples**: Funciona con cualquier taxonomía registrada
+- **Ordenamiento personalizado**: Por nombre, ID, count, o aleatorio
+- **Plantillas personalizables**: Sistema de callbacks para renderizado personalizado
+- **Límite de resultados**: Control preciso del número de términos mostrados
+- **Filtrado inteligente**: Oculta términos vacíos por defecto
+
+## Uso Básico
+
+```php
+use Glory\Components\TermRender;
+
+// Renderizar categorías por defecto
+TermRender::print('category');
+
+// Con configuración personalizada
+TermRender::print('post_tag', [
+    'numero' => 10,
+    'ordenRandom' => true,
+    'claseContenedor' => 'tags-nube'
+]);
+```
+
+## Configuración Completa
+
+### Opciones Principales
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `numero` | int | 0 | Número máximo de términos (0 = sin límite) |
+| `claseContenedor` | string | 'glory-term-list' | Clase CSS del contenedor principal |
+| `claseItem` | string | 'glory-term-item' | Clase CSS de cada término |
+| `plantillaCallback` | callable | `[self::class, 'defaultTemplate']` | Función para renderizar cada término |
+| `argumentosConsulta` | array | [] | Parámetros adicionales para WP_Term_Query |
+| `ordenRandom` | bool | false | Orden aleatorio |
+
+### Parámetros de WP_Term_Query
+
+TermRender acepta cualquier parámetro válido de `WP_Term_Query` a través de `argumentosConsulta`:
+
+```php
+TermRender::print('category', [
+    'argumentosConsulta' => [
+        'parent' => 0,           // Solo categorías padre
+        'orderby' => 'count',    // Ordenar por número de posts
+        'order' => 'DESC',       // Orden descendente
+        'child_of' => 5,         // Hijos de categoría específica
+        'hide_empty' => false,   // Mostrar términos vacíos
+        'meta_query' => [        // Filtros por meta
+            [
+                'key' => 'featured',
+                'value' => '1',
+                'compare' => '='
+            ]
+        ]
+    ]
+]);
+```
+
+## Método Principal
+
+### `print(string $taxonomy, array $opciones = []): void`
+
+Renderiza una lista de términos de la taxonomía especificada.
+
+```php
+// Categorías básicas
+TermRender::print('category');
+
+// Etiquetas con límite
+TermRender::print('post_tag', [
+    'numero' => 20,
+    'claseContenedor' => 'tags-cloud'
+]);
+
+// Taxonomía personalizada ordenada por count
+TermRender::print('genero', [
+    'argumentosConsulta' => [
+        'orderby' => 'count',
+        'order' => 'DESC'
+    ]
+]);
+
+// Solo categorías padre con hijos
+TermRender::print('category', [
+    'argumentosConsulta' => [
+        'parent' => 0,
+        'hide_empty' => false
+    ]
+]);
+```
+
+## Plantillas Personalizadas
+
+### Plantilla por Defecto
+
+La plantilla `defaultTemplate` muestra el nombre del término con el conteo de posts:
+
+```php
+public static function defaultTemplate(WP_Term $term, string $itemClass): void
+{
+    ?>
+    <div class="<?php echo esc_attr($itemClass); ?>">
+        <a href="<?php echo esc_url(get_term_link($term)); ?>">
+            <?php echo esc_html($term->name); ?> (<?php echo intval($term->count); ?>)
+        </a>
+    </div>
+    <?php
+}
+```
+
+### Crear Plantilla Personalizada
+
+```php
+class MiTermRenderer
+{
+    // Nube de etiquetas con tamaños variables
+    public static function nubeEtiquetas(WP_Term $term, string $itemClass): void
+    {
+        $size = 'small';
+        if ($term->count > 10) $size = 'medium';
+        if ($term->count > 50) $size = 'large';
+        ?>
+        <span class="<?php echo esc_attr($itemClass . ' tag-' . $size); ?>">
+            <a href="<?php echo esc_url(get_term_link($term)); ?>">
+                <?php echo esc_html($term->name); ?>
+            </a>
+        </span>
+        <?php
+    }
+
+    // Lista de categorías con descripción
+    public static function categoriaConDescripcion(WP_Term $term, string $itemClass): void
+    {
+        ?>
+        <article class="<?php echo esc_attr($itemClass); ?>">
+            <header>
+                <h3>
+                    <a href="<?php echo esc_url(get_term_link($term)); ?>">
+                        <?php echo esc_html($term->name); ?>
+                    </a>
+                </h3>
+                <span class="post-count">
+                    <?php echo intval($term->count); ?> artículos
+                </span>
+            </header>
+            <?php if ($term->description): ?>
+                <div class="term-description">
+                    <?php echo wp_kses_post($term->description); ?>
+                </div>
+            <?php endif; ?>
+        </article>
+        <?php
+    }
+
+    // Categorías como cards
+    public static function categoriaCard(WP_Term $term, string $itemClass): void
+    {
+        $thumbnail = get_term_meta($term->term_id, 'thumbnail', true);
+        ?>
+        <div class="<?php echo esc_attr($itemClass); ?>">
+            <?php if ($thumbnail): ?>
+                <div class="term-thumbnail">
+                    <img src="<?php echo esc_url($thumbnail); ?>" alt="<?php echo esc_attr($term->name); ?>">
+                </div>
+            <?php endif; ?>
+            <div class="term-content">
+                <h4>
+                    <a href="<?php echo esc_url(get_term_link($term)); ?>">
+                        <?php echo esc_html($term->name); ?>
+                    </a>
+                </h4>
+                <p><?php echo intval($term->count); ?> posts</p>
+            </div>
+        </div>
+        <?php
+    }
+}
+
+// Usar plantillas personalizadas
+TermRender::print('post_tag', [
+    'plantillaCallback' => [MiTermRenderer::class, 'nubeEtiquetas'],
+    'numero' => 30
+]);
+
+TermRender::print('category', [
+    'plantillaCallback' => [MiTermRenderer::class, 'categoriaConDescripcion']
+]);
+```
+
+## Casos de Uso Avanzados
+
+### Sistema de Navegación por Categorías
+
+```php
+// Categorías principales como menú de navegación
+TermRender::print('category', [
+    'argumentosConsulta' => [
+        'parent' => 0,  // Solo padre
+        'hide_empty' => true,
+        'orderby' => 'menu_order'
+    ],
+    'claseContenedor' => 'nav-categories',
+    'plantillaCallback' => function(WP_Term $term, string $itemClass) {
+        $current = is_category($term->term_id) ? ' current-cat' : '';
+        ?>
+        <li class="<?php echo esc_attr($itemClass . $current); ?>">
+            <a href="<?php echo esc_url(get_term_link($term)); ?>">
+                <?php echo esc_html($term->name); ?>
+                <span class="count">(<?php echo intval($term->count); ?>)</span>
+            </a>
+        </li>
+        <?php
+    }
+]);
+```
+
+### Nube de Etiquetas Interactiva
+
+```php
+TermRender::print('post_tag', [
+    'numero' => 50,
+    'ordenRandom' => true,
+    'claseContenedor' => 'tag-cloud',
+    'plantillaCallback' => function(WP_Term $term, string $itemClass) {
+        // Tamaño basado en popularidad
+        $weight = 'tag-weight-1';
+        if ($term->count > 5) $weight = 'tag-weight-2';
+        if ($term->count > 15) $weight = 'tag-weight-3';
+        if ($term->count > 30) $weight = 'tag-weight-4';
+        ?>
+        <a href="<?php echo esc_url(get_term_link($term)); ?>"
+           class="<?php echo esc_attr($itemClass . ' ' . $weight); ?>"
+           title="<?php echo intval($term->count); ?> posts">
+            <?php echo esc_html($term->name); ?>
+        </a>
+        <?php
+    }
+]);
+```
+
+### Filtros de Taxonomía
+
+```php
+// Mostrar términos para filtros de búsqueda
+TermRender::print('marca', [
+    'argumentosConsulta' => [
+        'hide_empty' => false,
+        'meta_key' => 'featured_brand',
+        'meta_value' => '1'
+    ],
+    'claseContenedor' => 'brand-filters',
+    'plantillaCallback' => function(WP_Term $term, string $itemClass) {
+        $checked = isset($_GET['marca']) && $_GET['marca'] == $term->slug ? ' checked' : '';
+        ?>
+        <label class="<?php echo esc_attr($itemClass); ?>">
+            <input type="checkbox" name="marca[]" value="<?php echo esc_attr($term->slug); ?>"<?php echo $checked; ?>>
+            <?php echo esc_html($term->name); ?>
+            <span class="count">(<?php echo intval($term->count); ?>)</span>
+        </label>
+        <?php
+    }
+]);
+```
+
+### Taxonomías Jerárquicas
+
+```php
+// Mostrar jerarquía completa de categorías
+function mostrarJerarquiaCategoria(WP_Term $term, string $itemClass, int $level = 0): void
+{
+    $indent = str_repeat('—', $level);
+    ?>
+    <div class="<?php echo esc_attr($itemClass); ?>" style="margin-left: <?php echo intval($level * 20); ?>px;">
+        <a href="<?php echo esc_url(get_term_link($term)); ?>">
+            <?php echo esc_html($indent . ' ' . $term->name); ?>
+            (<?php echo intval($term->count); ?>)
+        </a>
+    </div>
+    <?php
+
+    // Mostrar hijos
+    $children = get_terms([
+        'taxonomy' => $term->taxonomy,
+        'parent' => $term->term_id,
+        'hide_empty' => true
+    ]);
+
+    foreach ($children as $child) {
+        mostrarJerarquiaCategoria($child, $itemClass, $level + 1);
+    }
+}
+
+TermRender::print('category', [
+    'argumentosConsulta' => ['parent' => 0],
+    'plantillaCallback' => 'mostrarJerarquiaCategoria'
+]);
+```
+
+## Integración con JavaScript
+
+TermRender genera clases CSS consistentes para integración con JavaScript:
+
+```html
+<div class="glory-term-list category">
+    <div class="glory-term-item category-item">
+        <a href="/category/noticias/">Noticias (15)</a>
+    </div>
+    <!-- Más términos... -->
+</div>
+```
+
+### Ejemplo de Interactividad
+
+```javascript
+// Hacer términos clickables con AJAX
+document.querySelectorAll('.glory-term-item a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        // Cargar contenido vía AJAX
+        fetch(this.href + '?ajax=1')
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#content').innerHTML = html;
+                history.pushState(null, null, this.href);
+            });
+    });
+});
+```
+
+## Manejo de Errores
+
+TermRender incluye manejo robusto de errores:
+
+```php
+// Manejo automático de errores
+TermRender::print('invalid_taxonomy', []); // Muestra: "No se encontraron términos."
+
+// Con argumentos inválidos
+TermRender::print('category', [
+    'argumentosConsulta' => ['invalid_param' => 'value'] // Parámetros inválidos son ignorados
+]);
+```
+
+## Optimizaciones
+
+### Consultas Eficientes
+
+```php
+// Solo cargar campos necesarios
+TermRender::print('category', [
+    'argumentosConsulta' => [
+        'fields' => 'ids'  // Solo IDs para procesamiento personalizado
+    ]
+]);
+
+// Usar cache de WordPress
+TermRender::print('category', [
+    'argumentosConsulta' => [
+        'update_term_meta_cache' => false  // Para listados grandes
+    ]
+]);
+```
+
+### Límite Inteligente
+
+```php
+// Limitar para mejor rendimiento
+TermRender::print('post_tag', [
+    'numero' => 20,  // Máximo 20 términos
+    'argumentosConsulta' => [
+        'orderby' => 'count',
+        'order' => 'DESC'
+    ]
+]);
+```
+
+## Ejemplos Completos
+
+### Sistema de Categorías con Subcategorías
+
+```php
+<?php
+use Glory\Components\TermRender;
+
+// Función para renderizar categorías jerárquicas
+function plantillaCategoriaJerarquica(WP_Term $term, string $itemClass): void
+{
+    $children = get_term_children($term->term_id, $term->taxonomy);
+    $hasChildren = !empty($children);
+    ?>
+    <div class="<?php echo esc_attr($itemClass . ($hasChildren ? ' has-children' : '')); ?>">
+        <div class="category-header">
+            <a href="<?php echo esc_url(get_term_link($term)); ?>">
+                <?php echo esc_html($term->name); ?>
+            </a>
+            <span class="post-count">(<?php echo intval($term->count); ?>)</span>
+        </div>
+
+        <?php if ($hasChildren): ?>
+            <div class="subcategories">
+                <?php
+                TermRender::print($term->taxonomy, [
+                    'argumentosConsulta' => ['parent' => $term->term_id],
+                    'claseContenedor' => 'subcategory-list',
+                    'plantillaCallback' => function(WP_Term $subterm, string $subItemClass) {
+                        ?>
+                        <a href="<?php echo esc_url(get_term_link($subterm)); ?>" class="<?php echo esc_attr($subItemClass); ?>">
+                            <?php echo esc_html($subterm->name); ?> <small>(<?php echo intval($subterm->count); ?>)</small>
+                        </a>
+                        <?php
+                    }
+                ]);
+                ?>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
+// Renderizar categorías principales
+TermRender::print('category', [
+    'argumentosConsulta' => [
+        'parent' => 0,
+        'hide_empty' => true
+    ],
+    'plantillaCallback' => 'plantillaCategoriaJerarquica'
+]);
+?>
+```
+
+### Barra Lateral de Filtros
+
+```php
+<?php
+use Glory\Components\TermRender;
+
+// Renderizar filtros de taxonomías múltiples
+function plantillaFiltroTaxonomia(WP_Term $term, string $itemClass): void
+{
+    $taxonomy = $term->taxonomy;
+    $isChecked = isset($_GET[$taxonomy]) && in_array($term->slug, (array)$_GET[$taxonomy]);
+    ?>
+    <label class="<?php echo esc_attr($itemClass); ?>">
+        <input type="checkbox"
+               name="<?php echo esc_attr($taxonomy); ?>[]"
+               value="<?php echo esc_attr($term->slug); ?>"
+               <?php checked($isChecked); ?>>
+        <span class="term-name"><?php echo esc_html($term->name); ?></span>
+        <span class="term-count">(<?php echo intval($term->count); ?>)</span>
+    </label>
+    <?php
+}
+
+// Filtros de categoría
+echo '<div class="filter-section">';
+echo '<h4>Categorías</h4>';
+TermRender::print('category', [
+    'numero' => 15,
+    'plantillaCallback' => 'plantillaFiltroTaxonomia'
+]);
+echo '</div>';
+
+// Filtros de etiquetas populares
+echo '<div class="filter-section">';
+echo '<h4>Etiquetas</h4>';
+TermRender::print('post_tag', [
+    'numero' => 20,
+    'argumentosConsulta' => [
+        'orderby' => 'count',
+        'order' => 'DESC'
+    ],
+    'plantillaCallback' => 'plantillaFiltroTaxonomia'
+]);
+echo '</div>';
+?>
+```
+
+<Aside type="tip">
+**Recomendación**: Para taxonomías con muchos términos, siempre usa la opción `numero` para limitar resultados y mejorar rendimiento.
+
+```php
+// ✅ Bueno - limitado
+TermRender::print('post_tag', ['numero' => 50]);
+
+// ❌ Evitar - puede ser lento
+TermRender::print('post_tag', []); // Sin límite
+```
+</Aside>

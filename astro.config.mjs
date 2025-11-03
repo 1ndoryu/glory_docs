@@ -81,6 +81,7 @@ export default defineConfig({
                         'servicios/event-bus',
                         'servicios/glory-logger',
                         'servicios/query-profiler',
+                        'servicios/performance-profiler',
                         'servicios/analytics-engine',
                         'servicios/busqueda-service',
                         'servicios/license-manager',

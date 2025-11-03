@@ -1,0 +1,417 @@
+---
+title: PerformanceProfiler
+description: Servicio de profiling de rendimiento para medir tiempo de ejecución de funciones y componentes
+sidebar:
+  label: PerformanceProfiler
+  order: 4
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# PerformanceProfiler
+
+El **PerformanceProfiler** es un servicio avanzado de medición de rendimiento diseñado para Glory Framework. Permite medir el tiempo de ejecución de funciones, componentes y servicios específicos, identificando cuellos de botella y optimizando el rendimiento de la aplicación.
+
+## Filosofía
+
+PerformanceProfiler está diseñado para ser:
+- **No intrusivo**: Solo se activa en desarrollo o cuando está explícitamente habilitado
+- **Flexible**: Soporta medición de funciones individuales o bloques completos
+- **Detallado**: Captura tiempo de ejecución, uso de memoria y llamadas múltiples
+- **Integrado**: Se integra con GloryLogger para logging automático
+
+## Características Principales
+
+- **Medición precisa**: Usa `microtime(true)` para mediciones de alta precisión
+- **Seguimiento de memoria**: Registra uso de memoria máximo por componente
+- **Contador de llamadas**: Detecta funciones/componentes que se ejecutan múltiples veces
+- **Logging automático**: Registra todas las mediciones en `debug.log`
+- **Resumen final**: Muestra estadísticas globales al finalizar la petición
+- **Exclusión inteligente**: Se desactiva automáticamente en AJAX, REST API y cron
+
+## Inicialización
+
+### Configuración Básica
+
+```php
+use Glory\Services\PerformanceProfiler;
+
+// Inicializar el profiler (se activa automáticamente según configuración)
+PerformanceProfiler::init();
+```
+
+### Control de Activación
+
+El profiler se controla mediante:
+
+1. **Feature flag**: `GloryFeatures::isActive('performanceProfiler', 'glory_performance_profiler_activo', false)`
+2. **Opción de BD**: `glory_performance_profiler_activo` (checkbox en panel de opciones)
+3. **Modo desarrollo**: Se activa automáticamente en `WP_DEBUG = true`
+
+### Configuración en Panel de Opciones
+
+```php
+// En functions.php o archivo de configuración
+OpcionManager::register('glory_performance_profiler_activo', [
+    'type' => 'checkbox',
+    'label' => 'Activar PerformanceProfiler',
+    'description' => 'Mide rendimiento de funciones y componentes en modo desarrollo',
+    'default' => false,
+    'section' => 'glory_debug'
+]);
+```
+
+## Uso Básico
+
+### Medición Manual
+
+```php
+use Glory\Services\PerformanceProfiler;
+
+// Iniciar medición
+PerformanceProfiler::start('mi-funcion-personalizada');
+
+// Código a medir
+miFuncionQueHaceAlgo();
+
+// Terminar medición
+PerformanceProfiler::end('mi-funcion-personalizada');
+```
+
+### Medición con Helper
+
+```php
+// Medir una función completa automáticamente
+$resultado = PerformanceProfiler::medirFuncion(function() {
+    // Código a ejecutar y medir
+    return miFuncionCompleja($param1, $param2);
+}, 'funcion-compleja', 'service');
+```
+
+### Medición en Componentes Glory
+
+```php
+class MiServicio
+{
+    public function procesarDatos($datos)
+    {
+        PerformanceProfiler::start('MiServicio::procesarDatos', 'service');
+
+        try {
+            // Lógica del método
+            $resultado = $this->validarDatos($datos);
+            $resultado = $this->transformarDatos($resultado);
+
+            PerformanceProfiler::end('MiServicio::procesarDatos');
+            return $resultado;
+
+        } catch (\Exception $e) {
+            PerformanceProfiler::end('MiServicio::procesarDatos');
+            throw $e;
+        }
+    }
+}
+```
+
+## Funcionamiento Interno
+
+### Ciclo de Medición
+
+1. **Inicio**: `PerformanceProfiler::start()` registra timestamp inicial
+2. **Ejecución**: El código se ejecuta normalmente
+3. **Fin**: `PerformanceProfiler::end()` calcula duración y registra medición
+4. **Logging**: Se escribe automáticamente al `debug.log`
+5. **Resumen**: Al finalizar la petición, se muestra resumen global
+
+### Datos Registrados
+
+Por cada medición se captura:
+- **Etiqueta**: Identificador único de la función/componente
+- **Tipo**: Categorización (service, manager, handler, renderer, etc.)
+- **Tiempo**: Duración en segundos con microsegundos
+- **Memoria**: Uso máximo de memoria durante la ejecución
+- **Llamadas**: Número de veces que se ejecutó la misma función
+
+### Formato de Log
+
+```
+[Glory Profiler] MiServicio::procesarDatos | 0.045612s | 8.45 MB | 1 llamadas | service
+[Glory Profiler] render_template_part | 0.012345s | 2.10 MB | 3 llamadas | renderer
+```
+
+## Resumen Final
+
+### Estadísticas Globales
+
+Al finalizar cada petición, se muestra un resumen completo:
+
+```
+=== Glory Performance Profiler - RESUMEN FINAL ===
+Total componentes medidos: 15
+Tiempo total Glory: 1.234567 segundos
+Memoria máxima: 12.45 MB
+```
+
+### Top 3 Más Lentos
+
+```
+TOP 3 componentes más lentos:
+  MiServicio::procesarDatos       | 0.0456s (37.0%)
+  render_template_part            | 0.0234s (19.0%)
+  consultar_base_datos            | 0.0189s (15.3%)
+```
+
+## Tipos de Componentes
+
+El profiler clasifica automáticamente los componentes por tipo basado en la etiqueta:
+
+- **service**: Servicios de negocio (`*Service`)
+- **manager**: Managers del framework (`*Manager`)
+- **handler**: Handlers de AJAX/requests (`*Handler`)
+- **controller**: Controladores (`*Controller`)
+- **renderer**: Componentes de renderizado (`*Renderer`)
+- **general**: Tipo por defecto
+
+## Profiling de HTTP
+
+### Medición Automática de Peticiones HTTP
+
+El profiler intercepta automáticamente todas las peticiones HTTP realizadas por WordPress:
+
+```php
+// Se registra automáticamente en init()
+add_filter('pre_http_request', [self::class, 'httpRequestStart'], 10, 3);
+add_filter('http_response', [self::class, 'httpRequestEnd'], 10, 3);
+```
+
+### Log de Peticiones HTTP
+
+```
+[Glory Profiler][HTTP] GET https://api.wordpress.org/plugins/info/1.0/ | 0.234s | code=200 | timeout=5
+[Glory Profiler][HTTP] POST https://mi-api.com/webhook | 1.567s | code=201 | timeout=10
+```
+
+## Wall Time Total
+
+### Medición de Petición Completa
+
+```php
+// Se mide automáticamente desde el inicio de la petición
+private static float $requestStart = microtime(true);
+
+// Se loguea al final
+PerformanceProfiler::logWallTime();
+// Output: [Glory Profiler] TOTAL REQUEST | 2.345678s | 15.67 MB
+```
+
+## Métodos de la API
+
+### `init()`
+Inicializa el profiler y registra todos los hooks necesarios.
+
+```php
+public static function init(): void
+```
+
+### `start(string $etiqueta, string $tipo = 'general')`
+Inicia la medición de una función o componente.
+
+```php
+public static function start(string $etiqueta, string $tipo = 'general'): void
+```
+
+### `end(string $etiqueta)`
+Finaliza la medición y registra los resultados.
+
+```php
+public static function end(string $etiqueta): void
+```
+
+### `medirFuncion(callable $funcion, string $etiqueta, string $tipo = 'general')`
+Método conveniente para medir funciones completas.
+
+```php
+public static function medirFuncion(callable $funcion, string $etiqueta, string $tipo = 'general')
+```
+
+### `obtenerMediciones()`
+Retorna todas las mediciones realizadas.
+
+```php
+public static function obtenerMediciones(): array
+```
+
+### `obtenerResumen()`
+Retorna mediciones ordenadas por tiempo de ejecución.
+
+```php
+public static function obtenerResumen(): array
+```
+
+### `estaActivo()`
+Verifica si el profiler está activo.
+
+```php
+public static function estaActivo(): bool
+```
+
+## Casos de Uso
+
+### Optimización de Servicios
+
+```php
+class BusquedaService
+{
+    public function buscar($query)
+    {
+        PerformanceProfiler::start('BusquedaService::buscar', 'service');
+
+        $resultados = $this->consultarBaseDatos($query);
+        $resultados = $this->filtrarResultados($resultados);
+        $resultados = $this->ordenarResultados($resultados);
+
+        PerformanceProfiler::end('BusquedaService::buscar');
+        return $resultados;
+    }
+}
+```
+
+### Identificación de Cuellos de Botella
+
+```php
+// Después de ejecutar una página problemática, revisar debug.log
+// Buscar líneas con [Glory Profiler] para identificar funciones lentas
+
+// Ejemplo de output que indica problemas:
+[Glory Profiler] consultar_api_externa | 5.678901s | 45.67 MB | 1 llamadas | service
+[Glory Profiler] procesar_imagenes    | 2.345678s | 23.45 MB | 5 llamadas | renderer
+```
+
+### Monitoreo de Managers
+
+```php
+class ContenidoManager
+{
+    public function obtenerContenido($tipo, $id)
+    {
+        return PerformanceProfiler::medirFuncion(function() use ($tipo, $id) {
+            // Lógica compleja aquí
+            return $this->procesarContenido($tipo, $id);
+        }, 'ContenidoManager::obtenerContenido', 'manager');
+    }
+}
+```
+
+## Consideraciones de Rendimiento
+
+### Overhead Mínimo
+
+- **Condicionales eficientes**: Todas las mediciones están detrás de `if (!self::$isActive)`
+- **Logging asíncrono**: No bloquea la ejecución principal
+- **Sin memoria extra**: Solo almacena datos necesarios para el resumen
+
+### Optimizaciones Incluidas
+
+- **Exclusión automática**: Se desactiva en AJAX, REST API y cron jobs
+- **Prevención de recursión**: Los métodos del profiler no se miden a sí mismos
+- **Limpieza automática**: Se reinician las mediciones entre peticiones
+
+## Integración con Glory Framework
+
+### GloryLogger
+
+El PerformanceProfiler está completamente integrado con GloryLogger para logging consistente.
+
+### GloryFeatures
+
+Se controla mediante el sistema de features para activación granular.
+
+### AssetManager
+
+No requiere assets adicionales, funciona completamente en PHP.
+
+## Solución de Problemas
+
+### Mediciones no aparecen
+
+**Posibles causas:**
+- Profiler no está activo (`estaActivo()` retorna `false`)
+- Modo producción y opción desactivada
+- Logging de WordPress desactivado
+
+**Solución:**
+```php
+// Verificar estado
+if (PerformanceProfiler::estaActivo()) {
+    // Forzar medición para testing
+    PerformanceProfiler::start('test');
+    sleep(1);
+    PerformanceProfiler::end('test');
+}
+```
+
+### Mediciones duplicadas
+
+**Problema:** Aparecen múltiples entradas para la misma función
+**Causa:** La función se ejecuta múltiples veces en la misma petición
+**Solución:** Es comportamiento esperado, el profiler acumula mediciones
+
+### Memoria alta reportada
+
+**Problema:** Uso de memoria muy alto en mediciones
+**Causa:** Se mide el pico máximo, no solo el usado por la función
+**Solución:** Normal, indica el estado de memoria en ese punto de ejecución
+
+## Mejores Prácticas
+
+### Nomenclatura Consistente
+
+```php
+// ✅ Bueno: Clase::metodo
+PerformanceProfiler::start('UsuarioService::autenticar', 'service');
+
+// ✅ Bueno: funcion_descriptiva
+PerformanceProfiler::start('procesar_pedido_completo', 'general');
+
+// ❌ Evitar: nombres genéricos
+PerformanceProfiler::start('funcion', 'general');
+```
+
+### Ámbito Apropiado
+
+```php
+// ✅ Medir operaciones completas
+PerformanceProfiler::start('crearUsuario');
+// ... lógica completa de creación ...
+PerformanceProfiler::end('crearUsuario');
+
+// ✅ Usar medirFuncion para funciones puras
+$resultado = PerformanceProfiler::medirFuncion(
+    fn() => $this->calcularTotal($items),
+    'calcularTotal',
+    'service'
+);
+```
+
+### No medir todo
+
+```php
+// ❌ No medir funciones triviales
+PerformanceProfiler::start('strlen'); // Overhead > función
+strlen('hola');
+PerformanceProfiler::end('strlen');
+
+// ✅ Medir operaciones complejas
+PerformanceProfiler::start('procesarImagen'); // Operación compleja
+$this->redimensionar($imagen);
+$this->optimizar($imagen);
+PerformanceProfiler::end('procesarImagen');
+```
+
+<Aside type="caution">
+⚠️ **Importante**: El PerformanceProfiler solo debe activarse en entornos de desarrollo. En producción, el overhead de medición puede afectar el rendimiento.
+</Aside>
+
+<Aside type="tip">
+💡 **Tip**: Usa el resumen final del profiler para identificar los componentes que más tiempo consumen y priorizar optimizaciones.
+</Aside>

@@ -84,6 +84,7 @@ export default defineConfig({
                         'servicios/performance-profiler',
                         'servicios/token-manager',
                         'servicios/manejador-git',
+                        'servicios/gestor-css-critico',
                         'servicios/analytics-engine',
                         'servicios/busqueda-service',
                         'servicios/license-manager',

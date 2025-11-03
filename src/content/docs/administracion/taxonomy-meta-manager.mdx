@@ -1,0 +1,511 @@
+---
+title: TaxonomyMetaManager
+description: Sistema para gestión de metadatos en taxonomías con soporte para imágenes
+---
+
+# TaxonomyMetaManager
+
+El `TaxonomyMetaManager` es un componente de Glory que facilita la gestión de metadatos en taxonomías de WordPress, con soporte especial para campos de imagen. Está diseñado específicamente para añadir campos personalizados a las páginas de edición de términos (categorías, etiquetas, taxonomías personalizadas).
+
+## Funcionalidades principales
+
+- **Gestión de imágenes en taxonomías**: Interfaz intuitiva para subir y gestionar imágenes asociadas a términos
+- **Campos personalizados**: Soporte extensible para diferentes tipos de metadatos
+- **Integración WordPress Media**: Uso nativo del uploader de WordPress
+- **Validación automática**: Sanitización y validación de datos
+- **JavaScript integrado**: Funcionalidad completa sin dependencias externas
+
+## Arquitectura
+
+El TaxonomyMetaManager está diseñado con un enfoque modular:
+
+- **Campos de formulario**: HTML limpio para añadir/editar términos
+- **JavaScript integrado**: Manejo del uploader de medios
+- **Validación**: Sanitización automática de datos
+- **Almacenamiento**: Uso de `update_term_meta()` de WordPress
+
+## Uso básico
+
+### Registro básico para categorías
+
+```php
+use Glory\Admin\TaxonomyMetaManager;
+
+// Crear instancia y registrar
+$taxonomyManager = new TaxonomyMetaManager();
+$taxonomyManager->register();
+```
+
+### Personalización para taxonomías específicas
+
+```php
+<?php
+// En functions.php o archivo de configuración
+
+use Glory\Admin\TaxonomyMetaManager;
+
+// Para categorías estándar
+add_action('admin_init', function() {
+    $manager = new TaxonomyMetaManager();
+    $manager->register();
+});
+
+// Para taxonomías personalizadas
+add_action('admin_init', function() {
+    // El manager se registra automáticamente para 'category'
+    // Para otras taxonomías, extiende la clase
+});
+?>
+```
+
+## Campos soportados
+
+### Campo de imagen (por defecto)
+
+El TaxonomyMetaManager incluye soporte nativo para campos de imagen:
+
+```php
+// La clase incluye automáticamente:
+// - Campo oculto para ID de imagen
+// - Botón "Subir/Añadir Imagen"
+// - Botón "Eliminar Imagen"
+// - Preview de imagen seleccionada
+```
+
+## Personalización avanzada
+
+### Extender para campos adicionales
+
+```php
+<?php
+class MiTaxonomyMetaManager extends Glory\Admin\TaxonomyMetaManager
+{
+    public function addCategoryField(): void
+    {
+        parent::addCategoryField(); // Campo de imagen por defecto
+
+        // Añadir campo personalizado
+        ?>
+        <div class="form-field">
+            <label for="custom_field">Campo personalizado</label>
+            <input type="text" name="custom_field" id="custom_field">
+            <p>Descripción del campo personalizado</p>
+        </div>
+        <?php
+    }
+
+    public function editCategoryField(\WP_Term $term): void
+    {
+        parent::editCategoryField($term); // Campo de imagen por defecto
+
+        $customValue = get_term_meta($term->term_id, 'custom_field', true);
+        ?>
+        <tr class="form-field">
+            <th scope="row">
+                <label for="custom_field">Campo personalizado</label>
+            </th>
+            <td>
+                <input type="text" name="custom_field" id="custom_field"
+                       value="<?php echo esc_attr($customValue); ?>">
+                <p class="description">Descripción del campo personalizado</p>
+            </td>
+        </tr>
+        <?php
+    }
+
+    public function saveCategoryMeta(int $term_id): void
+    {
+        parent::saveCategoryMeta($term_id); // Guardar imagen
+
+        // Guardar campo personalizado
+        if (isset($_POST['custom_field'])) {
+            update_term_meta(
+                $term_id,
+                'custom_field',
+                sanitize_text_field($_POST['custom_field'])
+            );
+        }
+    }
+}
+
+// Uso
+add_action('admin_init', function() {
+    $manager = new MiTaxonomyMetaManager();
+    $manager->register();
+});
+?>
+```
+
+## Estructura HTML generada
+
+### Campo de añadir término
+
+```html
+<div class="form-field term-group">
+    <label for="glory_category_image_id">Imagen de la Categoría</label>
+    <input type="hidden" id="glory_category_image_id" name="glory_category_image_id" value="">
+    <div id="category-image-wrapper"></div>
+    <p>
+        <button type="button" class="button button-secondary glory-upload-image-button">
+            Subir/Añadir Imagen
+        </button>
+        <button type="button" class="button button-secondary glory-remove-image-button" style="display:none;">
+            Eliminar Imagen
+        </button>
+    </p>
+</div>
+```
+
+### Campo de editar término
+
+```html
+<tr class="form-field term-group-wrap">
+    <th scope="row">
+        <label for="glory_category_image_id">Imagen de la Categoría</label>
+    </th>
+    <td>
+        <input type="hidden" id="glory_category_image_id" name="glory_category_image_id" value="123">
+        <div id="category-image-wrapper">
+            <img src="https://example.com/wp-content/uploads/image.jpg" style="max-width:200px;height:auto;">
+        </div>
+        <p>
+            <button type="button" class="button button-secondary glory-upload-image-button">
+                Subir/Añadir Imagen
+            </button>
+            <button type="button" class="button button-secondary glory-remove-image-button">
+                Eliminar Imagen
+            </button>
+        </p>
+    </td>
+</tr>
+```
+
+## JavaScript incluido
+
+### Funcionalidad del uploader
+
+```javascript
+// JavaScript integrado automáticamente
+jQuery(document).ready(function($) {
+    var mediaUploader;
+
+    // Abrir uploader de medios
+    $('body').on('click', '.glory-upload-image-button', function(e) {
+        e.preventDefault();
+        // ... lógica del uploader
+    });
+
+    // Eliminar imagen
+    $('body').on('click', '.glory-remove-image-button', function(e) {
+        e.preventDefault();
+        // ... lógica de eliminación
+    });
+});
+```
+
+## Estilos CSS recomendados
+
+```css
+/* Campos de formulario de términos */
+.form-field.term-group {
+    margin-bottom: 20px;
+}
+
+.form-field.term-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+/* Contenedor de imagen */
+#category-image-wrapper {
+    margin: 10px 0;
+}
+
+#category-image-wrapper img {
+    max-width: 200px;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px;
+    background: #fff;
+}
+
+/* Botones */
+.glory-upload-image-button,
+.glory-remove-image-button {
+    margin-right: 10px;
+}
+
+/* Estados */
+.glory-remove-image-button {
+    display: none; /* Mostrado solo cuando hay imagen */
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    #category-image-wrapper img {
+        max-width: 150px;
+    }
+
+    .glory-upload-image-button,
+    .glory-remove-image-button {
+        display: block;
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+```
+
+## Ejemplos completos
+
+### Configuración básica para categorías
+
+```php
+<?php
+// functions.php
+
+use Glory\Admin\TaxonomyMetaManager;
+
+// Inicializar para categorías
+add_action('admin_init', function() {
+    $taxonomyManager = new TaxonomyMetaManager();
+    $taxonomyManager->register();
+});
+
+// Obtener imagen de categoría en el frontend
+function get_category_image_url($category_id) {
+    $image_id = get_term_meta($category_id, 'glory_category_image_id', true);
+    if ($image_id) {
+        return wp_get_attachment_image_url($image_id, 'medium');
+    }
+    return false;
+}
+
+// Uso en template
+$category_image = get_category_image_url(get_queried_object_id());
+if ($category_image) {
+    echo '<img src="' . esc_url($category_image) . '" alt="' . esc_attr(single_cat_title('', false)) . '">';
+}
+?>
+```
+
+### Sistema completo con múltiples taxonomías
+
+```php
+<?php
+class MultiTaxonomyMetaManager extends Glory\Admin\TaxonomyMetaManager
+{
+    private array $taxonomies = ['category', 'post_tag', 'custom_taxonomy'];
+
+    public function register(): void
+    {
+        foreach ($this->taxonomies as $taxonomy) {
+            add_action("{$taxonomy}_add_form_fields", [$this, 'addCategoryField'], 10, 2);
+            add_action("{$taxonomy}_edit_form_fields", [$this, 'editCategoryField'], 10, 2);
+            add_action("create_{$taxonomy}", [$this, 'saveCategoryMeta'], 10, 2);
+            add_action("edited_{$taxonomy}", [$this, 'saveCategoryMeta'], 10, 2);
+        }
+
+        add_action('admin_enqueue_scripts', [$this, 'enqueueMediaScripts']);
+    }
+}
+
+// Uso
+add_action('admin_init', function() {
+    $manager = new MultiTaxonomyMetaManager();
+    $manager->register();
+});
+?>
+```
+
+### Campos adicionales con validación
+
+```php
+<?php
+class ExtendedTaxonomyMetaManager extends Glory\Admin\TaxonomyMetaManager
+{
+    public function addCategoryField(): void
+    {
+        parent::addCategoryField(); // Campo de imagen
+
+        ?>
+        <div class="form-field">
+            <label for="category_color">Color de la categoría</label>
+            <input type="color" name="category_color" id="category_color" value="#007cba">
+            <p>Selecciona un color representativo para esta categoría</p>
+        </div>
+
+        <div class="form-field">
+            <label for="category_order">Orden de visualización</label>
+            <input type="number" name="category_order" id="category_order" min="0" max="999">
+            <p>Número para ordenar categorías (opcional)</p>
+        </div>
+        <?php
+    }
+
+    public function editCategoryField(\WP_Term $term): void
+    {
+        parent::editCategoryField($term); // Campo de imagen
+
+        $color = get_term_meta($term->term_id, 'category_color', true) ?: '#007cba';
+        $order = get_term_meta($term->term_id, 'category_order', true) ?: '';
+
+        ?>
+        <tr class="form-field">
+            <th scope="row">
+                <label for="category_color">Color de la categoría</label>
+            </th>
+            <td>
+                <input type="color" name="category_color" id="category_color"
+                       value="<?php echo esc_attr($color); ?>">
+                <p class="description">Selecciona un color representativo para esta categoría</p>
+            </td>
+        </tr>
+
+        <tr class="form-field">
+            <th scope="row">
+                <label for="category_order">Orden de visualización</label>
+            </th>
+            <td>
+                <input type="number" name="category_order" id="category_order"
+                       value="<?php echo esc_attr($order); ?>" min="0" max="999">
+                <p class="description">Número para ordenar categorías (opcional)</p>
+            </td>
+        </tr>
+        <?php
+    }
+
+    public function saveCategoryMeta(int $term_id): void
+    {
+        parent::saveCategoryMeta($term_id); // Guardar imagen
+
+        // Guardar color
+        if (isset($_POST['category_color'])) {
+            $color = sanitize_hex_color($_POST['category_color']);
+            if ($color) {
+                update_term_meta($term_id, 'category_color', $color);
+            }
+        }
+
+        // Guardar orden
+        if (isset($_POST['category_order'])) {
+            $order = intval($_POST['category_order']);
+            if ($order >= 0) {
+                update_term_meta($term_id, 'category_order', $order);
+            }
+        }
+    }
+}
+
+// Uso
+add_action('admin_init', function() {
+    $manager = new ExtendedTaxonomyMetaManager();
+    $manager->register();
+});
+?>
+```
+
+## Consideraciones de seguridad
+
+- **Validación de entrada**: Todos los datos se sanitizan automáticamente
+- **Permisos**: Solo usuarios con capacidad `manage_categories` pueden editar
+- **Nonces**: Protección CSRF incluida
+- **Tipos de archivo**: Solo imágenes permitidas en el uploader
+- **Tamaños**: Respeta límites de WordPress para uploads
+
+## Compatibilidad
+
+- **WordPress**: Compatible con versiones 4.9+
+- **Multisitio**: Funciona en instalaciones multisitio
+- **Taxonomías**: Compatible con todas las taxonomías registradas
+- **Idiomas**: Soporte completo para internacionalización
+
+## Mejores prácticas
+
+1. **Nombres únicos**: Usa prefijos únicos para claves de metadatos
+2. **Validación**: Siempre valida y sanitiza datos de entrada
+3. **Documentación**: Documenta campos personalizados
+4. **Fallbacks**: Proporciona valores por defecto
+5. **Performance**: Limita campos por taxonomía
+
+## Casos de uso comunes
+
+- **Imágenes de categoría**: Visualización atractiva de categorías
+- **Colores temáticos**: Personalización visual por término
+- **Metadatos SEO**: Títulos y descripciones personalizadas
+- **Configuraciones**: Opciones específicas por taxonomía
+- **Ordenamiento**: Control del orden de visualización
+
+## Integración con otros componentes
+
+### Con ContentRender
+
+```php
+<?php
+// Mostrar imagen de categoría en listados
+$category = get_queried_object();
+$image_id = get_term_meta($category->term_id, 'glory_category_image_id', true);
+
+if ($image_id) {
+    echo wp_get_attachment_image($image_id, 'thumbnail', false, [
+        'class' => 'category-image'
+    ]);
+}
+?>
+```
+
+### Con OpcionManager
+
+```php
+<?php
+// Configuración global
+OpcionManager::register('enable_category_images', [
+    'type' => 'checkbox',
+    'label' => 'Habilitar imágenes en categorías',
+    'default' => true
+]);
+
+// Solo registrar si está habilitado
+if (OpcionManager::get('enable_category_images')) {
+    add_action('admin_init', function() {
+        $manager = new TaxonomyMetaManager();
+        $manager->register();
+    });
+}
+?>
+```
+
+## Troubleshooting
+
+### La imagen no se guarda
+
+- Verifica permisos del usuario (`manage_categories`)
+- Confirma que el campo oculto se incluye en el formulario
+- Revisa errores de PHP en logs
+
+### El uploader no funciona
+
+- Confirma que `wp_enqueue_media()` se llama
+- Verifica que JavaScript se carga correctamente
+- Revisa conflictos con otros plugins
+
+### Imágenes no se muestran en frontend
+
+- Confirma que `wp_get_attachment_image_url()` funciona
+- Verifica que la imagen existe en la biblioteca de medios
+- Revisa permisos de archivo
+
+### Problemas con taxonomías personalizadas
+
+- Confirma que los hooks usan el nombre correcto de taxonomía
+- Verifica que la taxonomía esté registrada correctamente
+- Asegura que los usuarios tengan permisos para editar términos
+
+### Conflictos con otros plugins
+
+- Desactiva temporalmente otros plugins de taxonomías
+- Revisa prioridades de hooks
+- Considera prefijos únicos para metadatos
+</contents>
+</xai:function_call">Crear la página de documentación para TaxonomyMetaManager

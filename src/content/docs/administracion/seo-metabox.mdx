@@ -1,0 +1,583 @@
+---
+title: SeoMetabox
+description: Metabox avanzado para gestión de campos SEO en páginas de WordPress
+---
+
+# SeoMetabox
+
+El `SeoMetabox` es un metabox avanzado de Glory que proporciona una interfaz completa para la gestión de metadatos SEO en páginas de WordPress. Incluye campos para títulos SEO, meta descripciones, URLs canónicas, schema markup para FAQ y breadcrumbs, con integración automática con el sistema de páginas gestionadas por Glory.
+
+## Funcionalidades principales
+
+- **Campos SEO básicos**: Título, descripción y URL canónica
+- **Schema markup**: Soporte para FAQ y Breadcrumb structured data
+- **Integración automática**: Fallback desde PageManager para valores por defecto
+- **Interfaz dinámica**: Añadir/remover items de FAQ y breadcrumbs dinámicamente
+- **Validación y sanitización**: Procesamiento seguro de datos
+- **Unicode support**: Manejo correcto de caracteres especiales y emojis
+
+## Arquitectura
+
+El SeoMetabox se integra con el sistema de páginas de WordPress mediante hooks estándar:
+
+- **`add_meta_boxes`**: Registra el metabox en páginas
+- **`save_post_page`**: Guarda los datos al actualizar la página
+- **JavaScript integrado**: Interfaz dinámica para gestión de arrays
+- **Fallback inteligente**: Valores por defecto desde configuración de páginas
+
+## Campos disponibles
+
+### Título SEO (`_glory_seo_title`)
+Campo de texto para el título SEO personalizado de la página.
+
+### Meta descripción (`_glory_seo_desc`)
+Campo textarea para la meta description de la página.
+
+### URL canónica (`_glory_seo_canonical`)
+Campo URL para especificar una URL canónica personalizada.
+
+### FAQ Schema (`_glory_seo_faq`)
+Array JSON de preguntas y respuestas para schema markup FAQPage.
+
+### Breadcrumb Schema (`_glory_seo_breadcrumb`)
+Array JSON de elementos breadcrumb para schema markup BreadcrumbList.
+
+## Uso básico
+
+### Registro del metabox
+
+```php
+use Glory\Admin\SeoMetabox;
+
+// En functions.php o archivo de inicialización
+$seoMetabox = new SeoMetabox();
+$seoMetabox->registerHooks();
+```
+
+### Ejemplo completo de integración
+
+```php
+<?php
+// functions.php
+
+use Glory\Admin\SeoMetabox;
+use Glory\Manager\PageManager;
+
+// Registrar metabox SEO
+add_action('init', function() {
+    $seoMetabox = new SeoMetabox();
+    $seoMetabox->registerHooks();
+});
+
+// Configurar valores por defecto para páginas específicas
+PageManager::registerPage([
+    'slug' => 'contacto',
+    'title' => 'Contacto - Mi Sitio Web',
+    'desc' => 'Ponte en contacto con nosotros. Información de contacto, formulario y ubicación.',
+    'canonical' => 'https://misitio.com/contacto/',
+    'faq' => [
+        [
+            'q' => '¿Cómo puedo contactarlos?',
+            'a' => 'Puedes contactarnos a través del formulario de esta página, por teléfono o email.'
+        ],
+        [
+            'q' => '¿Cuál es su horario de atención?',
+            'a' => 'Nuestro horario de atención es de lunes a viernes de 9:00 a 18:00.'
+        ]
+    ],
+    'breadcrumb' => [
+        ['name' => 'Inicio', 'url' => 'https://misitio.com/'],
+        ['name' => 'Contacto', 'url' => 'https://misitio.com/contacto/']
+    ]
+]);
+?>
+```
+
+## Interfaz de usuario
+
+### Campos principales
+
+```html
+<!-- Título SEO -->
+<label>Título SEO<br>
+<input type="text" name="glory_seo_title" value="" style="width:100%">
+</label>
+
+<!-- Meta descripción -->
+<label>Meta descripción<br>
+<textarea name="glory_seo_desc" rows="3" style="width:100%"></textarea>
+</label>
+
+<!-- URL canónica -->
+<label>URL canónica<br>
+<input type="url" name="glory_seo_canonical" value="" placeholder="https://..." style="width:100%">
+</label>
+```
+
+### Gestión de FAQ
+
+```html
+<!-- Sección FAQ -->
+<strong>FAQ (JSON-LD)</strong>
+<div id="glory_faq_wrap">
+    <!-- Items FAQ dinámicos -->
+    <div class="glory-faq-item" style="margin:8px 0;padding:8px;border:1px solid #ddd">
+        <input type="text" name="glory_faq[0][q]" placeholder="Pregunta" style="width:100%;margin-bottom:6px">
+        <textarea name="glory_faq[0][a]" rows="2" placeholder="Respuesta" style="width:100%"></textarea>
+        <button type="button" class="button glory-del" data-target="faq" style="margin-top:6px">Eliminar</button>
+    </div>
+</div>
+<button type="button" class="button" id="glory_add_faq">Añadir FAQ</button>
+```
+
+### Gestión de Breadcrumbs
+
+```html
+<!-- Sección Breadcrumb -->
+<strong>Breadcrumb (JSON-LD)</strong>
+<div id="glory_bc_wrap">
+    <!-- Items breadcrumb dinámicos -->
+    <div class="glory-bc-item" style="margin:8px 0;padding:8px;border:1px solid #ddd">
+        <input type="text" name="glory_bc[0][name]" placeholder="Nombre" style="width:49%;margin-right:2%">
+        <input type="url" name="glory_bc[0][url]" placeholder="https://..." style="width:49%">
+        <button type="button" class="button glory-del" data-target="bc" style="margin-top:6px;display:block">Eliminar</button>
+    </div>
+</div>
+<button type="button" class="button" id="glory_add_bc">Añadir breadcrumb</button>
+```
+
+## JavaScript integrado
+
+### Funcionalidad dinámica
+
+```javascript
+// Añadir items FAQ
+document.getElementById('glory_add_faq')?.addEventListener('click', function(){
+    var i = nextIndex('glory_faq_wrap','glory-faq-item');
+    var tpl = `<div class="glory-faq-item" style="margin:8px 0;padding:8px;border:1px solid #ddd">
+    <input type="text" name="glory_faq[${i}][q]" placeholder="Pregunta" style="width:100%;margin-bottom:6px">
+    <textarea name="glory_faq[${i}][a]" rows="2" placeholder="Respuesta" style="width:100%"></textarea>
+    <button type="button" class="button glory-del" data-target="faq" style="margin-top:6px">Eliminar</button>
+    </div>`;
+    addItem('glory_faq_wrap', tpl);
+});
+
+// Eliminar items
+document.addEventListener('click', function(e){
+    if(e.target && e.target.classList.contains('glory-del')){
+        var box = e.target.closest('.glory-faq-item, .glory-bc-item');
+        if(box) box.remove();
+    }
+});
+```
+
+## Estilos CSS recomendados
+
+```css
+/* Contenedor del metabox */
+#glory_seo_box .inside {
+    margin: 0;
+    padding: 0;
+}
+
+/* Campos del formulario */
+#glory_seo_box label {
+    display: block;
+    margin-bottom: 15px;
+}
+
+#glory_seo_box input[type="text"],
+#glory_seo_box input[type="url"],
+#glory_seo_box textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#glory_seo_box textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Secciones con títulos */
+#glory_seo_box strong {
+    display: block;
+    margin: 20px 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+/* Items dinámicos */
+.glory-faq-item,
+.glory-bc-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 8px 0;
+    background: #fafafa;
+}
+
+.glory-faq-item input[type="text"],
+.glory-bc-item input[type="text"],
+.glory-bc-item input[type="url"] {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.glory-faq-item textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    resize: vertical;
+}
+
+/* Botones */
+.glory-del {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.glory-del:hover {
+    background: #c82333;
+}
+
+#glory_add_faq,
+#glory_add_bc {
+    margin-top: 10px;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .glory-bc-item input[type="text"],
+    .glory-bc-item input[type="url"] {
+        width: 100% !important;
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+}
+```
+
+## Ejemplos completos
+
+### Configuración básica de SEO
+
+```php
+<?php
+// Configuración SEO para página de servicios
+PageManager::registerPage([
+    'slug' => 'servicios',
+    'seo' => [
+        'title' => 'Servicios Profesionales - Empresa XYZ',
+        'desc' => 'Descubre nuestros servicios profesionales. Consultoría, desarrollo y soporte técnico especializado.',
+        'canonical' => 'https://empresa.com/servicios/',
+        'faq' => [
+            [
+                'q' => '¿Qué servicios ofrecen?',
+                'a' => 'Ofrecemos consultoría estratégica, desarrollo de software, soporte técnico y formación especializada.'
+            ],
+            [
+                'q' => '¿Cómo solicitar un presupuesto?',
+                'a' => 'Puedes contactarnos a través del formulario de contacto o llamándonos directamente.'
+            ],
+            [
+                'q' => '¿Trabajan con empresas internacionales?',
+                'a' => 'Sí, tenemos experiencia trabajando con clientes de diversos países y podemos adaptar nuestros servicios según tus necesidades.'
+            ]
+        ],
+        'breadcrumb' => [
+            ['name' => 'Inicio', 'url' => 'https://empresa.com/'],
+            ['name' => 'Servicios', 'url' => 'https://empresa.com/servicios/']
+        ]
+    ]
+]);
+?>
+```
+
+### Schema markup generado
+
+```html
+<!-- FAQ Schema -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "¿Qué servicios ofrecen?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ofrecemos consultoría estratégica, desarrollo de software, soporte técnico y formación especializada."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "¿Cómo solicitar un presupuesto?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Puedes contactarnos a través del formulario de contacto o llamándonos directamente."
+            }
+        }
+    ]
+}
+</script>
+
+<!-- Breadcrumb Schema -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://empresa.com/"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Servicios",
+            "item": "https://empresa.com/servicios/"
+        }
+    ]
+}
+</script>
+```
+
+### Sistema de gestión SEO avanzado
+
+```php
+<?php
+class SeoManager
+{
+    private SeoMetabox $seoMetabox;
+
+    public function __construct()
+    {
+        $this->seoMetabox = new SeoMetabox();
+        $this->init();
+    }
+
+    public function init(): void
+    {
+        add_action('init', [$this->seoMetabox, 'registerHooks']);
+        add_action('wp_head', [$this, 'outputSchemaMarkup'], 5);
+        add_filter('document_title_parts', [$this, 'customPageTitle']);
+        add_action('wp_head', [$this, 'customMetaDescription'], 1);
+        add_action('wp_head', [$this, 'customCanonicalUrl'], 1);
+    }
+
+    public function outputSchemaMarkup(): void
+    {
+        if (!is_page()) return;
+
+        global $post;
+        $faqJson = get_post_meta($post->ID, '_glory_seo_faq', true);
+        $bcJson = get_post_meta($post->ID, '_glory_seo_breadcrumb', true);
+
+        // Output FAQ Schema
+        if ($faqJson) {
+            $faqData = json_decode($faqJson, true);
+            if ($faqData && is_array($faqData)) {
+                $schema = [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'FAQPage',
+                    'mainEntity' => array_map(function($item) {
+                        return [
+                            '@type' => 'Question',
+                            'name' => $item['q'] ?? '',
+                            'acceptedAnswer' => [
+                                '@type' => 'Answer',
+                                'text' => $item['a'] ?? ''
+                            ]
+                        ];
+                    }, $faqData)
+                ];
+                echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_UNICODE) . '</script>';
+            }
+        }
+
+        // Output Breadcrumb Schema
+        if ($bcJson) {
+            $bcData = json_decode($bcJson, true);
+            if ($bcData && is_array($bcData)) {
+                $schema = [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => array_map(function($item, $index) {
+                        return [
+                            '@type' => 'ListItem',
+                            'position' => $index + 1,
+                            'name' => $item['name'] ?? '',
+                            'item' => $item['url'] ?? ''
+                        ];
+                    }, $bcData, array_keys($bcData))
+                ];
+                echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_UNICODE) . '</script>';
+            }
+        }
+    }
+
+    public function customPageTitle(array $title): array
+    {
+        if (!is_page()) return $title;
+
+        global $post;
+        $customTitle = get_post_meta($post->ID, '_glory_seo_title', true);
+
+        if ($customTitle) {
+            $title['title'] = $customTitle;
+        }
+
+        return $title;
+    }
+
+    public function customMetaDescription(): void
+    {
+        if (!is_page()) return;
+
+        global $post;
+        $customDesc = get_post_meta($post->ID, '_glory_seo_desc', true);
+
+        if ($customDesc) {
+            echo '<meta name="description" content="' . esc_attr($customDesc) . '">' . "\n";
+        }
+    }
+
+    public function customCanonicalUrl(): void
+    {
+        if (!is_page()) return;
+
+        global $post;
+        $customCanonical = get_post_meta($post->ID, '_glory_seo_canonical', true);
+
+        if ($customCanonical) {
+            echo '<link rel="canonical" href="' . esc_url($customCanonical) . '">' . "\n";
+        }
+    }
+}
+
+// Inicializar
+new SeoManager();
+?>
+```
+
+## Integración con PageManager
+
+### Valores por defecto automáticos
+
+```php
+<?php
+// El SeoMetabox automáticamente busca valores por defecto en PageManager
+PageManager::registerPage([
+    'slug' => 'productos',
+    'title' => 'Nuestros Productos - Tienda Online',
+    'desc' => 'Descubre nuestra amplia gama de productos de calidad. Envío gratuito en pedidos superiores a $50.',
+    'canonical' => 'https://tienda.com/productos/',
+    'faq' => [
+        [
+            'q' => '¿Hacen envíos internacionales?',
+            'a' => 'Sí, realizamos envíos a nivel internacional con diferentes opciones de envío.'
+        ],
+        [
+            'q' => '¿Cuál es la política de devoluciones?',
+            'a' => 'Aceptamos devoluciones dentro de 30 días con el producto en perfectas condiciones.'
+        ]
+    ],
+    'breadcrumb' => [
+        ['name' => 'Inicio', 'url' => 'https://tienda.com/'],
+        ['name' => 'Productos', 'url' => 'https://tienda.com/productos/']
+    ]
+]);
+
+// En el metabox, estos valores aparecerán automáticamente como defaults
+// pero el usuario puede personalizarlos por página específica
+?>
+```
+
+## Consideraciones de rendimiento
+
+- **Lazy loading**: Los valores por defecto se cargan solo cuando es necesario
+- **Cache**: Los metadatos se almacenan en postmeta de WordPress (cacheado)
+- **JSON processing**: Validación eficiente de datos JSON
+- **Unicode handling**: Procesamiento optimizado de caracteres especiales
+
+## Seguridad
+
+- **Sanitización**: Todos los inputs pasan por sanitización de WordPress
+- **Nonces**: Protección CSRF con nonces de WordPress
+- **Permisos**: Verificación de capacidades `edit_page`
+- **HTML escaping**: Prevención de XSS con escaping apropiado
+- **JSON validation**: Validación segura de datos JSON
+
+## Compatibilidad
+
+- **WordPress**: Compatible con versiones 5.0+
+- **PHP**: Requiere PHP 7.4+ para tipos union
+- **Multisitio**: Funciona en instalaciones multisitio
+- **Plugins SEO**: Compatible con Yoast SEO, Rank Math, etc.
+
+## Mejores prácticas
+
+1. **Valores por defecto**: Usa PageManager para establecer defaults consistentes
+2. **Contenido único**: Personaliza SEO por página cuando sea necesario
+3. **Schema markup**: Incluye FAQ y breadcrumbs cuando aporte valor SEO
+4. **Canonical URLs**: Especifica URLs canónicas para evitar contenido duplicado
+5. **Longitud óptima**: Mantén títulos < 60 caracteres y descripciones < 160
+6. **Palabras clave**: Incluye términos relevantes de forma natural
+
+## Casos de uso comunes
+
+- **Páginas de servicios**: FAQ sobre servicios ofrecidos
+- **Páginas de producto**: Especificaciones técnicas y preguntas frecuentes
+- **Landing pages**: Optimización específica para conversiones
+- **Artículos de blog**: Schema markup para rich snippets
+- **Páginas corporativas**: Información de contacto estructurada
+
+## Troubleshooting
+
+### Valores por defecto no aparecen
+
+- Verifica que PageManager esté configurado correctamente
+- Confirma que el slug de la página coincida exactamente
+- Revisa que los valores estén en el formato correcto
+
+### Schema markup no se genera
+
+- Verifica que los datos JSON sean válidos
+- Confirma que el hook `wp_head` esté disponible
+- Revisa conflictos con otros plugins de SEO
+
+### JavaScript no funciona
+
+- Confirma que jQuery esté cargado
+- Verifica que no haya errores JavaScript en consola
+- Revisa conflictos con otros scripts
+
+### Datos no se guardan
+
+- Verifica permisos de edición de páginas
+- Confirma que los nonces sean válidos
+- Revisa errores de PHP en logs
+
+### Caracteres especiales se pierden
+
+- Los datos se guardan como JSON con `JSON_UNESCAPED_UNICODE`
+- Verifica que la base de datos soporte UTF-8
+- Usa la función `normalizeUnicodeLiterals()` para casos especiales
+</contents>
+</xai:function_call">Crear la página de documentación para SeoMetabox

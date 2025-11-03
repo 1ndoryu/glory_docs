@@ -76,9 +76,18 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'Servicios',
+                    items: [
+                        'servicios/event-bus'
+                    ]
+                },
+                {
                     label: 'Administración',
                     items: [
-                        'administracion/sync-manager'
+                        'administracion/sync-manager',
+                        'administracion/taxonomy-meta-manager',
+                        'administracion/seo-metabox',
+                        'administracion/page-content-mode-metabox'
                     ]
                 }
             ],

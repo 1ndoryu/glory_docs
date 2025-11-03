@@ -1,0 +1,631 @@
+---
+title: PageContentModeMetabox
+description: Metabox para controlar el modo de renderizado de contenido en páginas gestionadas por Glory
+---
+
+# PageContentModeMetabox
+
+El `PageContentModeMetabox` es un metabox especializado de Glory que permite controlar cómo se renderiza el contenido de las páginas gestionadas por el sistema PageManager. Ofrece dos modos principales: código dinámico (por defecto) y editor de WordPress, permitiendo flexibilidad en la gestión del contenido.
+
+## Funcionalidades principales
+
+- **Modo código**: Renderizado dinámico desde funciones PHP del tema
+- **Modo editor**: Edición directa en el editor de WordPress
+- **Copia inteligente**: Transferencia de HTML desde código al editor
+- **Sincronización**: Re-sincronización automática cuando es necesario
+- **Detección automática**: Solo aparece en páginas gestionadas por Glory
+- **Validación de permisos**: Control de acceso basado en capacidades
+
+## Arquitectura
+
+El PageContentModeMetabox se integra con el sistema de páginas de WordPress mediante:
+
+- **`add_meta_boxes`**: Registro condicional del metabox
+- **`save_post_page`**: Procesamiento de cambios de modo y copias
+- **PageManager integration**: Comunicación con el sistema de páginas
+- **Content hashing**: Seguimiento de cambios para sincronización inteligente
+
+## Modos de contenido
+
+### Modo Código (por defecto)
+- El contenido se renderiza dinámicamente desde funciones PHP del tema
+- Los cambios se hacen modificando el código del theme
+- Mayor control y consistencia
+- Ideal para contenido estructurado y reutilizable
+
+### Modo Editor
+- El contenido se edita directamente en el editor de WordPress
+- Flexibilidad para cambios rápidos sin modificar código
+- Interfaz familiar de WordPress
+- Útil para contenido variable o experimental
+
+## Campos del metabox
+
+### Selector de modo (`_glory_content_mode`)
+- **'code'**: Modo código (valor por defecto)
+- **'editor'**: Modo editor de WordPress
+
+### Copia de contenido
+- Checkbox para copiar HTML desde código al editor
+- Solo visible cuando el modo es 'editor'
+
+### Re-sincronización
+- Botón para volver a sincronizar HTML con código
+- Actualiza el contenido del editor con la versión actual del código
+
+## Uso básico
+
+### Registro del metabox
+
+```php
+use Glory\Admin\PageContentModeMetabox;
+
+// En functions.php o archivo de inicialización
+$contentModeMetabox = new PageContentModeMetabox();
+$contentModeMetabox->registerHooks();
+```
+
+### Ejemplo completo de configuración
+
+```php
+<?php
+// functions.php
+
+use Glory\Admin\PageContentModeMetabox;
+use Glory\Manager\PageManager;
+
+// Registrar metabox
+add_action('init', function() {
+    $metabox = new PageContentModeMetabox();
+    $metabox->registerHooks();
+});
+
+// Registrar página gestionada
+PageManager::registerPage([
+    'slug' => 'acerca-de',
+    'handler' => 'render_pagina_acerca_de',
+    'title' => 'Acerca de Nosotros',
+    'managed' => true // Marca como gestionada por Glory
+]);
+
+// Función handler
+function render_pagina_acerca_de() {
+    ?>
+    <div class="acerca-de-container">
+        <div class="hero-section">
+            <h1>Nuestra Historia</h1>
+            <p>Somos una empresa dedicada a...</p>
+        </div>
+
+        <div class="equipo-section">
+            <h2>Nuestro Equipo</h2>
+            <!-- Contenido dinámico del equipo -->
+        </div>
+
+        <div class="valores-section">
+            <h2>Nuestros Valores</h2>
+            <!-- Contenido de valores -->
+        </div>
+    </div>
+    <?php
+}
+?>
+```
+
+## Interfaz de usuario
+
+### Metabox básico
+
+```html
+<!-- Solo visible para páginas gestionadas -->
+<div id="glory_content_mode" class="postbox">
+    <h2 class="hndle">Modo de contenido (Glory)</h2>
+    <div class="inside">
+        <p style="margin:0 0 8px;">Elige cómo renderizar el contenido:</p>
+
+        <label style="display:block;margin-bottom:6px;">
+            <input type="radio" name="glory_content_mode" value="code" checked>
+            Código (función del tema)
+        </label>
+
+        <label style="display:block;margin-bottom:6px;">
+            <input type="radio" name="glory_content_mode" value="editor">
+            Editor de WordPress
+        </label>
+
+        <div id="glory_copy_wrap" style="margin-top:8px;display:none;">
+            <label style="display:block;">
+                <input type="checkbox" name="glory_copy_now" value="1">
+                Copiar ahora el HTML del código al editor
+            </label>
+            <p style="color:#666;margin-top:6px;">
+                Crea una copia editable del HTML actual. Tras esto, la sincronización con el código se detiene.
+            </p>
+            <button type="submit" class="button" name="glory_resync_now" value="1" style="margin-top:8px;">
+                Volver a sincronizar HTML con el código
+            </button>
+        </div>
+    </div>
+</div>
+```
+
+## JavaScript integrado
+
+### Toggle dinámico
+
+```javascript
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'glory_content_mode') {
+        var wrap = document.getElementById('glory_copy_wrap');
+        if (!wrap) return;
+        wrap.style.display = e.target.value === 'editor' ? 'block' : 'none';
+    }
+});
+```
+
+## Estados y transiciones
+
+### Flujo de trabajo típico
+
+1. **Página creada**: Por defecto en modo 'code'
+2. **Necesidad de edición**: Usuario cambia a modo 'editor'
+3. **Copia de contenido**: Se marca checkbox y se guarda
+4. **Edición libre**: Contenido editable en WordPress
+5. **Re-sincronización**: Botón para actualizar desde código
+
+### Estados del contenido
+
+- **Sincronizado**: Contenido del editor refleja el código
+- **Desincronizado**: Contenido del editor modificado manualmente
+- **Hash tracking**: Seguimiento de cambios para detectar diferencias
+
+## Estilos CSS recomendados
+
+```css
+/* Metabox container */
+#glory_content_mode .inside {
+    padding: 12px;
+}
+
+/* Radio buttons */
+#glory_content_mode label {
+    display: block;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+#glory_content_mode input[type="radio"] {
+    margin-right: 8px;
+}
+
+/* Copy section */
+#glory_copy_wrap {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+#glory_copy_wrap label {
+    font-weight: normal;
+    cursor: pointer;
+}
+
+#glory_copy_wrap input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+#glory_copy_wrap p {
+    margin: 8px 0 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Buttons */
+#glory_copy_wrap .button {
+    margin-top: 8px;
+    margin-right: 8px;
+}
+
+#glory_copy_wrap .button:hover {
+    background: #f0f0f0;
+    border-color: #ccc;
+}
+
+/* Warnings */
+.glory-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    color: #856404;
+}
+
+.glory-warning strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    #glory_content_mode .inside {
+        padding: 8px;
+    }
+
+    #glory_copy_wrap {
+        padding: 8px;
+    }
+
+    #glory_copy_wrap .button {
+        display: block;
+        width: 100%;
+        margin: 8px 0;
+        text-align: center;
+    }
+}
+```
+
+## Ejemplos completos
+
+### Sistema de páginas con modo dual
+
+```php
+<?php
+class PaginaGestionada
+{
+    private PageContentModeMetabox $metabox;
+
+    public function __construct()
+    {
+        $this->metabox = new PageContentModeMetabox();
+        $this->init();
+    }
+
+    public function init(): void
+    {
+        add_action('init', [$this->metabox, 'registerHooks']);
+
+        // Registrar páginas gestionadas
+        add_action('init', [$this->setupPages]);
+    }
+
+    public function setupPages(): void
+    {
+        // Página de servicios - modo código por defecto
+        PageManager::registerPage([
+            'slug' => 'servicios',
+            'handler' => [$this, 'renderServicios'],
+            'title' => 'Nuestros Servicios',
+            'managed' => true
+        ]);
+
+        // Página de contacto - puede ser editada
+        PageManager::registerPage([
+            'slug' => 'contacto',
+            'handler' => [$this, 'renderContactoBase'],
+            'title' => 'Contacto',
+            'managed' => true
+        ]);
+    }
+
+    public function renderServicios(): void
+    {
+        ?>
+        <div class="servicios-page">
+            <div class="hero">
+                <h1>Nuestros Servicios</h1>
+                <p>Ofrecemos soluciones integrales para tu negocio</p>
+            </div>
+
+            <div class="servicios-grid">
+                <div class="servicio-item">
+                    <h3>Consultoría</h3>
+                    <p>Asesoramiento estratégico personalizado</p>
+                </div>
+
+                <div class="servicio-item">
+                    <h3>Desarrollo</h3>
+                    <p>Soluciones tecnológicas a medida</p>
+                </div>
+
+                <div class="servicio-item">
+                    <h3>Soporte</h3>
+                    <p>Mantenimiento y soporte continuo</p>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    public function renderContactoBase(): void
+    {
+        ?>
+        <div class="contacto-page">
+            <div class="contacto-header">
+                <h1>Contacta con Nosotros</h1>
+                <p>Estamos aquí para ayudarte</p>
+            </div>
+
+            <!-- Contenido base que puede ser extendido en el editor -->
+            <div class="contacto-info">
+                <p>Teléfono: +34 900 123 456</p>
+                <p>Email: info@empresa.com</p>
+            </div>
+        </div>
+        <?php
+    }
+}
+
+// Inicializar
+new PaginaGestionada();
+?>
+```
+
+### Workflow de edición de contenido
+
+```php
+<?php
+class ContentEditorWorkflow
+{
+    public static function init(): void
+    {
+        add_action('init', function() {
+            $metabox = new PageContentModeMetabox();
+            $metabox->registerHooks();
+        });
+
+        // Hook para cambios de modo
+        add_action('save_post_page', [self::class, 'handleModeChange'], 20, 2);
+    }
+
+    public static function handleModeChange(int $postId, \WP_Post $post): void
+    {
+        // Verificar si cambió el modo
+        $modoAnterior = get_post_meta($postId, '_glory_content_mode_prev', true);
+        $modoActual = get_post_meta($postId, '_glory_content_mode', true);
+
+        if ($modoAnterior !== $modoActual) {
+            // Log del cambio
+            GloryLogger::info('PageContentMode cambió', [
+                'post_id' => $postId,
+                'modo_anterior' => $modoAnterior,
+                'modo_actual' => $modoActual,
+                'user_id' => get_current_user_id()
+            ]);
+
+            // Actualizar modo anterior
+            update_post_meta($postId, '_glory_content_mode_prev', $modoActual);
+
+            // Notificar si cambió a modo editor
+            if ($modoActual === 'editor') {
+                self::notifyEditorMode($postId);
+            }
+        }
+
+        // Verificar si se copió contenido
+        if (isset($_POST['glory_copy_now']) && $_POST['glory_copy_now'] === '1') {
+            GloryLogger::info('Contenido copiado a editor', [
+                'post_id' => $postId,
+                'user_id' => get_current_user_id()
+            ]);
+        }
+    }
+
+    private static function notifyEditorMode(int $postId): void
+    {
+        $post = get_post($postId);
+        $user = wp_get_current_user();
+
+        // Aquí podrías enviar email, crear notificación, etc.
+        wp_mail(
+            $user->user_email,
+            'Modo Editor Activado - ' . $post->post_title,
+            "Has activado el modo editor para la página '{$post->post_title}'. " .
+            "Recuerda que los cambios en el editor no se sincronizarán automáticamente con el código."
+        );
+    }
+}
+
+// Inicializar workflow
+ContentEditorWorkflow::init();
+?>
+```
+
+### Sistema de respaldo y versiones
+
+```php
+<?php
+class ContentBackupSystem
+{
+    public static function init(): void
+    {
+        add_action('save_post_page', [self::class, 'backupContent'], 30, 2);
+        add_action('admin_notices', [self::class, 'showBackupNotices']);
+    }
+
+    public static function backupContent(int $postId, \WP_Post $post): void
+    {
+        // Solo para páginas gestionadas
+        if (!get_post_meta($postId, '_page_manager_managed', true)) {
+            return;
+        }
+
+        $modo = get_post_meta($postId, '_glory_content_mode', true);
+
+        if ($modo === 'editor') {
+            // Crear backup del contenido del editor
+            $contentBackup = $post->post_content;
+            $hash = hash('sha256', $contentBackup);
+
+            // Evitar backups duplicados
+            $lastHash = get_post_meta($postId, '_glory_content_backup_hash', true);
+            if ($lastHash !== $hash) {
+                update_post_meta($postId, '_glory_content_backup_' . time(), $contentBackup);
+                update_post_meta($postId, '_glory_content_backup_hash', $hash);
+
+                // Mantener solo los últimos 5 backups
+                self::cleanupOldBackups($postId);
+            }
+        }
+    }
+
+    private static function cleanupOldBackups(int $postId): void
+    {
+        global $wpdb;
+
+        $backups = $wpdb->get_results($wpdb->prepare(
+            "SELECT meta_key FROM {$wpdb->postmeta}
+             WHERE post_id = %d AND meta_key LIKE '_glory_content_backup_%'
+             ORDER BY meta_key DESC",
+            $postId
+        ));
+
+        if (count($backups) > 5) {
+            $toDelete = array_slice($backups, 5);
+            foreach ($toDelete as $backup) {
+                delete_post_meta($postId, $backup->meta_key);
+            }
+        }
+    }
+
+    public static function showBackupNotices(): void
+    {
+        $screen = get_current_screen();
+        if ($screen->post_type !== 'page') return;
+
+        $postId = isset($_GET['post']) ? (int)$_GET['post'] : 0;
+        if (!$postId || !get_post_meta($postId, '_page_manager_managed', true)) return;
+
+        $backups = get_post_meta($postId, '', true);
+        $backupCount = count(array_filter(array_keys($backups), function($key) {
+            return strpos($key, '_glory_content_backup_') === 0;
+        }));
+
+        if ($backupCount > 0) {
+            echo '<div class="notice notice-info is-dismissible">';
+            echo '<p><strong>Backups disponibles:</strong> ';
+            echo "Esta página tiene {$backupCount} backup(s) de contenido guardado(s). ";
+            echo '<a href="#" id="show-backups">Ver backups</a></p>';
+            echo '</div>';
+        }
+    }
+}
+
+// Inicializar sistema de backups
+ContentBackupSystem::init();
+?>
+```
+
+## Integración con PageManager
+
+### Verificación de páginas gestionadas
+
+```php
+<?php
+// El metabox solo aparece para páginas marcadas como gestionadas
+PageManager::registerPage([
+    'slug' => 'mi-pagina',
+    'handler' => 'mi_handler_function',
+    'managed' => true  // Esta flag habilita el metabox
+]);
+
+// Verificación programática
+function is_page_managed_by_glory(int $postId): bool
+{
+    return (bool) get_post_meta($postId, '_page_manager_managed', true);
+}
+?>
+```
+
+### Renderizado condicional
+
+```php
+<?php
+// En el frontend, el contenido se renderiza según el modo
+function render_glory_page_content(\WP_Post $post): void
+{
+    $modo = get_post_meta($post->ID, '_glory_content_mode', true) ?: 'code';
+
+    if ($modo === 'editor') {
+        // Renderizar desde el editor de WordPress
+        echo apply_filters('the_content', $post->post_content);
+    } else {
+        // Renderizar desde código
+        $handler = PageManager::getHandlerPorSlug($post->post_name);
+        if ($handler && function_exists($handler)) {
+            call_user_func($handler);
+        } else {
+            echo '<p>Contenido no disponible</p>';
+        }
+    }
+}
+?>
+```
+
+## Consideraciones de seguridad
+
+- **Validación de modos**: Solo valores 'code' y 'editor' permitidos
+- **Nonces**: Protección CSRF completa
+- **Permisos**: Verificación de `edit_page` capability
+- **Sanitización**: Limpieza de inputs antes del guardado
+- **Autoguardado**: Prevención de cambios durante autoguardado
+
+## Compatibilidad
+
+- **WordPress**: Compatible con versiones 5.0+
+- **PageManager**: Requiere integración completa con PageManager
+- **PHP**: Requiere PHP 7.4+ para tipos union
+- **Multisitio**: Funciona en instalaciones multisitio
+
+## Mejores prácticas
+
+1. **Modo código por defecto**: Usa código para contenido consistente
+2. **Modo editor selectivo**: Solo para contenido experimental
+3. **Backups automáticos**: Implementa sistema de respaldo
+4. **Documentación clara**: Indica qué páginas son gestionadas
+5. **Testing exhaustivo**: Prueba cambios en ambos modos
+6. **Versionado**: Mantén versiones del código del theme
+
+## Casos de uso comunes
+
+- **Páginas corporativas**: Contenido consistente desde código
+- **Landing pages**: A/B testing con modo editor
+- **Contenido dinámico**: Páginas con datos variables
+- **Prototipado**: Desarrollo rápido con editor
+- **Contenido legacy**: Migración gradual desde editor
+
+## Troubleshooting
+
+### Metabox no aparece
+
+- Verifica que la página esté marcada como `managed => true`
+- Confirma que PageManager esté inicializado correctamente
+- Revisa que el metabox esté registrado en el hook correcto
+
+### Modo no cambia
+
+- Verifica permisos de edición de páginas
+- Confirma que los nonces sean válidos
+- Revisa errores de PHP en logs
+
+### Copia no funciona
+
+- Verifica que el handler de PageManager exista
+- Confirma que la función renderice HTML válido
+- Revisa errores en la función `renderHandlerParaCopiar`
+
+### Contenido se pierde
+
+- Implementa backups automáticos
+- Verifica que no haya conflictos de guardado
+- Revisa problemas de memoria en funciones complejas
+
+### Sincronización falla
+
+- Verifica que el hash de contenido sea correcto
+- Confirma que el código del handler no cambió
+- Revisa errores en el procesamiento de HTML
+</contents>
+</xai:function_call">Crear la página de documentación para PageContentModeMetabox

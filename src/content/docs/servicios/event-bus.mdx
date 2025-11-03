@@ -1,0 +1,175 @@
+---
+title: EventBus
+description: Sistema de eventos basado en versiones para invalidación de cache y sincronización
+sidebar:
+  label: EventBus
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# EventBus
+
+El **EventBus** es un sistema simple de eventos basado en versiones que utiliza las opciones de WordPress para gestionar canales de eventos. Está diseñado para ser agnóstico al proyecto y se puede usar para invalidar vistas, listas o caches cuando ocurren cambios.
+
+## Filosofía
+
+El EventBus implementa un patrón de versionado simple donde cada "canal" mantiene una versión numérica que se incrementa cada vez que se emite un evento. Los consumidores pueden verificar si han visto la última versión para determinar si necesitan actualizar sus datos.
+
+## Uso Básico
+
+### Emitir Eventos
+
+Para emitir un evento en un canal específico:
+
+```php
+use Glory\Services\EventBus;
+
+// Emitir evento simple
+EventBus::emit('contenido_actualizado');
+
+// Emitir evento con payload (útil para diagnósticos)
+EventBus::emit('usuario_logueado', [
+    'user_id' => 123,
+    'timestamp' => time()
+]);
+```
+
+### Verificar Versiones
+
+Para obtener las versiones actuales de uno o más canales:
+
+```php
+use Glory\Services\EventBus;
+
+// Obtener versiones de múltiples canales
+$versiones = EventBus::getVersions(['contenido_actualizado', 'usuario_logueado']);
+
+foreach ($versiones as $canal => $info) {
+    echo "Canal: $canal\n";
+    echo "Versión: {$info['version']}\n";
+    echo "Última actualización: " . date('Y-m-d H:i:s', $info['updatedAt']) . "\n";
+}
+```
+
+## Ejemplos Prácticos
+
+### Invalidación de Cache en Frontend
+
+```php
+// En tu JavaScript (usando gloryAjax)
+function verificarActualizaciones() {
+    gloryAjax.post('verificar_eventos', {
+        canales: ['contenido_actualizado', 'comentarios_nuevos']
+    }).then(function(response) {
+        if (response.versiones.contenido_actualizado.version > localStorage.getItem('cache_version_contenido')) {
+            // Invalidar cache y recargar datos
+            actualizarContenido();
+            localStorage.setItem('cache_version_contenido', response.versiones.contenido_actualizado.version);
+        }
+    });
+}
+```
+
+### Sincronización de Datos en Tiempo Real
+
+```php
+// En un handler AJAX
+public function manejarActualizacionContenido() {
+    // Procesar la actualización del contenido
+    $this->actualizarContenido();
+
+    // Emitir evento para notificar a otros componentes
+    EventBus::emit('contenido_actualizado', [
+        'tipo' => 'articulo',
+        'id' => $_POST['post_id']
+    ]);
+
+    wp_send_json_success(['mensaje' => 'Contenido actualizado']);
+}
+```
+
+### Sistema de Notificaciones
+
+```php
+// En un metabox o panel de administración
+public function mostrarNotificaciones() {
+    $versiones = EventBus::getVersions(['notificaciones_admin']);
+
+    $ultimaVersion = get_user_meta(get_current_user_id(), 'ultima_notificacion_version', true);
+
+    if ($versiones['notificaciones_admin']['version'] > $ultimaVersion) {
+        echo '<div class="notice notice-info">';
+        echo '<p>Tienes nuevas notificaciones pendientes.</p>';
+        echo '</div>';
+    }
+}
+```
+
+## Canales Recomendados
+
+### Canales de Contenido
+- `contenido_actualizado` - Cuando se modifica cualquier contenido
+- `contenido_publicado` - Cuando se publica nuevo contenido
+- `contenido_eliminado` - Cuando se elimina contenido
+
+### Canales de Usuario
+- `usuario_registrado` - Nuevo usuario registrado
+- `usuario_logueado` - Usuario inicia sesión
+- `usuario_actualizado` - Perfil de usuario modificado
+
+### Canales Administrativos
+- `opciones_actualizadas` - Configuraciones modificadas
+- `cache_limpio` - Cache del sistema limpiado
+- `mantenimiento_completado` - Tareas de mantenimiento finalizadas
+
+## Consideraciones Técnicas
+
+### Almacenamiento
+- Utiliza las opciones de WordPress (`wp_options`)
+- Cada canal crea 3 opciones: versión, timestamp y último payload
+- Las claves siguen el patrón: `glory_eventbus_{tipo}_{canal}`
+
+### Rendimiento
+- Operaciones ligeras y eficientes
+- No realiza logging en producción para mantener silencio
+- Los payloads se almacenan como JSON para evitar problemas de serialización
+
+### Limitaciones
+- No es un sistema de eventos en tiempo real (no websockets)
+- Los payloads se almacenan en opciones, no usar para datos sensibles
+- Depende de las opciones de WordPress para persistencia
+
+### Seguridad
+- Los nombres de canales se sanitizan con `sanitize_key()`
+- Los payloads se almacenan como JSON para evitar problemas de serialización
+- No exponga información sensible en los payloads
+
+## Integración con AJAX
+
+Para usar EventBus con gloryAjax, crea un endpoint que devuelva las versiones:
+
+```php
+// En functions.php o un handler AJAX
+add_action('wp_ajax_verificar_eventos', function() {
+    $canales = isset($_POST['canales']) ? $_POST['canales'] : [];
+    $versiones = EventBus::getVersions($canales);
+
+    wp_send_json_success([
+        'versiones' => $versiones,
+        'timestamp' => time()
+    ]);
+});
+```
+
+## Mejores Prácticas
+
+1. **Nombres de Canales Descriptivos**: Usa nombres claros que indiquen el tipo de evento
+2. **Payloads Opcionales**: Incluye payloads solo cuando sean útiles para diagnósticos
+3. **Versionado Semántico**: Los números de versión son solo incrementales, no semánticos
+4. **Canales Específicos**: Crea canales específicos en lugar de genéricos cuando sea posible
+5. **Limpieza Periódica**: Considera limpiar canales antiguos que ya no se usan
+
+<Aside type="note">
+El EventBus es ideal para escenarios donde necesitas invalidar caches o notificar cambios sin necesidad de un sistema de eventos complejo. Para comunicación en tiempo real, considera usar el módulo GloryRealtime.
+</Aside>

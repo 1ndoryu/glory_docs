@@ -205,5 +205,3 @@ glory_docs/src/content/docs/
 - [x] Documentar utilidades faltantes ✅ (ImageUtility, TemplateRegistry)
 - [NO DOCUMENTAR NADA SOBRE INTEGRACONES] Crear sección de integraciones
 - [x] Documentar sistema administrativo ✅ (TaxonomyMetaManager, SeoMetabox, PageContentModeMetabox)
-- [ ] Crear guías de desarrollo
-- [ ] Revisar y validar toda la documentación

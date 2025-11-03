@@ -76,6 +76,14 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'Integraciones',
+                    items: [
+                        'integraciones/integrations-manager',
+                        'integraciones/avada',
+                        'integraciones/elementor'
+                    ]
+                },
+                {
                     label: 'Administración',
                     items: [
                         'administracion/sync-manager'

@@ -1,0 +1,304 @@
+---
+title: IntegrationsManager
+description: Sistema centralizado para gestionar integraciones con page builders y servicios externos
+sidebar:
+  label: IntegrationsManager
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# IntegrationsManager
+
+El `IntegrationsManager` es el núcleo centralizado del sistema de integraciones de Glory. Gestiona la activación automática y manual de integraciones con page builders como Avada y Elementor, además de proporcionar utilidades para scripts externos.
+
+## Funcionalidades principales
+
+- **Gestión centralizada**: Control único para todas las integraciones
+- **Detección automática**: Detecta automáticamente la presencia de builders
+- **Configuración flexible**: Soporte para activación/desactivación manual
+- **Scripts del header**: Gestión de Google Analytics, GSC y scripts personalizados
+- **Integridad del sistema**: Limpieza automática cuando se desactiva
+
+## Configuración de integraciones
+
+### Sistema de flags
+
+Las integraciones se controlan mediante el sistema de flags de `GloryFeatures`:
+
+```php
+// En functions.php o config del tema
+use Glory\Core\GloryFeatures;
+
+// Activar integración con Avada
+GloryFeatures::enable('avadaIntegration');
+
+// Desactivar integración con Avada
+GloryFeatures::disable('avadaIntegration');
+```
+
+### Estados de integración
+
+- **`true`**: Integración activada explícitamente, se registra incluso si el builder no está presente
+- **`false`**: Integración desactivada, no se registra nunca
+- **`null` (default)**: Autodetección automática
+
+## Método `register()`
+
+El método principal que inicializa todas las integraciones:
+
+```php
+use Glory\Integration\IntegrationsManager;
+
+$integrationsManager = new IntegrationsManager();
+$integrationsManager->register();
+```
+
+### Proceso de registro
+
+1. **Scripts del header**: Registra hook `wp_head` para agregar scripts
+2. **Verificación de flags**: Consulta configuración de `GloryFeatures`
+3. **Detección automática**: Verifica presencia de builders
+4. **Registro condicional**: Registra integraciones según configuración
+
+### Detección de Avada
+
+```php
+// El sistema detecta Avada mediante:
+function_exists('fusion_builder_map') ||
+class_exists('Fusion_Element') ||
+function_exists('fusion_core') ||
+class_exists('Fusion_Settings')
+```
+
+## Scripts del header
+
+### Google Search Console
+
+Agrega automáticamente la metaetiqueta de verificación:
+
+```php
+// Configurar en opciones del tema
+OpcionManager::set('glory_gsc_verification_code', 'tu-codigo-aqui');
+```
+
+Resultado en HTML:
+```html
+<meta name="google-site-verification" content="tu-codigo-aqui" />
+```
+
+### Google Analytics 4
+
+Inyecta automáticamente el código de seguimiento:
+
+```php
+// Configurar en opciones del tema
+OpcionManager::set('glory_ga4_measurement_id', 'G-XXXXXXXXXX');
+```
+
+Resultado en HTML:
+```html
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+```
+
+### Scripts personalizados
+
+Permite agregar código HTML/JS personalizado al header:
+
+```php
+// Configurar en opciones del tema
+$scripts = '<script>console.log("Script personalizado");</script>';
+OpcionManager::set('glory_custom_header_scripts', $scripts);
+```
+
+## Integración con Avada
+
+### Configuración automática
+
+```php
+<?php
+// En functions.php del tema
+
+use Glory\Core\GloryFeatures;
+
+// Activar integración con Avada
+GloryFeatures::enable('avadaIntegration');
+
+// O dejar autodetección (default)
+// Sin configuración = autodetección
+?>
+```
+
+### Comportamiento según configuración
+
+| Configuración | Avada presente | Avada ausente |
+|---------------|----------------|---------------|
+| `true` | ✅ Se registra | ⚠️ Se registra (espera a que se active) |
+| `false` | ❌ No se registra | ❌ No se registra |
+| `null` (default) | ✅ Se registra | ⚠️ Espera y registra si aparece |
+
+### Limpieza automática
+
+Cuando se desactiva la integración, el sistema:
+
+1. **Elimina transients**: Limpia caché de Avada en modo desarrollo
+2. **Remueve filtros**: Elimina secciones del panel de opciones
+3. **Previene registro**: Evita que se registre en futuros ciclos
+
+## Ejemplos de uso
+
+### Setup básico en tema
+
+```php
+<?php
+// functions.php
+
+use Glory\Integration\IntegrationsManager;
+use Glory\Core\GloryFeatures;
+
+function configurar_integraciones_tema() {
+    // Inicializar gestor de integraciones
+    $integrations = new IntegrationsManager();
+    $integrations->register();
+
+    // Configurar integraciones específicas
+    if (defined('USAR_AVADA') && USAR_AVADA) {
+        GloryFeatures::enable('avadaIntegration');
+    }
+
+    // Configurar scripts externos
+    configurar_scripts_externos();
+}
+
+function configurar_scripts_externos() {
+    // Google Analytics
+    if (defined('GA4_ID')) {
+        OpcionManager::set('glory_ga4_measurement_id', GA4_ID);
+    }
+
+    // Google Search Console
+    if (defined('GSC_CODE')) {
+        OpcionManager::set('glory_gsc_verification_code', GSC_CODE);
+    }
+
+    // Scripts personalizados
+    $customScripts = '
+        <!-- Facebook Pixel Code -->
+        <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version=\'2.0\';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,\'script\',
+        \'https://connect.facebook.net/en_US/fbevents.js\');
+        fbq(\'init\', \'YOUR_PIXEL_ID\');
+        fbq(\'track\', \'PageView\');
+        </script>
+    ';
+
+    if (defined('FACEBOOK_PIXEL_ID')) {
+        OpcionManager::set('glory_custom_header_scripts', $customScripts);
+    }
+}
+
+add_action('after_setup_theme', 'configurar_integraciones_tema');
+?>
+```
+
+### Panel de control personalizado
+
+```php
+<?php
+// Crear un metabox para controlar integraciones
+
+function agregar_metabox_integraciones() {
+    add_meta_box(
+        'integraciones_control',
+        'Control de Integraciones',
+        'render_metabox_integraciones',
+        'page',
+        'side'
+    );
+}
+
+function render_metabox_integraciones($post) {
+    // Checkbox para Avada
+    $avadaEnabled = GloryFeatures::isEnabled('avadaIntegration');
+    ?>
+    <p>
+        <label>
+            <input type="checkbox"
+                   name="habilitar_avada"
+                   <?php checked($avadaEnabled); ?> />
+            Habilitar integración con Avada
+        </label>
+    </p>
+    <?php
+}
+
+function guardar_metabox_integraciones($post_id) {
+    if (isset($_POST['habilitar_avada'])) {
+        GloryFeatures::enable('avadaIntegration');
+    } else {
+        GloryFeatures::disable('avadaIntegration');
+    }
+}
+
+add_action('add_meta_boxes', 'agregar_metabox_integraciones');
+add_action('save_post', 'guardar_metabox_integraciones');
+?>
+```
+
+## Consideraciones importantes
+
+### Performance
+
+- Las detecciones se hacen una sola vez por carga de página
+- Los scripts se agregan solo cuando están configurados
+- La integración con Avada se registra temprano para evitar conflictos
+
+### Seguridad
+
+- Todos los scripts se escapan apropiadamente
+- Los códigos de verificación se validan antes de imprimir
+- Los scripts personalizados se imprimen tal cual (responsabilidad del usuario)
+
+### Compatibilidad
+
+- Soporte para versiones modernas de Avada y Elementor
+- Fallback automático si los builders no están disponibles
+- Limpieza automática al desactivar integraciones
+
+## Troubleshooting
+
+### Avada no se detecta
+
+Verificar que estas funciones/clases existan:
+```php
+function_exists('fusion_builder_map')
+class_exists('Fusion_Element')
+function_exists('fusion_core')
+class_exists('Fusion_Settings')
+```
+
+### Scripts no aparecen
+
+Verificar configuración en `wp_options`:
+```php
+OpcionManager::get('glory_gsc_verification_code')
+OpcionManager::get('glory_ga4_measurement_id')
+OpcionManager::get('glory_custom_header_scripts')
+```
+
+### Integración no funciona
+
+1. Verificar que `GloryFeatures::isEnabled('avadaIntegration')` retorne el valor esperado
+2. Revisar logs de debug para errores en el registro
+3. Verificar que el hook `wp_head` no esté siendo removido por otros plugins

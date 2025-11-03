@@ -1,0 +1,647 @@
+---
+title: BusquedaRenderer
+description: Componente para renderizar resultados de búsqueda con formato HTML seguro y agrupado
+sidebar:
+  order: 3
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# BusquedaRenderer
+
+El componente **BusquedaRenderer** es un sistema agnóstico para renderizar resultados de búsqueda en formato HTML. Transforma arrays de datos de resultados en representaciones HTML seguras, con soporte para agrupamiento por tipo de contenido, imágenes y metadatos.
+
+## Características Principales
+
+- **Renderizado seguro**: Escapado automático de HTML para prevenir XSS
+- **Agrupamiento por tipo**: Soporte para resultados organizados por categorías
+- **Imágenes opcionales**: Integración automática con imágenes destacadas
+- **Logging integrado**: Seguimiento completo del proceso de renderizado
+- **HTML semántico**: Estructura accesible y SEO-friendly
+- **Agnóstico de fuente**: Funciona con cualquier fuente de datos de búsqueda
+
+## Uso Básico
+
+```php
+use Glory\Components\BusquedaRenderer;
+
+// Datos de ejemplo
+$resultados = [
+    'posts' => [
+        [
+            'titulo' => 'Mi Primer Post',
+            'url' => '/mi-primer-post/',
+            'tipo' => 'Post',
+            'imagen' => '/wp-content/uploads/2024/01/post-image.jpg'
+        ],
+        [
+            'titulo' => 'Segundo Artículo',
+            'url' => '/segundo-articulo/',
+            'tipo' => 'Post'
+        ]
+    ],
+    'pages' => [
+        [
+            'titulo' => 'Sobre Nosotros',
+            'url' => '/sobre-nosotros/',
+            'tipo' => 'Página'
+        ]
+    ]
+];
+
+// Renderizar resultados
+echo BusquedaRenderer::renderizarResultados($resultados);
+```
+
+## Estructura de Datos
+
+### Formato de Item Individual
+
+Cada item de resultado debe ser un array con las siguientes claves:
+
+| Clave | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `titulo` | string | ✅ | Título del resultado |
+| `url` | string | ✅ | URL del resultado |
+| `tipo` | string | ✅ | Tipo de contenido (Post, Página, etc.) |
+| `imagen` | string | ❌ | URL de imagen destacada |
+
+```php
+$item = [
+    'titulo' => 'Título del resultado',
+    'url' => 'https://ejemplo.com/resultados/1/',
+    'tipo' => 'Post',
+    'imagen' => 'https://ejemplo.com/imagen.jpg' // Opcional
+];
+```
+
+### Estructura de Datos Completa
+
+Los datos se organizan en grupos por tipo de contenido:
+
+```php
+$datosBusqueda = [
+    'posts' => [
+        // Array de items de posts
+    ],
+    'pages' => [
+        // Array de items de páginas
+    ],
+    'productos' => [
+        // Array de items de productos
+    ]
+];
+```
+
+## Método Principal
+
+### `renderizarResultados(array $datos): string`
+
+Convierte un array de resultados de búsqueda en HTML completo.
+
+```php
+// Resultados vacíos
+$resultadosVacios = [];
+echo BusquedaRenderer::renderizarResultados($resultadosVacios);
+// Output: <div class="resultadoItemNoEncontrado">No se encontraron resultados.</div>
+
+// Resultados con datos
+$resultados = [
+    'posts' => [
+        [
+            'titulo' => 'Cómo usar WordPress',
+            'url' => '/como-usar-wordpress/',
+            'tipo' => 'Post',
+            'imagen' => '/wp-content/uploads/wordpress-guide.jpg'
+        ]
+    ]
+];
+
+$html = BusquedaRenderer::renderizarResultados($resultados);
+echo $html;
+```
+
+## HTML Generado
+
+### Estructura Individual de Resultado
+
+```html
+<a href="/mi-post/" class="resultadoEnlace">
+    <div class="resultadoItem post">
+        <img class="resultadoImagen" src="/imagen.jpg" alt="Mi Post">
+        <div class="resultadoInfo">
+            <h3>Mi Post</h3>
+            <p>Post</p>
+        </div>
+    </div>
+</a>
+```
+
+### Resultado sin Imagen
+
+```html
+<a href="/mi-pagina/" class="resultadoEnlace">
+    <div class="resultadoItem page">
+        <div class="resultadoImagen placeholder"></div>
+        <div class="resultadoInfo">
+            <h3>Mi Página</h3>
+            <p>Page</p>
+        </div>
+    </div>
+</a>
+```
+
+### Mensaje de Sin Resultados
+
+```html
+<div class="resultadoItemNoEncontrado">No se encontraron resultados.</div>
+```
+
+## Integración Completa
+
+### Con Sistema de Búsqueda Personalizado
+
+```php
+<?php
+use Glory\Components\BusquedaRenderer;
+
+class MiBuscadorPersonalizado
+{
+    public static function buscarYRenderizar(string $query): void
+    {
+        // Realizar búsqueda en múltiples fuentes
+        $resultados = self::realizarBusqueda($query);
+
+        // Renderizar resultados
+        echo '<div class="resultados-busqueda">';
+        echo BusquedaRenderer::renderizarResultados($resultados);
+        echo '</div>';
+    }
+
+    private static function realizarBusqueda(string $query): array
+    {
+        $resultados = [];
+
+        // Buscar en posts
+        $posts = get_posts([
+            's' => $query,
+            'post_type' => 'post',
+            'posts_per_page' => 10
+        ]);
+
+        foreach ($posts as $post) {
+            $resultados['posts'][] = [
+                'titulo' => get_the_title($post),
+                'url' => get_permalink($post),
+                'tipo' => 'Post',
+                'imagen' => get_the_post_thumbnail_url($post, 'thumbnail')
+            ];
+        }
+
+        // Buscar en páginas
+        $pages = get_posts([
+            's' => $query,
+            'post_type' => 'page',
+            'posts_per_page' => 5
+        ]);
+
+        foreach ($pages as $page) {
+            $resultados['pages'][] = [
+                'titulo' => get_the_title($page),
+                'url' => get_permalink($page),
+                'tipo' => 'Página'
+            ];
+        }
+
+        return $resultados;
+    }
+}
+
+// Uso
+if (isset($_GET['q'])) {
+    MiBuscadorPersonalizado::buscarYRenderizar($_GET['q']);
+}
+?>
+```
+
+### Con AJAX y JavaScript
+
+```php
+// Archivo: ajax-search-handler.php
+use Glory\Components\BusquedaRenderer;
+
+function manejarBusquedaAjax() {
+    $query = sanitize_text_field($_POST['query'] ?? '');
+
+    if (empty($query)) {
+        wp_send_json_error('Consulta vacía');
+        return;
+    }
+
+    // Realizar búsqueda
+    $resultados = buscarEnContenido($query);
+
+    // Renderizar HTML
+    $html = BusquedaRenderer::renderizarResultados($resultados);
+
+    wp_send_json_success([
+        'html' => $html,
+        'total' => array_sum(array_map('count', $resultados))
+    ]);
+}
+
+function buscarEnContenido(string $query): array {
+    // Implementación de búsqueda...
+    return [
+        'posts' => [
+            // Resultados de posts
+        ],
+        'pages' => [
+            // Resultados de páginas
+        ]
+    ];
+}
+```
+
+```javascript
+// JavaScript para búsqueda en vivo
+document.getElementById('search-input').addEventListener('input', function() {
+    const query = this.value.trim();
+
+    if (query.length < 3) {
+        document.getElementById('search-results').innerHTML = '';
+        return;
+    }
+
+    fetch('/wp-admin/admin-ajax.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            action: 'ajax_search',
+            query: query
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('search-results').innerHTML = data.data.html;
+        }
+    });
+});
+```
+
+## Estilización CSS
+
+### Estilos Básicos Recomendados
+
+```css
+/* Contenedor de resultados */
+.resultados-busqueda {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Enlace de resultado */
+.resultadoEnlace {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+}
+
+.resultadoEnlace:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Item de resultado */
+.resultadoItem {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    background: white;
+}
+
+.resultadoItem.post {
+    border-left: 4px solid #007cba;
+}
+
+.resultadoItem.page {
+    border-left: 4px solid #00a32a;
+}
+
+/* Imagen del resultado */
+.resultadoImagen {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.resultadoImagen.placeholder {
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 2rem;
+}
+
+.resultadoImagen.placeholder:before {
+    content: '📄';
+}
+
+/* Información del resultado */
+.resultadoInfo {
+    flex: 1;
+}
+
+.resultadoInfo h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    color: #1e1e1e;
+}
+
+.resultadoInfo p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Estado sin resultados */
+.resultadoItemNoEncontrado {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+    font-style: italic;
+}
+```
+
+### Tema Oscuro
+
+```css
+@media (prefers-color-scheme: dark) {
+    .resultadoItem {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .resultadoInfo h3 {
+        color: #e2e8f0;
+    }
+
+    .resultadoInfo p {
+        color: #a0aec0;
+    }
+
+    .resultadoImagen.placeholder {
+        background: #4a5568;
+        color: #718096;
+    }
+}
+```
+
+## Casos de Uso Avanzados
+
+### Búsqueda Multi-tipo con Paginación
+
+```php
+<?php
+use Glory\Components\BusquedaRenderer;
+
+class BuscadorAvanzado
+{
+    private static $tiposSoportados = ['post', 'page', 'producto'];
+
+    public static function renderizarBusqueda(array $args = []): void
+    {
+        $defaults = [
+            'query' => '',
+            'tipos' => self::$tiposSoportados,
+            'limite' => 20,
+            'pagina' => 1
+        ];
+
+        $config = array_merge($defaults, $args);
+
+        // Realizar búsqueda
+        $resultados = self::buscarContenido($config);
+
+        // Renderizar header de resultados
+        self::renderizarHeaderResultados($resultados, $config);
+
+        // Renderizar resultados
+        echo '<div class="resultados-busqueda">';
+        echo BusquedaRenderer::renderizarResultados($resultados);
+        echo '</div>';
+
+        // Renderizar paginación
+        self::renderizarPaginacion($resultados, $config);
+    }
+
+    private static function buscarContenido(array $config): array
+    {
+        $resultados = [];
+
+        foreach ($config['tipos'] as $tipo) {
+            $posts = get_posts([
+                's' => $config['query'],
+                'post_type' => $tipo,
+                'posts_per_page' => $config['limite'],
+                'paged' => $config['pagina']
+            ]);
+
+            foreach ($posts as $post) {
+                $resultados[$tipo . 's'][] = [
+                    'titulo' => get_the_title($post),
+                    'url' => get_permalink($post),
+                    'tipo' => ucfirst($tipo),
+                    'imagen' => get_the_post_thumbnail_url($post, 'thumbnail')
+                ];
+            }
+        }
+
+        return $resultados;
+    }
+
+    private static function renderizarHeaderResultados(array $resultados, array $config): void
+    {
+        $total = array_sum(array_map('count', $resultados));
+
+        echo '<div class="resultados-header">';
+        echo '<h2>Resultados de búsqueda</h2>';
+
+        if ($total > 0) {
+            echo "<p>Encontrados {$total} resultados para \"{$config['query']}\"</p>";
+        } else {
+            echo "<p>No se encontraron resultados para \"{$config['query']}\"</p>";
+        }
+
+        echo '</div>';
+    }
+
+    private static function renderizarPaginacion(array $resultados, array $config): void
+    {
+        // Implementación de paginación...
+    }
+}
+
+// Uso
+BuscadorAvanzado::renderizarBusqueda([
+    'query' => $_GET['q'] ?? '',
+    'tipos' => ['post', 'page'],
+    'limite' => 15
+]);
+?>
+```
+
+### Búsqueda con Filtros
+
+```php
+<?php
+use Glory\Components\BusquedaRenderer;
+
+class BuscadorConFiltros
+{
+    public static function renderizarBusquedaFiltrada(): void
+    {
+        $query = $_GET['q'] ?? '';
+        $tipo = $_GET['tipo'] ?? 'todos';
+        $categoria = $_GET['categoria'] ?? '';
+
+        // Obtener resultados filtrados
+        $resultados = self::buscarConFiltros($query, $tipo, $categoria);
+
+        // Renderizar filtros
+        self::renderizarFiltros($tipo, $categoria);
+
+        // Renderizar resultados
+        echo '<div class="resultados-busqueda">';
+        echo BusquedaRenderer::renderizarResultados($resultados);
+        echo '</div>';
+    }
+
+    private static function buscarConFiltros(string $query, string $tipo, string $categoria): array
+    {
+        $args = [
+            's' => $query,
+            'posts_per_page' => 20
+        ];
+
+        // Filtrar por tipo
+        if ($tipo !== 'todos') {
+            $args['post_type'] = $tipo;
+        } else {
+            $args['post_type'] = ['post', 'page'];
+        }
+
+        // Filtrar por categoría
+        if (!empty($categoria)) {
+            $args['category_name'] = $categoria;
+        }
+
+        $posts = get_posts($args);
+        $resultados = [];
+
+        foreach ($posts as $post) {
+            $tipoLabel = $post->post_type === 'post' ? 'Post' : 'Página';
+
+            $resultados[$post->post_type . 's'][] = [
+                'titulo' => get_the_title($post),
+                'url' => get_permalink($post),
+                'tipo' => $tipoLabel,
+                'imagen' => get_the_post_thumbnail_url($post, 'thumbnail')
+            ];
+        }
+
+        return $resultados;
+    }
+
+    private static function renderizarFiltros(string $tipoActual, string $categoriaActual): void
+    {
+        ?>
+        <form method="GET" class="filtros-busqueda">
+            <input type="text" name="q" value="<?php echo esc_attr($_GET['q'] ?? ''); ?>" placeholder="Buscar...">
+
+            <select name="tipo">
+                <option value="todos" <?php selected($tipoActual, 'todos'); ?>>Todos los tipos</option>
+                <option value="post" <?php selected($tipoActual, 'post'); ?>>Posts</option>
+                <option value="page" <?php selected($tipoActual, 'page'); ?>>Páginas</option>
+            </select>
+
+            <input type="text" name="categoria" value="<?php echo esc_attr($categoriaActual); ?>" placeholder="Categoría">
+
+            <button type="submit">Buscar</button>
+        </form>
+        <?php
+    }
+}
+?>
+```
+
+## Seguridad y Mejores Prácticas
+
+### Validación de Datos
+
+```php
+function validarDatosResultado(array $item): array
+{
+    return [
+        'titulo' => !empty($item['titulo']) ? sanitize_text_field($item['titulo']) : 'Sin título',
+        'url' => !empty($item['url']) ? esc_url_raw($item['url']) : '#',
+        'tipo' => !empty($item['tipo']) ? sanitize_text_field($item['tipo']) : 'Desconocido',
+        'imagen' => !empty($item['imagen']) ? esc_url_raw($item['imagen']) : ''
+    ];
+}
+
+// Uso antes de pasar a BusquedaRenderer
+$resultadosValidados = array_map(function($grupo) {
+    return array_map('validarDatosResultado', $grupo);
+}, $resultados);
+```
+
+### Logging y Depuración
+
+BusquedaRenderer incluye logging integrado para seguimiento:
+
+```php
+// Los logs se registran automáticamente
+// Para ver logs, asegúrate de que GloryLogger esté configurado
+
+// Logs registrados:
+// - Inicio de renderizado con datos recibidos
+// - Número total de resultados
+// - Procesamiento de cada grupo
+// - Completado del renderizado
+```
+
+<Aside type="tip">
+**Recomendación**: Siempre valida y sanitiza los datos antes de pasarlos a BusquedaRenderer, aunque el componente incluye escapado automático.
+
+```php
+// ✅ Bueno - datos validados
+$datos = [
+    'posts' => [
+        [
+            'titulo' => sanitize_text_field($rawTitle),
+            'url' => esc_url_raw($rawUrl),
+            'tipo' => 'Post',
+            'imagen' => esc_url_raw($rawImage)
+        ]
+    ]
+];
+
+// ❌ Evitar - datos sin validar
+$datos = $_POST['resultados']; // Datos no confiables
+```
+</Aside>

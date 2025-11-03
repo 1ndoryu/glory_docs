@@ -41,54 +41,65 @@ CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE NO REPETIR DOCUMENTACIONES; R
 - **Handlers específicos** ✅ (Documentado)
 
 ### 4. **Componentes Reutilizables** (Parcialmente documentado)
-- **ContentRender** ❌ (Falta documentación)
-- **TermRender** ❌ (Falta documentación)
-- **BusquedaRenderer** ❌ (Falta documentación)
-- **LogoRenderer** ❌ (Falta documentación)
-- **FormBuilder** ✅ (Existe - revisar expansión)
+- **ContentRender** ❌ (Falta documentación - existe en código)
+- **TermRender** ❌ (Falta documentación - existe en código)
+- **BusquedaRenderer** ❌ (Falta documentación - existe en código)
+- **LogoRenderer** ❌ (Falta documentación - existe en código)
+- **FormBuilder** ✅ (Documentado)
 - **Modal** ✅ (Documentado)
 - **BadgeList** ✅ (Documentado)
 - **DataGridRenderer** ✅ (Documentado)
 - **PaginationRenderer** ✅ (Documentado)
-- **SchedulerRenderer** ❌ (Falta documentación)
+- **SchedulerRenderer** ✅ (Documentado)
 - **PerfilRenderer** ✅ (Documentado)
-- **BarraFiltrosRenderer** ❌ (Falta documentación)
-- **HeaderRenderer** ❌ (Falta documentación)
+- **BarraFiltrosRenderer** ❌ (Falta documentación - existe en código)
+- **HeaderRenderer** ❌ (Falta documentación - existe en código)
+- **AutenticacionRenderer** ❌ (Falta documentación - existe en código)
 - **ThemeToggle** ✅ (Documentado)
 
 ### 5. **Scripts de UI** (Limitada)
 - **Sistema de Modales** ✅ (Documentado)
-- **Alertas** ❌ (Falta documentación)
-- **Previsualizaciones** ❌ (Falta documentación)
-- **Pestañas y Submenús** ❌ (Falta documentación)
-- **Header Adaptativo** ❌ (Falta documentación)
-- **Navegación AJAX** ❌ (Falta documentación)
-- **Carousel** ❌ (Falta documentación)
-- **HorizontalDrag** ❌ (Falta documentación)
-- **Toggle** ❌ (Falta documentación)
+- **Alertas** ❌ (Falta documentación - existe alertas.js)
+- **Previsualizaciones** ❌ (Falta documentación - existe gestionarPreviews.js)
+- **Pestañas y Submenús** ❌ (Falta documentación - existen pestanas.js, submenus.js)
+- **Header Adaptativo** ❌ (Falta documentación - existe adaptiveHeader.js)
+- **Navegación AJAX** ❌ (Falta documentación - existe gloryAjaxNav.js)
+- **Carousel** ❌ (Falta documentación - existe glory-carousel.js)
+- **HorizontalDrag** ❌ (Falta documentación - existe glory-horizontal-drag.js)
+- **Toggle** ❌ (Falta documentación - existe glory-toggle.js)
+- **Calendario** ❌ (Falta documentación - existe gloryCalendario.js)
+- **Filtros** ❌ (Falta documentación - existe gloryFilters.js)
+- **Date Range** ❌ (Falta documentación - existe gloryDateRange.js)
 
 ### 6. **Utilidades y Helpers** (Limitada)
-- **AssetsUtility** ❌ (Falta documentación)
-- **EmailUtility** ❌ (Falta documentación)
-- **PostUtility** ❌ (Falta documentación)
-- **UserUtility** ❌ (Falta documentación)
-- **ScheduleManager** ❌ (Falta documentación)
+- **AssetsUtility** ❌ (Falta documentación - existe en código)
+- **EmailUtility** ❌ (Falta documentación - existe en código)
+- **PostUtility** ❌ (Falta documentación - existe en código)
+- **UserUtility** ❌ (Falta documentación - existe en código)
+- **ScheduleManager** ❌ (Falta documentación - no encontrado)
 - **ImageUtility** ✅ (Documentado)
 - **TemplateRegistry** ✅ (Documentado)
 
-### 7. **Servicios Avanzados** ❌ (Falta)
-- **EventBus** ❌ (Falta)
-- **GloryLogger** ✅ (Existe)
-- **AnalyticsEngine** ❌ (Falta)
-- **BusquedaService** ❌ (Falta)
-- **LicenseManager** ❌ (Falta)
-- **ServidorChat** ❌ (Falta)
-- **ManejadorGit** ❌ (Falta)
-- **GestorCssCritico** ❌ (Falta)
-- **LocalCriticalCss** ❌ (Falta)
-- **QueryProfiler** ❌ (Falta)
-- **PerformanceProfiler** ❌ (Falta)
-- **TokenManager** ❌ (Falta)
+### 7. **Servicios Avanzados** (Parcialmente documentado)
+- **EventBus** ✅ (Documentado)
+- **GloryLogger** ✅ (Documentado)
+- **AnalyticsEngine** ✅ (Documentado)
+- **BusquedaService** ✅ (Documentado)
+- **LicenseManager** ✅ (Documentado)
+- **ServidorChat** ✅ (Documentado)
+- **ManejadorGit** ✅ (Documentado)
+- **GestorCssCritico** ✅ (Documentado)
+- **LocalCriticalCss** ✅ (Documentado)
+- **QueryProfiler** ✅ (Documentado)
+- **PerformanceProfiler** ✅ (Documentado)
+- **TokenManager** ✅ (Documentado)
+- **CreditosManager** ❌ (Falta documentación - existe en código)
+- **DefaultContentSynchronizer** ❌ (Falta documentación - existe en código)
+- **PostActionManager** ❌ (Falta documentación - existe en código)
+- **MediaIntegrityService** ❌ (Falta documentación - existe en código)
+- **PostRelationHandler** ❌ (Falta documentación - existe en código)
+- **PostSyncHandler** ❌ (Falta documentación - existe en código)
+- **TermSyncHandler** ❌ (Falta documentación - existe en código)
 
 ### 8. **Integraciones** ❌ (Falta)
 - **Avada Integration** ❌ (Falta)
@@ -107,37 +118,35 @@ CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE NO REPETIR DOCUMENTACIONES; R
 - **Extensibilidad** ❌ (Falta)
 - **Mejores prácticas** ❌ (Falta)
 
-## 🚀 Plan de Implementación
+## 🚀 Plan de Implementación REVISADO
 
-### Fase 1: Revisar y mejorar existente
-1. Revisar documentación actual
-2. Mejorar estructura de navegación
-3. Actualizar ejemplos de código
+### Fase 1: ✅ COMPLETADA - Revisar y corregir plan
+1. ✅ Actualizar plan de documentación con estado real
+2. ✅ Identificar componentes faltantes en documentación
+3. ✅ Corregir porcentajes de progreso
 
-### Fase 2: Managers faltantes
-1. PostTypeManager
-2. AdminPageManager
-3. MenuManager
+### Fase 2: Componentes básicos críticos (PRIORIDAD ALTA)
+1. Documentar 8 componentes básicos faltantes:
+   - ContentRender, TermRender, BusquedaRenderer, LogoRenderer
+   - BarraFiltrosRenderer, HeaderRenderer, AutenticacionRenderer
+2. Actualizar navegación en astro.config.mjs con nuevos componentes
 
-### Fase 3: Componentes avanzados
-1. FormBuilder completo
-2. Todos los renderers
-3. Sistema de modales
+### Fase 3: Scripts UI esenciales (PRIORIDAD ALTA)
+1. Documentar scripts UI básicos (Alertas, Previsualizaciones, Pestañas, Header Adaptativo)
+2. Documentar navegación AJAX y componentes de interacción
+3. Documentar Carousel, HorizontalDrag, Toggle
 
-### Fase 4: Utilidades y servicios
-1. Utilidades faltantes
-2. Servicios avanzados
-3. Sistema de logging
+### Fase 4: Utilidades básicas (PRIORIDAD MEDIA)
+1. Documentar 4 utilidades faltantes: AssetsUtility, EmailUtility, PostUtility, UserUtility
+2. Verificar si ScheduleManager existe o eliminar referencia
 
-### Fase 5: Integraciones y administración
-1. Integraciones con builders
-2. Sistema administrativo
-3. Herramientas de desarrollo
+### Fase 5: Servicios adicionales (PRIORIDAD BAJA)
+1. Documentar 7 servicios faltantes: CreditosManager, DefaultContentSynchronizer, PostActionManager, servicios Sync/
+2. Actualizar navegación con nuevos servicios
 
-### Fase 6: API y mejores prácticas
-1. Documentación técnica
-2. Guías de desarrollo
-3. Ejemplos avanzados
+### Fase 6: Integraciones (PRIORIDAD BAJA - NO TOCAR AVADA)
+1. Documentar integraciones con Elementor (solo si existen)
+2. Documentar IntegrationsManager (si existe)
 
 ## 📁 Estructura de archivos propuesta
 
@@ -193,70 +202,84 @@ glory_docs/src/content/docs/
     └── ejemplos.mdx
 ```
 
-## ✅ Checklist de implementación
+## ✅ Checklist de implementación ACTUALIZADO
 
-### ✅ Fase 1: Revisar y mejorar existente
-- [x] Crear plan de documentación
-- [x] Revisar documentación existente (AssetManager, OpcionManager, PageManager, DefaultContentManager, GloryAjax, GloryFeatures, etc.)
-- [x] Actualizar navegación en astro.config.mjs (agregar SyncManager)
-- [x] Documentar SyncManager
-- [x] Documentar PostTypeManager
-- [x] Documentar managers faltantes: AdminPageManager, MenuManager ✅ (Revisados)
-- [x] Continuar con componentes (BadgeList, Modal, DataGridRenderer, PaginationRenderer) ✅ Completado
-- [x] Documentar utilidades faltantes ✅ (ImageUtility, TemplateRegistry)
-- [x] Documentar sistema administrativo ✅ (TaxonomyMetaManager, SeoMetabox, PageContentModeMetabox)
+### ✅ Fase 1: Revisar y corregir plan
+- [x] Crear plan de documentación inicial
+- [x] **REVISIÓN CRÍTICA**: Plan estaba completamente desactualizado
+- [x] **CORRECCIÓN**: Identificar 30+ componentes/scripts faltantes en documentación
+- [x] **ACTUALIZACIÓN**: Corregir porcentajes de progreso (de 75% a ~45%)
+- [x] **PRIORIDAD**: Reorganizar fases por criticidad real
 
-### ✅ Fase 2: Managers faltantes
-- [x] PostTypeManager ✅ Documentado
-- [x] AdminPageManager ✅ Documentado
-- [x] MenuManager ✅ Documentado
+### ❌ Fase 2: Componentes básicos críticos (PENDIENTE - PRIORIDAD ALTA)
+- [ ] ContentRender - existe en código, falta documentación
+- [ ] TermRender - existe en código, falta documentación
+- [ ] BusquedaRenderer - existe en código, falta documentación
+- [ ] LogoRenderer - existe en código, falta documentación
+- [ ] BarraFiltrosRenderer - existe en código, falta documentación
+- [ ] HeaderRenderer - existe en código, falta documentación
+- [ ] AutenticacionRenderer - existe en código, falta documentación
+- [ ] Actualizar astro.config.mjs con nuevos componentes
 
-### ✅ Fase 3: Componentes avanzados
-- [x] BadgeList ✅ Documentado
-- [x] Modal ✅ Documentado
-- [x] DataGridRenderer ✅ Documentado
-- [x] PaginationRenderer ✅ Documentado
+### ❌ Fase 3: Scripts UI esenciales (PENDIENTE - PRIORIDAD ALTA)
+- [ ] Sistema de Alertas (alertas.js existe)
+- [ ] Previsualizaciones (gestionarPreviews.js existe)
+- [ ] Pestañas y Submenús (pestanas.js, submenus.js existen)
+- [ ] Header Adaptativo (adaptiveHeader.js existe)
+- [ ] Navegación AJAX (gloryAjaxNav.js existe)
+- [ ] Carousel (glory-carousel.js existe)
+- [ ] HorizontalDrag (glory-horizontal-drag.js existe)
+- [ ] Toggle (glory-toggle.js existe)
+- [ ] Calendario (gloryCalendario.js existe)
+- [ ] Filtros (gloryFilters.js existe)
+- [ ] Date Range (gloryDateRange.js existe)
 
-### ✅ Fase 4: Servicios avanzados (12/12 completados)
-- [x] EventBus ✅ Documentado
-- [x] GloryLogger ✅ Documentado
-- [x] AnalyticsEngine ✅ Documentado
-- [x] BusquedaService ✅ Documentado
-- [x] LicenseManager ✅ Documentado
-- [x] ServidorChat ✅ Documentado
-- [x] ManejadorGit ✅ Documentado
-- [x] GestorCssCritico ✅ Documentado
-- [x] LocalCriticalCss ✅ Documentado
-- [x] QueryProfiler ✅ Documentado
-- [x] PerformanceProfiler ✅ Documentado
-- [x] TokenManager ✅ Documentado
+### ❌ Fase 4: Utilidades básicas (PENDIENTE - PRIORIDAD MEDIA)
+- [ ] AssetsUtility - existe en código, falta documentación
+- [ ] EmailUtility - existe en código, falta documentación
+- [ ] PostUtility - existe en código, falta documentación
+- [ ] UserUtility - existe en código, falta documentación
+- [ ] Verificar existencia de ScheduleManager
 
-### ✅ Fase 5: Integraciones y administración
-- [x] Sistema administrativo completo ✅ Documentado
-- [x] [NO DOCUMENTAR NADA SOBRE INTEGRACIONES] Crear sección de integraciones
+### ❌ Fase 5: Servicios adicionales (PENDIENTE - PRIORIDAD BAJA)
+- [ ] CreditosManager - existe en código
+- [ ] DefaultContentSynchronizer - existe en código
+- [ ] PostActionManager - existe en código
+- [ ] MediaIntegrityService - existe en código
+- [ ] PostRelationHandler - existe en código
+- [ ] PostSyncHandler - existe en código
+- [ ] TermSyncHandler - existe en código
 
-### ✅ Fase 6: API y mejores prácticas
-- [x] Eventos y hooks del sistema ✅ Documentado
-- [x] Extensibilidad del framework ✅ Documentado
-- [x] Guía de mejores prácticas ✅ Documentado
+### ❌ Fase 6: Integraciones (PENDIENTE - NO TOCAR AVADA)
+- [ ] Revisar si existen integraciones con Elementor
+- [ ] Documentar IntegrationsManager si existe
 
 ## 📊 Resumen del Progreso
 
-**Estado Actual**: ⚠️ **DOCUMENTACIÓN PARCIALMENTE COMPLETA - FALTAN COMPONENTES BÁSICOS**
+**Estado Actual**: ⚠️ **DOCUMENTACIÓN DESACTUALIZADA - REVISIÓN COMPLETA NECESARIA**
 
 ### Completado (100%):
 - ✅ Introducción y primeros pasos
 - ✅ Core (GloryAjax, GloryFeatures, etc.)
 - ✅ Todos los Managers principales
-- ✅ Componentes UI y Renderers
-- ✅ Utilidades
 - ✅ Sistema administrativo
 - ✅ API y desarrollo (events, hooks, extensibilidad, mejores prácticas)
+- ✅ Servicios Avanzados principales (12/12 documentados)
 
-### Servicios Avanzados (100% completados):
-- ✅ Todos los 12 servicios avanzados documentados completamente
+### Parcialmente documentado:
+- ⚠️ Componentes Reutilizables (~40% documentado - faltan 8 componentes básicos)
+- ⚠️ Scripts de UI (~10% documentado - faltan 12+ scripts)
+- ⚠️ Utilidades (~30% documentado - faltan 4 utilidades básicas)
 
-**Total documentado**: ~75% del plan original
-**Funcionalidad crítica**: 100% documentada
-**Servicios avanzados**: 100% documentados
-**Listo para desarrollo**: ⚠️ Parcialmente (faltan componentes básicos)
+### Faltante por completo:
+- ❌ 8 Componentes básicos (ContentRender, TermRender, BusquedaRenderer, LogoRenderer, BarraFiltrosRenderer, HeaderRenderer, AutenticacionRenderer)
+- ❌ 12+ Scripts UI (Alertas, Previsualizaciones, Pestañas, Header Adaptativo, Navegación AJAX, Carousel, etc.)
+- ❌ 4 Utilidades básicas (AssetsUtility, EmailUtility, PostUtility, UserUtility)
+- ❌ 7 Servicios adicionales (CreditosManager, DefaultContentSynchronizer, PostActionManager, servicios Sync/)
+- ❌ Integraciones (Avada, Elementor, etc.)
+
+**Total documentado**: ~45% del código existente
+**Funcionalidad crítica**: ~70% documentada
+**Componentes básicos**: ~40% documentados
+**Scripts UI**: ~10% documentados
+**Listo para desarrollo**: ❌ No (faltan componentes críticos y documentación básica)

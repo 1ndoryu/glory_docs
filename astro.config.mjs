@@ -96,7 +96,8 @@ export default defineConfig({
                     label: 'Desarrollo',
                     items: [
                         'desarrollo/eventos-hooks',
-                        'desarrollo/extensibilidad'
+                        'desarrollo/extensibilidad',
+                        'desarrollo/mejores-practicas'
                     ]
                 }
             ],

@@ -11,6 +11,8 @@ Antes de continuar con el resto de tareas, necesito que en la introduccion exist
 
 Glory tendra un contructor que todavía no esta listo, solo para tener en cuenta, gbn no se documenta todavía porque se esta iniciando. 
 
+CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE REPETIR DOCUMENTACIONES; REVISA SI HAY ALGO MAL DOCUMENTADO O REPETIDO Y CORRIGE
+
 ## 📋 Estructura Actual de glory_docs
 - **Introducción**: Bienvenida básica
 - **Core**: Features, AJAX, Realtime

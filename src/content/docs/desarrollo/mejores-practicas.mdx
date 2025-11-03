@@ -1,0 +1,851 @@
+---
+title: Mejores Prácticas
+description: Guía completa de mejores prácticas para desarrollar con Glory Framework
+sidebar:
+  label: Mejores Prácticas
+  order: 3
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# Mejores Prácticas en Glory Framework
+
+Esta guía recopila las mejores prácticas esenciales para desarrollar proyectos con Glory Framework. Siguiendo estas recomendaciones asegurarás código mantenible, performante y compatible con el ecosistema de Glory.
+
+## Arquitectura y Diseño
+
+### 1. Mantén el Agnosticismo del Núcleo
+
+**Principio fundamental**: Glory debe permanecer agnóstico a tu proyecto específico.
+
+```php
+// ✅ Correcto: Lógica específica en el tema
+class MiTemaPostTypeManager
+{
+    public static function register()
+    {
+        register_post_type('mi_contenido_personalizado', [
+            'labels' => ['name' => 'Mi Contenido'],
+            'public' => true,
+            // Configuración específica del proyecto
+        ]);
+    }
+}
+
+// ❌ Incorrecto: Lógica específica en Glory
+// NO agregues lógica de tu proyecto al núcleo de Glory
+```
+
+### 2. Usa la Capa de Abstracción Correcta
+
+```php
+// ✅ Usa el nivel apropiado para cada tipo de funcionalidad
+
+// Managers para lógica de negocio compleja
+class MiManagerDeContenido extends GloryManagerBase
+{
+    // Lógica compleja de manejo de contenido
+}
+
+// Servicios para operaciones utilitarias
+class MiServicioDeUtilidades
+{
+    public static function formatearFecha($fecha)
+    {
+        return date_i18n('j \d\e F \d\e Y', strtotime($fecha));
+    }
+}
+
+// Funciones helpers en functions.php
+function mi_helper_personalizado($param)
+{
+    return sanitize_text_field($param) . '_procesado';
+}
+```
+
+### 3. Implementa Interfaces para Contratos
+
+```php
+interface MiProveedorDeDatosInterface
+{
+    public function obtenerDatos(): array;
+    public function validarDatos(array $datos): bool;
+    public function guardarDatos(array $datos): bool;
+}
+
+class MiProveedorDeDatos implements MiProveedorDeDatosInterface
+{
+    // Implementación específica pero contractualmente compatible
+}
+```
+
+## Gestión de Assets
+
+### 4. Organiza Assets Lógicamente
+
+```php
+// ✅ Estructura recomendada de assets
+AssetManager::defineFolder('components/', [
+    'deps' => ['jquery', 'glory-core'],
+    'area' => 'frontend',
+    'defer' => true
+]);
+
+AssetManager::defineFolder('admin/', [
+    'area' => 'admin',
+    'deps' => ['wp-admin']
+]);
+```
+
+### 5. Optimiza la Carga de Assets
+
+```php
+// ✅ Carga condicional de assets
+add_action('wp_enqueue_scripts', function() {
+    // Solo cargar en páginas específicas
+    if (is_page('mi-pagina-especial')) {
+        AssetManager::enqueue('mi-script-especial');
+    }
+
+    // Carga condicional basada en features
+    if (GloryFeatures::isActive('miFeature')) {
+        AssetManager::enqueue('mi-feature-script');
+    }
+});
+```
+
+### 6. Usa Versionado Adecuado
+
+```php
+// ✅ Versionado automático
+AssetManager::define('script', 'mi-script', '/js/mi-script.js', [
+    'ver' => filemtime(get_template_directory() . '/assets/js/mi-script.js'),
+    'area' => 'frontend'
+]);
+```
+
+## Manejo de Datos y AJAX
+
+### 7. Valida y Sanitiza Siempre
+
+```php
+add_action('wp_ajax_mi_accion', 'procesar_mi_accion');
+
+function procesar_mi_accion()
+{
+    // ✅ Validación completa
+    if (!wp_verify_nonce($_POST['nonce'], 'mi_accion_nonce')) {
+        wp_send_json_error(['mensaje' => 'Nonce inválido']);
+        return;
+    }
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['mensaje' => 'Permisos insuficientes']);
+        return;
+    }
+
+    // ✅ Sanitización de datos
+    $user_id = intval($_POST['user_id'] ?? 0);
+    $accion = sanitize_text_field($_POST['accion'] ?? '');
+    $datos = sanitize_textarea_field($_POST['datos'] ?? '');
+
+    // Procesar datos seguros
+    $resultado = procesar_datos_seguros($user_id, $accion, $datos);
+
+    wp_send_json_success($resultado);
+}
+```
+
+### 8. Maneja Errores Robuestamente
+
+```php
+function procesar_con_manejo_errores($datos)
+{
+    try {
+        // Validar entrada
+        $this->validar_datos_entrada($datos);
+
+        // Procesar
+        $resultado = $this->procesar_datos($datos);
+
+        // Validar salida
+        $this->validar_datos_salida($resultado);
+
+        // Loggear éxito
+        GloryLogger::info('Procesamiento exitoso', [
+            'tipo_datos' => gettype($datos),
+            'timestamp' => time()
+        ]);
+
+        return $resultado;
+
+    } catch (Exception $e) {
+        // Loggear error con contexto
+        GloryLogger::error('Error en procesamiento', [
+            'error' => $e->getMessage(),
+            'datos_entrada' => $datos,
+            'trace' => $e->getTraceAsString(),
+            'usuario' => get_current_user_id(),
+            'url' => $_SERVER['REQUEST_URI'] ?? ''
+        ]);
+
+        // Re-lanzar o manejar según contexto
+        throw new Exception('Error interno del sistema');
+    }
+}
+```
+
+### 9. Implementa Rate Limiting
+
+```php
+class RateLimiter
+{
+    private static function get_key($accion, $usuario_id = null)
+    {
+        $usuario_id = $usuario_id ?? get_current_user_id();
+        return "rate_limit_{$accion}_{$usuario_id}";
+    }
+
+    public static function check($accion, $limite = 10, $ventana = 60)
+    {
+        $key = self::get_key($accion);
+
+        $intentos = get_transient($key) ?: 0;
+
+        if ($intentos >= $limite) {
+            GloryLogger::warning('Rate limit excedido', [
+                'accion' => $accion,
+                'intentos' => $intentos,
+                'limite' => $limite
+            ]);
+            return false;
+        }
+
+        set_transient($key, $intentos + 1, $ventana);
+        return true;
+    }
+}
+
+// Uso en AJAX
+function mi_handler_ajax()
+{
+    if (!RateLimiter::check('mi_accion', 5, 300)) { // 5 por 5 minutos
+        wp_send_json_error(['mensaje' => 'Demasiadas solicitudes. Intenta más tarde.']);
+        return;
+    }
+
+    // Procesar normalmente
+}
+```
+
+## Sistema de Logs
+
+### 10. Loggea Estratégicamente
+
+```php
+class MiServicio
+{
+    public function procesarImportante($datos)
+    {
+        GloryLogger::info('Iniciando procesamiento importante', [
+            'tipo_datos' => gettype($datos),
+            'cantidad' => is_array($datos) ? count($datos) : 1,
+            'usuario' => get_current_user_id()
+        ]);
+
+        $resultado = $this->procesar($datos);
+
+        GloryLogger::info('Procesamiento completado exitosamente', [
+            'resultado_tipo' => gettype($resultado),
+            'tiempo_procesamiento' => $this->calcular_tiempo_procesamiento()
+        ]);
+
+        return $resultado;
+    }
+
+    public function procesarConError($datos)
+    {
+        try {
+            return $this->procesar($datos);
+        } catch (Exception $e) {
+            GloryLogger::error('Error en procesamiento', [
+                'error' => $e->getMessage(),
+                'datos' => $datos,
+                'usuario' => get_current_user_id(),
+                'session_id' => session_id()
+            ]);
+
+            throw $e;
+        }
+    }
+}
+```
+
+### 11. Evita Logs Excesivos en Producción
+
+```php
+// ✅ Logs condicionales por entorno
+if (WP_DEBUG) {
+    GloryLogger::info('Debug information', $debug_data);
+}
+
+// ✅ O usando niveles de log
+GloryLogger::setNivelMinimoGuardado(
+    WP_DEBUG ? GloryLogger::NIVEL_INFO : GloryLogger::NIVEL_ERROR
+);
+```
+
+## Gestión de Opciones
+
+### 12. Organiza Opciones Lógicamente
+
+```php
+// ✅ Agrupa opciones relacionadas
+OpcionManager::registrar('mi_plugin_config_general', [
+    'tipo' => 'object',
+    'titulo' => 'Configuración General',
+    'campos' => [
+        'activo' => ['tipo' => 'boolean', 'titulo' => 'Activar plugin'],
+        'titulo' => ['tipo' => 'text', 'titulo' => 'Título principal'],
+        'descripcion' => ['tipo' => 'textarea', 'titulo' => 'Descripción']
+    ]
+]);
+
+OpcionManager::registrar('mi_plugin_config_avanzada', [
+    'tipo' => 'object',
+    'titulo' => 'Configuración Avanzada',
+    'campos' => [
+        'debug_mode' => ['tipo' => 'boolean', 'titulo' => 'Modo debug'],
+        'cache_ttl' => ['tipo' => 'number', 'titulo' => 'TTL del cache']
+    ]
+]);
+```
+
+### 13. Valida Opciones
+
+```php
+OpcionManager::registrar('mi_opcion_validada', [
+    'tipo' => 'select',
+    'titulo' => 'Opción Validada',
+    'opciones' => ['valor1', 'valor2', 'valor3'],
+    'validacion' => function($valor) {
+        return in_array($valor, ['valor1', 'valor2', 'valor3']);
+    },
+    'default' => 'valor1'
+]);
+```
+
+## EventBus y Eventos
+
+### 14. Usa Canales Descriptivos
+
+```php
+// ✅ Canales bien nombrados
+EventBus::emit('usuario_perfil_actualizado', [
+    'user_id' => $user_id,
+    'campos_actualizados' => ['email', 'telefono']
+]);
+
+EventBus::emit('pedido_estado_cambiado', [
+    'pedido_id' => $pedido_id,
+    'estado_anterior' => 'pendiente',
+    'estado_nuevo' => 'procesando'
+]);
+
+// ❌ Canales genéricos
+EventBus::emit('cambio', ['id' => 123]); // ¿Qué cambió?
+```
+
+### 15. Maneja Versiones de Eventos
+
+```php
+function verificar_cambios_usuario()
+{
+    $versiones = EventBus::getVersions(['usuario_perfil_actualizado']);
+
+    $ultima_version_vista = get_user_meta(get_current_user_id(), 'ultima_version_perfil', true);
+
+    if ($versiones['usuario_perfil_actualizado']['version'] > $ultima_version_vista) {
+        // Recargar datos del perfil
+        actualizar_datos_perfil();
+
+        // Actualizar versión vista
+        update_user_meta(get_current_user_id(), 'ultima_version_perfil',
+            $versiones['usuario_perfil_actualizado']['version']);
+    }
+}
+```
+
+## Renderers y Components
+
+### 16. Extiende en lugar de Reemplazar
+
+```php
+class MiContentRenderPersonalizado extends ContentRender
+{
+    protected function get_default_args()
+    {
+        return array_merge(parent::get_default_args(), [
+            'mi_opcion_personalizada' => 'valor_default'
+        ]);
+    }
+
+    protected function render_contenido($args)
+    {
+        // Usar lógica padre para funcionalidad estándar
+        $contenido_padre = parent::render_contenido($args);
+
+        // Agregar personalización
+        return $this->agregar_personalizacion($contenido_padre, $args);
+    }
+}
+```
+
+### 17. Cachea Resultados Costosos
+
+```php
+class MiRendererConCache extends ContentRender
+{
+    public function render($args = [])
+    {
+        $cache_key = 'mi_renderer_' . md5(serialize($args));
+
+        $resultado = wp_cache_get($cache_key, 'mi_renderer');
+
+        if ($resultado === false) {
+            $resultado = parent::render($args);
+            wp_cache_set($cache_key, $resultado, 'mi_renderer', HOUR_IN_SECONDS);
+        }
+
+        return $resultado;
+    }
+}
+```
+
+## Base de Datos
+
+### 18. Usa Prepared Statements
+
+```php
+global $wpdb;
+
+$usuario_id = intval($_POST['usuario_id']);
+$estado = sanitize_text_field($_POST['estado']);
+
+// ✅ Prepared statement seguro
+$resultado = $wpdb->get_row(
+    $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}mi_tabla WHERE usuario_id = %d AND estado = %s",
+        $usuario_id,
+        $estado
+    )
+);
+```
+
+### 19. Implementa Transacciones para Operaciones Complejas
+
+```php
+global $wpdb;
+
+function procesar_pedido_complejo($pedido_data)
+{
+    $wpdb->query('START TRANSACTION');
+
+    try {
+        // Insertar pedido
+        $pedido_id = $wpdb->insert(
+            $wpdb->prefix . 'pedidos',
+            ['usuario_id' => $pedido_data['usuario_id'], 'total' => $pedido_data['total']]
+        );
+
+        // Insertar items del pedido
+        foreach ($pedido_data['items'] as $item) {
+            $wpdb->insert(
+                $wpdb->prefix . 'pedido_items',
+                [
+                    'pedido_id' => $pedido_id,
+                    'producto_id' => $item['producto_id'],
+                    'cantidad' => $item['cantidad']
+                ]
+            );
+        }
+
+        // Actualizar inventario
+        foreach ($pedido_data['items'] as $item) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$wpdb->prefix}productos SET stock = stock - %d WHERE id = %d",
+                    $item['cantidad'],
+                    $item['producto_id']
+                )
+            );
+        }
+
+        $wpdb->query('COMMIT');
+
+        GloryLogger::info('Pedido procesado exitosamente', [
+            'pedido_id' => $pedido_id,
+            'total' => $pedido_data['total']
+        ]);
+
+        return $pedido_id;
+
+    } catch (Exception $e) {
+        $wpdb->query('ROLLBACK');
+
+        GloryLogger::error('Error procesando pedido', [
+            'error' => $e->getMessage(),
+            'pedido_data' => $pedido_data
+        ]);
+
+        throw $e;
+    }
+}
+```
+
+## Performance
+
+### 20. Optimiza Queries
+
+```php
+// ✅ Query optimizada con índices apropiados
+$query = new WP_Query([
+    'post_type' => 'producto',
+    'posts_per_page' => 12,
+    'meta_query' => [
+        [
+            'key' => 'precio',
+            'value' => [100, 500],
+            'type' => 'NUMERIC',
+            'compare' => 'BETWEEN'
+        ]
+    ],
+    'tax_query' => [
+        [
+            'taxonomy' => 'categoria',
+            'field' => 'slug',
+            'terms' => 'electronica'
+        ]
+    ]
+]);
+```
+
+### 21. Usa Caching Estratégicamente
+
+```php
+class MiServicioConCache
+{
+    private static function get_cache_key($params)
+    {
+        return 'mi_servicio_' . md5(serialize($params));
+    }
+
+    public function obtener_datos($params)
+    {
+        $cache_key = self::get_cache_key($params);
+
+        $datos = wp_cache_get($cache_key, 'mi_servicio');
+
+        if ($datos === false) {
+            $datos = $this->consultar_base_datos($params);
+
+            // Cache por 1 hora
+            wp_cache_set($cache_key, $datos, 'mi_servicio', HOUR_IN_SECONDS);
+
+            GloryLogger::info('Datos cacheados', [
+                'cache_key' => $cache_key,
+                'params' => $params
+            ]);
+        }
+
+        return $datos;
+    }
+
+    public function invalidar_cache($params)
+    {
+        $cache_key = self::get_cache_key($params);
+        wp_cache_delete($cache_key, 'mi_servicio');
+
+        EventBus::emit('mi_servicio_cache_invalidado', [
+            'cache_key' => $cache_key,
+            'params' => $params
+        ]);
+    }
+}
+```
+
+## Seguridad
+
+### 22. Implementa Nonces en Todas las Formas
+
+```php
+function renderizar_formulario_seguro()
+{
+    ob_start();
+    ?>
+    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+        <?php wp_nonce_field('mi_accion_segura', 'mi_nonce'); ?>
+        <input type="hidden" name="action" value="mi_accion_segura">
+
+        <!-- Campos del formulario -->
+
+        <button type="submit">Enviar</button>
+    </form>
+    <?php
+    return ob_get_clean();
+}
+
+add_action('admin_post_mi_accion_segura', 'procesar_formulario_seguro');
+add_action('admin_post_nopriv_mi_accion_segura', 'procesar_formulario_seguro');
+
+function procesar_formulario_seguro()
+{
+    if (!wp_verify_nonce($_POST['mi_nonce'], 'mi_accion_segura')) {
+        wp_die('Acceso no autorizado');
+    }
+
+    // Procesar formulario seguro
+}
+```
+
+### 23. Escapa Todo el Output
+
+```php
+function renderizar_datos_seguros($datos)
+{
+    ?>
+    <div class="mi-contenedor">
+        <h2><?php echo esc_html($datos['titulo']); ?></h2>
+        <p><?php echo esc_html($datos['descripcion']); ?></p>
+        <div><?php echo wp_kses_post($datos['contenido_html']); ?></div>
+        <a href="<?php echo esc_url($datos['enlace']); ?>">
+            <?php echo esc_html($datos['texto_enlace']); ?>
+        </a>
+    </div>
+    <?php
+}
+```
+
+### 24. Valida Permisos Apropiadamente
+
+```php
+function operacion_administrativa()
+{
+    // Verificar usuario logueado
+    if (!is_user_logged_in()) {
+        wp_die('Debes estar logueado para realizar esta acción');
+    }
+
+    // Verificar capacidades específicas
+    if (!current_user_can('manage_options')) {
+        wp_die('No tienes permisos suficientes');
+    }
+
+    // Verificar permisos específicos del objeto
+    $post_id = intval($_POST['post_id']);
+    if (!current_user_can('edit_post', $post_id)) {
+        wp_die('No puedes editar este contenido');
+    }
+
+    // Proceder con la operación
+}
+```
+
+## Testing y Debugging
+
+### 25. Escribe Tests para Funcionalidad Crítica
+
+```php
+class TestMiFuncionalidad extends WP_UnitTestCase
+{
+    public function test_procesamiento_basico()
+    {
+        $servicio = new MiServicio();
+        $datos = ['campo' => 'valor'];
+
+        $resultado = $servicio->procesar($datos);
+
+        $this->assertIsArray($resultado);
+        $this->assertArrayHasKey('exito', $resultado);
+        $this->assertTrue($resultado['exito']);
+    }
+
+    public function test_validacion_datos_invalidos()
+    {
+        $servicio = new MiServicio();
+
+        $this->expectException(Exception::class);
+        $servicio->procesar(['campo_invalido' => 'valor_invalido']);
+    }
+
+    public function test_integracion_con_wp_query()
+    {
+        // Crear post de prueba
+        $post_id = $this->factory->post->create([
+            'post_title' => 'Post de prueba',
+            'post_type' => 'mi_post_type'
+        ]);
+
+        // Probar funcionalidad
+        $resultados = MiServicio::buscar_posts(['s' => 'prueba']);
+
+        $this->assertContains($post_id, wp_list_pluck($resultados, 'ID'));
+    }
+}
+```
+
+### 26. Implementa Debugging Estructurado
+
+```php
+class MiServicioConDebug
+{
+    private $debug_mode = false;
+
+    public function __construct()
+    {
+        $this->debug_mode = defined('WP_DEBUG') && WP_DEBUG;
+    }
+
+    public function procesar_con_debug($datos)
+    {
+        if ($this->debug_mode) {
+            GloryLogger::info('Iniciando procesamiento con debug', [
+                'datos_entrada' => $datos,
+                'timestamp' => microtime(true),
+                'memoria_inicio' => memory_get_usage()
+            ]);
+        }
+
+        $resultado = $this->procesar($datos);
+
+        if ($this->debug_mode) {
+            GloryLogger::info('Procesamiento completado', [
+                'resultado' => $resultado,
+                'tiempo_total' => microtime(true) - $timestamp,
+                'memoria_fin' => memory_get_usage(),
+                'memoria_usada' => memory_get_usage() - $memoria_inicio
+            ]);
+        }
+
+        return $resultado;
+    }
+}
+```
+
+## Mantenimiento y Escalabilidad
+
+### 27. Planifica para el Crecimiento
+
+```php
+// ✅ Arquitectura escalable
+interface MiServicioInterface
+{
+    public function procesar($datos);
+    public function get_estadisticas();
+    public function limpiar_cache();
+}
+
+class MiServicioBase implements MiServicioInterface
+{
+    // Implementación básica
+}
+
+class MiServicioAvanzado extends MiServicioBase
+{
+    // Funcionalidad adicional sin romper compatibilidad
+}
+```
+
+### 28. Implementa Health Checks
+
+```php
+add_action('wp_ajax_glory_health_check', 'realizar_health_check');
+
+function realizar_health_check()
+{
+    $checks = [];
+
+    // Verificar conexión a base de datos
+    $checks['database'] = realizar_check_database();
+
+    // Verificar sistema de archivos
+    $checks['filesystem'] = realizar_check_filesystem();
+
+    // Verificar servicios externos
+    $checks['external_services'] = realizar_check_servicios_externos();
+
+    // Verificar memoria y recursos
+    $checks['system_resources'] = realizar_check_recursos_sistema();
+
+    $estado_general = array_reduce($checks, function($carry, $check) {
+        return $carry && ($check['status'] === 'ok');
+    }, true);
+
+    $respuesta = [
+        'status' => $estado_general ? 'healthy' : 'unhealthy',
+        'checks' => $checks,
+        'timestamp' => time()
+    ];
+
+    GloryLogger::info('Health check ejecutado', $respuesta);
+
+    wp_send_json($respuesta);
+}
+
+function realizar_check_database()
+{
+    global $wpdb;
+
+    $inicio = microtime(true);
+    $resultado = $wpdb->get_var("SELECT 1");
+    $tiempo = microtime(true) - $inicio;
+
+    return [
+        'status' => $resultado === '1' ? 'ok' : 'error',
+        'response_time' => round($tiempo * 1000, 2) . 'ms',
+        'message' => $resultado === '1' ? 'Conexión exitosa' : 'Error de conexión'
+    ];
+}
+```
+
+### 29. Documenta tu Código
+
+```php
+/**
+ * Mi Servicio Personalizado
+ *
+ * Procesa datos de formulario con validación avanzada y logging completo.
+ *
+ * @package MiTema\Services
+ * @version 1.2.0
+ * @since 1.0.0
+ *
+ * Uso básico:
+ * ```php
+ * $servicio = new MiServicioPersonalizado();
+ * $resultado = $servicio->procesar($datos);
+ * ```
+ *
+ * @param array $datos Datos a procesar
+ * @return array Resultado del procesamiento
+ * @throws Exception Cuando los datos son inválidos
+ */
+class MiServicioPersonalizado
+{
+    /**
+     * Procesa los datos proporcionados
+     *
+     * @param array $datos
+     * @return array
+     * @throws InvalidArgumentException
+     */
+    public function procesar(array $datos): array
+    {
+        // Implementación documentada
+    }
+}
+```
+
+<Aside type="caution">
+Estas mejores prácticas son fundamentales para mantener proyectos Glory escalables, seguros y mantenibles. No son reglas rígidas, pero sí recomendaciones probadas que ayudan a evitar problemas comunes en desarrollo WordPress.
+</Aside>

@@ -17,7 +17,8 @@ export default defineConfig({
                         'introduccion/instalacion',
                         'introduccion/primeros-pasos',
                         'introduccion/como-crear-paginas',
-                        'introduccion/como-usar-componentes'
+                        'introduccion/como-usar-componentes',
+                        'introduccion/como-crear-componentes'
                     ]
                 },
                 {

@@ -1,0 +1,913 @@
+---
+title: Cómo Crear Componentes
+description: Guía para crear componentes reutilizables personalizados en Glory Framework
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+# 🛠️ Cómo Crear Nuevos Componentes en Glory
+
+Glory está diseñado para ser extensible. Puedes crear tus propios componentes reutilizables que sigan las mismas convenciones y se integren perfectamente con el framework.
+
+## 🏗️ Arquitectura de Componentes
+
+### Estructura de un Componente
+
+Los componentes de Glory siguen un patrón consistente:
+
+```
+Glory/src/Components/
+├── TuComponente.php          # Clase principal del componente
+├── TuComponente/
+│   ├── assets/              # CSS y JS específicos
+│   └── templates/           # Plantillas si es necesario
+└── ...
+```
+
+### Tipos de Componentes
+
+1. **Renderers**: Componentes que muestran datos (ContentRender, TermRender)
+2. **UI Components**: Elementos de interfaz (FormBuilder, Modal)
+3. **Utilities**: Herramientas específicas (EmailUtility, AssetsUtility)
+4. **Managers**: Gestores de funcionalidad (AssetManager, OpcionManager)
+
+## 🚀 Crear tu Primer Componente
+
+Vamos a crear un componente `TestimonialSlider` para mostrar testimonios de clientes.
+
+### Paso 1: Crear la Clase del Componente
+
+Crea `Glory/src/Components/TestimonialSlider.php`:
+
+```php
+<?php
+namespace Glory\Components;
+
+class TestimonialSlider
+{
+    /**
+     * Renderiza el slider de testimonios
+     *
+     * @param array $args Configuración del slider
+     * @return string HTML del componente
+     */
+    public static function render($args = [])
+    {
+        // Configuración por defecto
+        $defaults = [
+            'testimonios' => [],
+            'autoplay' => true,
+            'intervalo' => 5000,
+            'mostrar_puntos' => true,
+            'mostrar_flechas' => true,
+            'clase_personalizada' => ''
+        ];
+
+        $config = array_merge($defaults, $args);
+
+        // Validar datos
+        if (empty($config['testimonios'])) {
+            return self::renderError('No hay testimonios para mostrar');
+        }
+
+        // Generar HTML
+        return self::renderHTML($config);
+    }
+
+    /**
+     * Método auxiliar para renderizar HTML
+     */
+    private static function renderHTML($config)
+    {
+        $idUnico = 'testimonial-slider-' . uniqid();
+
+        ob_start();
+        ?>
+        <div id="<?php echo esc_attr($idUnico); ?>"
+             class="glory-testimonial-slider <?php echo esc_attr($config['clase_personalizada']); ?>">
+
+            <div class="testimonials-container">
+                <?php foreach ($config['testimonios'] as $index => $testimonio): ?>
+                    <div class="testimonial-item <?php echo $index === 0 ? 'active' : ''; ?>"
+                         data-index="<?php echo $index; ?>">
+
+                        <div class="testimonial-content">
+                            <?php if (!empty($testimonio['imagen'])): ?>
+                                <img src="<?php echo esc_url($testimonio['imagen']); ?>"
+                                     alt="<?php echo esc_attr($testimonio['nombre']); ?>"
+                                     class="testimonial-avatar">
+                            <?php endif; ?>
+
+                            <blockquote class="testimonial-quote">
+                                <?php echo wp_kses_post($testimonio['texto']); ?>
+                            </blockquote>
+
+                            <cite class="testimonial-author">
+                                <span class="author-name"><?php echo esc_html($testimonio['nombre']); ?></span>
+                                <?php if (!empty($testimonio['cargo'])): ?>
+                                    <span class="author-position"><?php echo esc_html($testimonio['cargo']); ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($testimonio['empresa'])): ?>
+                                    <span class="author-company"><?php echo esc_html($testimonio['empresa']); ?></span>
+                                <?php endif; ?>
+                            </cite>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if ($config['mostrar_flechas']): ?>
+                <button class="slider-arrow prev-arrow" aria-label="Anterior">&larr;</button>
+                <button class="slider-arrow next-arrow" aria-label="Siguiente">&rarr;</button>
+            <?php endif; ?>
+
+            <?php if ($config['mostrar_puntos']): ?>
+                <div class="slider-dots">
+                    <?php for ($i = 0; $i < count($config['testimonios']); $i++): ?>
+                        <button class="slider-dot <?php echo $i === 0 ? 'active' : ''; ?>"
+                                data-slide="<?php echo $i; ?>"></button>
+                    <?php endfor; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            GloryTestimonialSlider.init('<?php echo $idUnico; ?>', {
+                autoplay: <?php echo $config['autoplay'] ? 'true' : 'false'; ?>,
+                intervalo: <?php echo (int)$config['intervalo']; ?>
+            });
+        });
+        </script>
+        <?php
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Renderiza mensaje de error
+     */
+    private static function renderError($mensaje)
+    {
+        return '<div class="glory-component-error">' . esc_html($mensaje) . '</div>';
+    }
+
+    /**
+     * Método estático para uso simplificado
+     */
+    public static function print($args = [])
+    {
+        echo self::render($args);
+    }
+}
+```
+
+### Paso 2: Crear los Assets (CSS y JS)
+
+Crea `Glory/src/Components/TestimonialSlider/assets/style.css`:
+
+```css
+/* Testimonial Slider Styles */
+.glory-testimonial-slider {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.testimonials-container {
+    position: relative;
+    height: 300px;
+}
+
+.testimonial-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.5s ease;
+}
+
+.testimonial-item.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.testimonial-item.prev {
+    transform: translateX(-100%);
+}
+
+/* Contenido del testimonio */
+.testimonial-content {
+    padding: 40px;
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.testimonial-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    border: 4px solid #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.testimonial-quote {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #555;
+    margin-bottom: 30px;
+    font-style: italic;
+    position: relative;
+}
+
+.testimonial-quote:before,
+.testimonial-quote:after {
+    content: '"';
+    font-size: 60px;
+    color: #e74c3c;
+    position: absolute;
+    top: -20px;
+    left: -20px;
+}
+
+.testimonial-quote:after {
+    content: '"';
+    top: auto;
+    bottom: -40px;
+    left: auto;
+    right: -20px;
+}
+
+.testimonial-author {
+    display: block;
+}
+
+.author-name {
+    display: block;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.author-position,
+.author-company {
+    display: block;
+    font-size: 14px;
+    color: #777;
+}
+
+/* Flechas de navegación */
+.slider-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    color: #333;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.slider-arrow:hover {
+    background: #fff;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.prev-arrow {
+    left: 20px;
+}
+
+.next-arrow {
+    right: 20px;
+}
+
+/* Puntos indicadores */
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+}
+
+.slider-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.slider-dot.active {
+    background: #e74c3c;
+}
+
+.slider-dot:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .testimonial-content {
+        padding: 20px;
+    }
+
+    .testimonial-quote {
+        font-size: 16px;
+    }
+
+    .testimonial-avatar {
+        width: 60px;
+        height: 60px;
+    }
+
+    .slider-arrow {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    .prev-arrow {
+        left: 10px;
+    }
+
+    .next-arrow {
+        right: 10px;
+    }
+}
+```
+
+Crea `Glory/src/Components/TestimonialSlider/assets/script.js`:
+
+```javascript
+/**
+ * Glory Testimonial Slider
+ * Componente JavaScript para el slider de testimonios
+ */
+window.GloryTestimonialSlider = {
+
+    instances: {},
+
+    /**
+     * Inicializa un slider específico
+     */
+    init: function(containerId, options) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const defaults = {
+            autoplay: true,
+            intervalo: 5000,
+            currentSlide: 0
+        };
+
+        const config = Object.assign({}, defaults, options);
+        config.container = container;
+        config.slides = container.querySelectorAll('.testimonial-item');
+        config.dots = container.querySelectorAll('.slider-dot');
+        config.totalSlides = config.slides.length;
+
+        this.instances[containerId] = config;
+
+        this.setupEventListeners(containerId);
+        this.showSlide(containerId, 0);
+
+        if (config.autoplay) {
+            this.startAutoplay(containerId);
+        }
+    },
+
+    /**
+     * Configura los event listeners
+     */
+    setupEventListeners: function(containerId) {
+        const config = this.instances[containerId];
+        const container = config.container;
+
+        // Flechas
+        const prevArrow = container.querySelector('.prev-arrow');
+        const nextArrow = container.querySelector('.next-arrow');
+
+        if (prevArrow) {
+            prevArrow.addEventListener('click', () => {
+                this.prevSlide(containerId);
+            });
+        }
+
+        if (nextArrow) {
+            nextArrow.addEventListener('click', () => {
+                this.nextSlide(containerId);
+            });
+        }
+
+        // Puntos
+        config.dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                this.goToSlide(containerId, index);
+            });
+        });
+
+        // Pausar autoplay en hover
+        container.addEventListener('mouseenter', () => {
+            this.pauseAutoplay(containerId);
+        });
+
+        container.addEventListener('mouseleave', () => {
+            if (config.autoplay) {
+                this.startAutoplay(containerId);
+            }
+        });
+    },
+
+    /**
+     * Muestra un slide específico
+     */
+    showSlide: function(containerId, slideIndex) {
+        const config = this.instances[containerId];
+
+        // Ocultar todos los slides
+        config.slides.forEach(slide => {
+            slide.classList.remove('active', 'prev');
+        });
+
+        // Actualizar puntos
+        config.dots.forEach(dot => {
+            dot.classList.remove('active');
+        });
+
+        // Mostrar slide actual
+        config.slides[slideIndex].classList.add('active');
+        config.dots[slideIndex].classList.add('active');
+
+        config.currentSlide = slideIndex;
+    },
+
+    /**
+     * Va al slide siguiente
+     */
+    nextSlide: function(containerId) {
+        const config = this.instances[containerId];
+        const nextSlide = (config.currentSlide + 1) % config.totalSlides;
+        this.goToSlide(containerId, nextSlide);
+    },
+
+    /**
+     * Va al slide anterior
+     */
+    prevSlide: function(containerId) {
+        const config = this.instances[containerId];
+        const prevSlide = config.currentSlide === 0 ?
+            config.totalSlides - 1 : config.currentSlide - 1;
+        this.goToSlide(containerId, prevSlide);
+    },
+
+    /**
+     * Va a un slide específico
+     */
+    goToSlide: function(containerId, slideIndex) {
+        this.showSlide(containerId, slideIndex);
+
+        // Reiniciar autoplay
+        if (this.instances[containerId].autoplay) {
+            this.restartAutoplay(containerId);
+        }
+    },
+
+    /**
+     * Inicia el autoplay
+     */
+    startAutoplay: function(containerId) {
+        const config = this.instances[containerId];
+
+        if (config.autoplayInterval) {
+            clearInterval(config.autoplayInterval);
+        }
+
+        config.autoplayInterval = setInterval(() => {
+            this.nextSlide(containerId);
+        }, config.intervalo);
+    },
+
+    /**
+     * Pausa el autoplay
+     */
+    pauseAutoplay: function(containerId) {
+        const config = this.instances[containerId];
+
+        if (config.autoplayInterval) {
+            clearInterval(config.autoplayInterval);
+            config.autoplayInterval = null;
+        }
+    },
+
+    /**
+     * Reinicia el autoplay
+     */
+    restartAutoplay: function(containerId) {
+        this.pauseAutoplay(containerId);
+        this.startAutoplay(containerId);
+    }
+};
+```
+
+### Paso 3: Registrar el Componente
+
+En `Glory/src/Core/Setup.php`, añade el registro:
+
+```php
+<?php
+// Dentro de la clase Setup
+public function __construct() {
+    // ... otros registros ...
+
+    // Registrar assets del componente TestimonialSlider
+    AssetManager::define(
+        'style',
+        'glory-testimonial-slider',
+        '/Glory/src/Components/TestimonialSlider/assets/style.css',
+        ['area' => 'frontend']
+    );
+
+    AssetManager::define(
+        'script',
+        'glory-testimonial-slider',
+        '/Glory/src/Components/TestimonialSlider/assets/script.js',
+        [
+            'deps' => ['jquery'],
+            'in_footer' => true,
+            'area' => 'frontend'
+        ]
+    );
+}
+```
+
+### Paso 4: Usar el Componente
+
+En tus templates:
+
+```php
+<?php
+use Glory\Components\TestimonialSlider;
+
+// Datos de ejemplo
+$testimonios = [
+    [
+        'texto' => 'Excelente servicio y productos de calidad. Muy recomendado.',
+        'nombre' => 'María García',
+        'cargo' => 'Directora de Marketing',
+        'empresa' => 'TechCorp',
+        'imagen' => '/assets/images/maria-garcia.jpg'
+    ],
+    [
+        'texto' => 'La atención al cliente es excepcional. Siempre dispuestos a ayudar.',
+        'nombre' => 'Carlos Rodríguez',
+        'cargo' => 'CEO',
+        'empresa' => 'InnovateLab',
+        'imagen' => '/assets/images/carlos-rodriguez.jpg'
+    ],
+    [
+        'texto' => 'Productos innovadores que han transformado nuestro negocio.',
+        'nombre' => 'Ana López',
+        'cargo' => 'Gerente de Producto',
+        'empresa' => 'FutureTech',
+        'imagen' => '/assets/images/ana-lopez.jpg'
+    ]
+];
+
+// Renderizar el slider
+TestimonialSlider::print([
+    'testimonios' => $testimonios,
+    'autoplay' => true,
+    'intervalo' => 4000,
+    'clase_personalizada' => 'slider-clientes'
+]);
+?>
+```
+
+## 🏭 Patrón Factory para Componentes Complejos
+
+Para componentes más complejos, usa el patrón Factory:
+
+```php
+<?php
+namespace Glory\Components;
+
+class NotificationManager
+{
+    private static $instances = [];
+
+    /**
+     * Crea una instancia de notificación
+     */
+    public static function create($tipo, $config = [])
+    {
+        $className = 'Glory\\Components\\Notifications\\' . ucfirst($tipo) . 'Notification';
+
+        if (!class_exists($className)) {
+            throw new \Exception("Tipo de notificación '{$tipo}' no existe");
+        }
+
+        return new $className($config);
+    }
+
+    /**
+     * Envía una notificación
+     */
+    public static function send($tipo, $mensaje, $destinatarios, $config = [])
+    {
+        $notification = self::create($tipo, $config);
+        return $notification->send($mensaje, $destinatarios);
+    }
+}
+
+// Uso
+NotificationManager::send('email', 'Mensaje importante', ['user@example.com']);
+NotificationManager::send('sms', 'Código de verificación: 123456', ['+1234567890']);
+```
+
+## 🔧 Crear un Componente con Configuración Dinámica
+
+```php
+<?php
+namespace Glory\Components;
+
+class DynamicGallery
+{
+    public static function render($args = [])
+    {
+        $config = self::getConfig($args);
+        $imagenes = self::getImages($config);
+
+        return self::renderGallery($imagenes, $config);
+    }
+
+    private static function getConfig($args)
+    {
+        return array_merge([
+            'source' => 'post_meta', // 'post_meta', 'acf', 'custom'
+            'field_name' => 'galeria_imagenes',
+            'layout' => 'grid', // 'grid', 'masonry', 'slider'
+            'columns' => 3,
+            'lightbox' => true,
+            'lazy_load' => true
+        ], $args);
+    }
+
+    private static function getImages($config)
+    {
+        global $post;
+
+        switch ($config['source']) {
+            case 'acf':
+                if (function_exists('get_field')) {
+                    return get_field($config['field_name'], $post->ID) ?: [];
+                }
+                break;
+
+            case 'post_meta':
+            default:
+                $meta = get_post_meta($post->ID, $config['field_name'], true);
+                return is_array($meta) ? $meta : [];
+        }
+
+        return [];
+    }
+
+    private static function renderGallery($imagenes, $config)
+    {
+        if (empty($imagenes)) {
+            return '<p>No hay imágenes para mostrar</p>';
+        }
+
+        $claseLayout = 'gallery-' . $config['layout'];
+        $claseColumnas = 'gallery-columns-' . $config['columns'];
+
+        ob_start();
+        ?>
+        <div class="glory-dynamic-gallery <?php echo esc_attr($claseLayout . ' ' . $claseColumnas); ?>"
+             data-lightbox="<?php echo $config['lightbox'] ? 'true' : 'false'; ?>">
+
+            <?php foreach ($imagenes as $index => $imagen): ?>
+                <?php
+                $imgData = is_array($imagen) ? $imagen : ['url' => $imagen, 'alt' => ''];
+                $lazyClass = $config['lazy_load'] && $index > 3 ? 'lazy' : '';
+                $src = $config['lazy_load'] && $index > 3 ? '' : $imgData['url'];
+                $dataSrc = $config['lazy_load'] && $index > 3 ? $imgData['url'] : '';
+                ?>
+                <div class="gallery-item">
+                    <img src="<?php echo esc_url($src); ?>"
+                         <?php if ($dataSrc): ?>data-src="<?php echo esc_url($dataSrc); ?>"<?php endif; ?>
+                         alt="<?php echo esc_attr($imgData['alt'] ?: 'Imagen de galería'); ?>"
+                         class="gallery-image <?php echo esc_attr($lazyClass); ?>">
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php
+
+        return ob_get_clean();
+    }
+}
+```
+
+## 📦 Componentes con Dependencias Externas
+
+```php
+<?php
+namespace Glory\Components;
+
+class ChartRenderer
+{
+    private static $chartsLoaded = false;
+
+    public static function render($tipo, $datos, $opciones = [])
+    {
+        self::loadChartJS();
+
+        $idUnico = 'chart-' . uniqid();
+
+        // Generar configuración JavaScript
+        $configJS = self::generarConfiguracionJS($tipo, $datos, $opciones);
+
+        ob_start();
+        ?>
+        <div class="glory-chart-container">
+            <canvas id="<?php echo esc_attr($idUnico); ?>"></canvas>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('<?php echo $idUnico; ?>').getContext('2d');
+            new Chart(ctx, <?php echo $configJS; ?>);
+        });
+        </script>
+        <?php
+
+        return ob_get_clean();
+    }
+
+    private static function loadChartJS()
+    {
+        if (!self::$chartsLoaded) {
+            // Cargar Chart.js si no está cargado
+            AssetManager::define(
+                'script',
+                'chart-js',
+                'https://cdn.jsdelivr.net/npm/chart.js',
+                ['area' => 'frontend', 'in_footer' => true]
+            );
+
+            self::$chartsLoaded = true;
+        }
+    }
+
+    private static function generarConfiguracionJS($tipo, $datos, $opciones)
+    {
+        $config = [
+            'type' => $tipo,
+            'data' => $datos,
+            'options' => array_merge([
+                'responsive' => true,
+                'maintainAspectRatio' => false
+            ], $opciones)
+        ];
+
+        return json_encode($config);
+    }
+}
+
+// Uso
+ChartRenderer::render('bar', [
+    'labels' => ['Enero', 'Febrero', 'Marzo'],
+    'datasets' => [[
+        'label' => 'Ventas',
+        'data' => [120, 150, 180],
+        'backgroundColor' => 'rgba(54, 162, 235, 0.5)'
+    ]]
+]);
+```
+
+## 🧪 Testing de Componentes
+
+Crea tests para tus componentes:
+
+```php
+<?php
+// tests/Components/TestimonialSliderTest.php
+class TestimonialSliderTest extends \PHPUnit\Framework\TestCase
+{
+    public function testRenderWithValidData()
+    {
+        $testimonios = [
+            ['texto' => 'Test', 'nombre' => 'Test User']
+        ];
+
+        $output = TestimonialSlider::render(['testimonios' => $testimonios]);
+
+        $this->assertStringContains('Test User', $output);
+        $this->assertStringContains('glory-testimonial-slider', $output);
+    }
+
+    public function testRenderWithEmptyData()
+    {
+        $output = TestimonialSlider::render(['testimonios' => []]);
+
+        $this->assertStringContains('No hay testimonios', $output);
+    }
+}
+```
+
+## 🎯 Mejores Prácticas
+
+### Estructura y Organización
+
+1. **Un componente, una responsabilidad**: Cada componente debe hacer una cosa bien
+2. **Configuración flexible**: Usa arrays de configuración con valores por defecto
+3. **Validación de entrada**: Siempre valida los datos de entrada
+4. **Documentación clara**: Documenta parámetros y uso esperado
+
+### Rendimiento
+
+```php
+<?php
+class OptimizedComponent
+{
+    private static $cache = [];
+
+    public static function render($args = [])
+    {
+        $cacheKey = md5(serialize($args));
+
+        if (isset(self::$cache[$cacheKey])) {
+            return self::$cache[$cacheKey];
+        }
+
+        $output = self::generateOutput($args);
+
+        // Cache por 5 minutos
+        self::$cache[$cacheKey] = $output;
+        // En producción, considera usar transients de WordPress
+
+        return $output;
+    }
+}
+```
+
+### Accesibilidad
+
+```php
+<?php
+class AccessibleComponent
+{
+    public static function renderButton($texto, $url, $accesible = true)
+    {
+        $atributos = [
+            'href' => esc_url($url),
+            'class' => 'component-button'
+        ];
+
+        if ($accesible) {
+            $atributos['role'] = 'button';
+            $atributos['aria-label'] = $texto;
+        }
+
+        return '<a ' . self::arrayToAttributes($atributos) . '>' . esc_html($texto) . '</a>';
+    }
+}
+```
+
+### Internacionalización
+
+```php
+<?php
+class TranslatableComponent
+{
+    public static function render($args = [])
+    {
+        $texto = $args['texto'] ?? __('Texto por defecto', 'tu-dominio');
+
+        return '<div class="component">' . esc_html($texto) . '</div>';
+    }
+}
+```
+
+¡Ahora tienes las herramientas para crear componentes poderosos y reutilizables que se integren perfectamente con Glory Framework! Recuerda seguir las convenciones del framework y mantener la consistencia con los componentes existentes.

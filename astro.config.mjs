@@ -31,7 +31,14 @@ export default defineConfig({
                         'managers/asset-manager',
                         'managers/opcion-manager',
                         'managers/page-manager',
-                        'managers/default-content-manager'
+                        'managers/default-content-manager',
+                        'managers/post-type-manager'
+                    ]
+                },
+                {
+                    label: 'Administración',
+                    items: [
+                        'administracion/sync-manager'
                     ]
                 }
             ],

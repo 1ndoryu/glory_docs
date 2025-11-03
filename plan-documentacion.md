@@ -1,0 +1,200 @@
+# Plan de Documentación de Glory Framework
+
+## 🎯 Objetivo
+Crear documentación completa y organizada para el framework Glory, enfocada en desarrolladores que necesitan implementar funcionalidades en temas WordPress.
+
+## 📋 Estructura Actual de glory_docs
+- **Introducción**: Bienvenida básica
+- **Core**: Features, AJAX, Realtime
+- **Managers**: Asset, Opcion, Page, Default Content
+
+## 📝 Plan de Documentación Completo
+
+### 1. **Introducción y Primeros Pasos** ✅ (Ya existe, revisar)
+- Filosofía del framework
+- Instalación y setup
+- Estructura de archivos
+- Conceptos básicos
+
+### 2. **Managers Principales** (Parcialmente documentado)
+- **AssetManager** ✅ (Existe)
+- **OpcionManager** ✅ (Existe)
+- **PageManager** ✅ (Existe)
+- **DefaultContentManager** ✅ (Existe)
+- **PostTypeManager** ❌ (Falta)
+- **AdminPageManager** ❌ (Falta)
+- **MenuManager** ❌ (Falta)
+
+### 3. **Sistema AJAX y Formularios** (Parcialmente documentado)
+- **gloryAjax.js** ✅ (Existe)
+- **Sistema de formularios** ✅ (Existe)
+- **FormBuilder** ❌ (Documentación limitada)
+- **FormHandler** ❌ (Falta)
+- **Handlers específicos** ❌ (Falta)
+
+### 4. **Componentes Reutilizables** (Limitada)
+- **ContentRender** ✅ (Existe)
+- **TermRender** ✅ (Existe)
+- **BusquedaRenderer** ✅ (Existe)
+- **LogoRenderer** ✅ (Existe)
+- **FormBuilder** ❌ (Expandir)
+- **Modal** ❌ (Falta)
+- **BadgeList** ❌ (Falta)
+- **DataGridRenderer** ❌ (Falta)
+- **PaginationRenderer** ❌ (Falta)
+- **SchedulerRenderer** ❌ (Falta)
+- **PerfilRenderer** ❌ (Falta)
+- **BarraFiltrosRenderer** ❌ (Falta)
+- **HeaderRenderer** ❌ (Falta)
+- **ThemeToggle** ❌ (Falta)
+
+### 5. **Scripts de UI** (Limitada)
+- **Sistema de Modales** ✅ (Existe)
+- **Alertas** ✅ (Existe)
+- **Previsualizaciones** ✅ (Existe)
+- **Pestañas y Submenús** ✅ (Existe)
+- **Header Adaptativo** ✅ (Existe)
+- **Navegación AJAX** ✅ (Existe)
+- **Carousel** ❌ (Falta)
+- **HorizontalDrag** ❌ (Falta)
+- **Toggle** ❌ (Falta)
+
+### 6. **Utilidades y Helpers** (Limitada)
+- **AssetsUtility** ✅ (Existe)
+- **EmailUtility** ✅ (Existe)
+- **PostUtility** ✅ (Existe)
+- **UserUtility** ✅ (Existe)
+- **ScheduleManager** ✅ (Existe)
+- **ImageUtility** ❌ (Falta)
+- **TemplateRegistry** ❌ (Falta)
+
+### 7. **Servicios Avanzados** ❌ (Falta)
+- **EventBus** ❌ (Falta)
+- **GloryLogger** ✅ (Existe)
+- **AnalyticsEngine** ❌ (Falta)
+- **BusquedaService** ❌ (Falta)
+- **LicenseManager** ❌ (Falta)
+- **ServidorChat** ❌ (Falta)
+- **ManejadorGit** ❌ (Falta)
+- **GestorCssCritico** ❌ (Falta)
+- **LocalCriticalCss** ❌ (Falta)
+- **QueryProfiler** ❌ (Falta)
+- **PerformanceProfiler** ❌ (Falta)
+- **TokenManager** ❌ (Falta)
+
+### 8. **Integraciones** ❌ (Falta)
+- **Avada Integration** ❌ (Falta)
+- **Elementor Integration** ❌ (Falta)
+- **IntegrationsManager** ❌ (Falta)
+
+### 9. **Sistema de Administración** ❌ (Falta)
+- **SyncManager** ✅ (Existe)
+- **TaxonomyMetaManager** ✅ (Existe)
+- **Paneles de administración** ❌ (Falta)
+- **Metaboxes** ❌ (Falta)
+
+### 10. **API y Desarrollo** ❌ (Falta)
+- **GloryFeatures** ✅ (Existe)
+- **Eventos y Hooks** ❌ (Falta)
+- **Extensibilidad** ❌ (Falta)
+- **Mejores prácticas** ❌ (Falta)
+
+## 🚀 Plan de Implementación
+
+### Fase 1: Revisar y mejorar existente
+1. Revisar documentación actual
+2. Mejorar estructura de navegación
+3. Actualizar ejemplos de código
+
+### Fase 2: Managers faltantes
+1. PostTypeManager
+2. AdminPageManager
+3. MenuManager
+
+### Fase 3: Componentes avanzados
+1. FormBuilder completo
+2. Todos los renderers
+3. Sistema de modales
+
+### Fase 4: Utilidades y servicios
+1. Utilidades faltantes
+2. Servicios avanzados
+3. Sistema de logging
+
+### Fase 5: Integraciones y administración
+1. Integraciones con builders
+2. Sistema administrativo
+3. Herramientas de desarrollo
+
+### Fase 6: API y mejores prácticas
+1. Documentación técnica
+2. Guías de desarrollo
+3. Ejemplos avanzados
+
+## 📁 Estructura de archivos propuesta
+
+```
+glory_docs/src/content/docs/
+├── index.mdx
+├── introduccion/
+│   ├── bienvenida.mdx
+│   ├── instalacion.mdx
+│   └── filosofia.mdx
+├── managers/
+│   ├── asset-manager.mdx
+│   ├── opcion-manager.mdx
+│   ├── page-manager.mdx
+│   ├── default-content-manager.mdx
+│   ├── post-type-manager.mdx
+│   ├── admin-page-manager.mdx
+│   └── menu-manager.mdx
+├── ajax-formularios/
+│   ├── glory-ajax.mdx
+│   ├── sistema-formularios.mdx
+│   ├── form-builder.mdx
+│   └── handlers.mdx
+├── componentes/
+│   ├── renderers/
+│   │   ├── content-render.mdx
+│   │   ├── term-render.mdx
+│   │   ├── busqueda-renderer.mdx
+│   │   └── [otros renderers]
+│   ├── ui/
+│   │   ├── modales.mdx
+│   │   ├── alertas.mdx
+│   │   └── [otros componentes UI]
+├── utilidades/
+│   ├── assets-utility.mdx
+│   ├── user-utility.mdx
+│   └── [otras utilidades]
+├── servicios/
+│   ├── event-bus.mdx
+│   ├── glory-logger.mdx
+│   └── [otros servicios]
+├── integraciones/
+│   ├── avada.mdx
+│   ├── elementor.mdx
+│   └── integrations-manager.mdx
+├── administracion/
+│   ├── sync-manager.mdx
+│   ├── taxonomy-meta-manager.mdx
+│   └── paneles-admin.mdx
+└── desarrollo/
+    ├── api.mdx
+    ├── mejores-practicas.mdx
+    └── ejemplos.mdx
+```
+
+## ✅ Checklist de implementación
+
+- [x] Crear plan de documentación
+- [x] Revisar documentación existente (AssetManager, OpcionManager, PageManager, DefaultContentManager, GloryAjax, GloryFeatures, etc.)
+- [x] Actualizar navegación en astro.config.mjs (agregar SyncManager)
+- [x] Documentar SyncManager
+- [ ] Documentar managers faltantes: PostTypeManager, AdminPageManager, MenuManager
+- [ ] Continuar con componentes
+- [ ] Documentar utilidades faltantes
+- [ ] Crear sección de integraciones
+- [ ] Documentar sistema administrativo
+- [ ] Crear guías de desarrollo
+- [ ] Revisar y validar toda la documentación

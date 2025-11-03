@@ -1,0 +1,221 @@
+---
+title: SyncManager
+description: Gestión de sincronización y herramientas administrativas en Glory
+---
+
+`SyncManager` es el componente administrativo central de Glory que facilita la sincronización de configuraciones, contenido y limpieza de cachés desde la interfaz de administración de WordPress. Proporciona una interfaz unificada para mantener la consistencia entre el código del tema y la base de datos.
+
+## Propósito
+
+- **Sincronización centralizada**: Unificar todas las operaciones de sincronización de Glory en una interfaz accesible.
+- **Automatización por entorno**: Ejecutar sincronizaciones automáticas en modo desarrollo para mantener consistencia durante el desarrollo.
+- **Herramientas administrativas**: Proporcionar utilidades comunes como limpieza de cachés y restablecimiento de contenido.
+- **Logging detallado**: Registrar todas las operaciones para facilitar la depuración y auditoría.
+
+## Funcionalidades principales
+
+### Barra de administración de WordPress
+
+El SyncManager añade un menú "Glory Sync" en la barra de administración superior con tres opciones principales:
+
+#### 1. **Sincronizar Todo**
+- Sincroniza opciones del tema desde el código a la base de datos
+- Procesa páginas definidas con PageManager
+- Sincroniza contenido por defecto definido en DefaultContentManager
+- Ejecuta automáticamente en modo desarrollo cuando se accede al admin
+
+#### 2. **Restablecer a Default**
+- Restablece contenido modificado manualmente a sus valores originales del código
+- Reaplica definiciones de páginas y SEO por defecto
+- Restaura menús desde las definiciones del código
+- Limpia metadatos SEO y HTML de páginas gestionadas
+
+#### 3. **Borrar Caché de Glory**
+- Limpia caché interna de OpcionManager
+- Borra transients de WordPress (incluyendo timeouts)
+- Elimina archivos de caché del framework
+- Limpia cachés de plugins populares (WP Rocket, W3 Total Cache, LiteSpeed, etc.)
+- Reinicia OPcache si está disponible
+- Flush de rewrite rules
+
+## Comportamiento por entorno
+
+### Modo desarrollo
+- **Sincronización automática**: Se ejecuta automáticamente al acceder al admin
+- **Frontend**: Solo sincroniza páginas gestionadas (operación ligera)
+- **Visibilidad**: Todos los controles están visibles por defecto
+
+### Producción
+- **Sincronización manual**: Solo se ejecuta cuando el administrador hace clic en los botones
+- **Controles opcionales**: Se pueden ocultar los botones según configuración
+
+## API pública
+
+```php
+use Glory\Admin\SyncManager;
+
+// Configurar visibilidad de controles
+SyncManager::setAdminBarVisible(true);  // Mostrar/ocultar menú en barra admin
+SyncManager::setResetButtonVisible(false); // Mostrar/ocultar botón de reset
+
+// Instanciar y registrar hooks
+$syncManager = new SyncManager();
+$syncManager->registerHooks(); // Registra todos los hooks necesarios
+```
+
+## Métodos principales
+
+### `registerHooks()`
+Registra todos los hooks necesarios:
+- `admin_bar_menu`: Añade botones a la barra de administración
+- `init`: Maneja acciones de sincronización y sincronización automática
+- `admin_notices`: Muestra notificaciones de resultado
+
+### `performAutomaticSyncIfDevMode()`
+Ejecuta sincronización automática cuando:
+- Está activado el modo desarrollo global (`AssetManager::isGlobalDevMode()`)
+- O está activado `WP_DEBUG`
+- Se ejecuta en contexto admin o frontend según el caso
+
+### `handleSyncActions()`
+Procesa las acciones solicitadas desde la URL (`glory_action`):
+- `sync`: Ejecuta sincronización completa
+- `reset`: Restablece contenido a valores por defecto
+- `clear_cache`: Limpia todas las cachés
+
+## Sincronización automática
+
+### En modo desarrollo
+```php
+// Se ejecuta automáticamente sin intervención del desarrollador
+if (is_admin()) {
+    // Sincronización completa: opciones, páginas, contenido por defecto
+    $this->runFullSync();
+} else {
+    // Frontend: solo páginas (operación más ligera)
+    PageManager::procesarPaginasDefinidas();
+    PageManager::reconciliarPaginasGestionadas();
+}
+```
+
+### Control de features
+La sincronización respeta el estado de las features:
+```php
+// Solo sincroniza páginas si la feature está activa
+if (\Glory\Core\GloryFeatures::isActive('pageManager') !== false) {
+    PageManager::procesarPaginasDefinidas();
+    PageManager::reconciliarPaginasGestionadas();
+}
+```
+
+## Limpieza de cachés completa
+
+El método `clearAllCaches()` realiza una limpieza exhaustiva:
+
+### 1. Caché interna de Glory
+```php
+OpcionManager::clearCache(); // Limpia cache de opciones
+```
+
+### 2. Caché de WordPress
+```php
+wp_cache_flush(); // Limpia object cache
+// Borra todos los transients y timeouts
+```
+
+### 3. Archivos de caché
+```php
+// Elimina archivos en Glory/cache/
+@unlink($cacheFile);
+```
+
+### 4. Plugins de caché populares
+Soporta limpieza automática de:
+- WP Rocket
+- W3 Total Cache
+- LiteSpeed Cache
+- WP Super Cache
+- WP Fastest Cache
+- Hummingbird
+- Cache Enabler
+- SG Optimizer
+- Autoptimize
+- Swift Performance
+- Y más...
+
+### 5. Servidores y CDNs
+```php
+// Triggers para servicios de hosting
+do_action('kinsta_cache_flush');    // Kinsta
+do_action('wpe_purge_all_caches');   // WP Engine
+do_action('cloudflare_purge_all');   // Cloudflare
+do_action('pantheon_cache_clear');   // Pantheon
+```
+
+## Notificaciones y feedback
+
+Después de cada operación, muestra notificaciones en el admin:
+
+```php
+// Notificaciones disponibles
+'sync_success'     => 'Sincronización de Glory completada con éxito.'
+'reset_success'    => 'Contenido de Glory restablecido a default con éxito.'
+'cache_cleared'    => 'Caché de Glory borrada con éxito.'
+```
+
+## Logging y auditoría
+
+Todas las operaciones se registran con `GloryLogger`:
+
+```php
+GloryLogger::info('Sincronización manual forzada por el usuario desde la barra de admin.');
+GloryLogger::info('Todas las cachés limpiadas manualmente por el usuario.');
+```
+
+## Consideraciones de seguridad
+
+- **Permisos**: Solo usuarios con `manage_options` pueden acceder a las funciones
+- **Validación**: Todas las entradas se sanitizan (`sanitize_key`, `wp_safe_redirect`)
+- **Contextos**: Operaciones de sincronización solo se ejecutan en contextos apropiados
+- **Logging**: Todas las operaciones quedan registradas para auditoría
+
+## Buenas prácticas
+
+### Configuración inicial
+```php
+// En functions.php o archivo de configuración
+$syncManager = new SyncManager();
+$syncManager->registerHooks();
+```
+
+### Control por entorno
+```php
+// Ocultar controles en producción si es necesario
+if (WP_ENV === 'production') {
+    SyncManager::setAdminBarVisible(false);
+}
+```
+
+### Automatización de despliegues
+```php
+// Después de actualizar código en producción
+$syncManager = new SyncManager();
+$syncManager->runFullSync(); // Forzar sincronización completa
+```
+
+## Errores comunes
+
+- **No registrar hooks**: El SyncManager no funcionará si no se llama a `registerHooks()`
+- **Permisos insuficientes**: Los usuarios sin `manage_options` no verán los controles
+- **Conflicto de nombres**: Evitar colisiones con otros plugins que usen `glory_action`
+- **Cache no se limpia**: Algunos plugins de cache requieren configuración adicional
+
+## Integración con otros managers
+
+El SyncManager coordina con otros managers de Glory:
+
+- **OpcionManager**: Sincroniza opciones del tema
+- **PageManager**: Gestiona páginas y contenido
+- **DefaultContentManager**: Maneja contenido por defecto
+- **MenuManager**: Restaura menús desde código
+- **AssetManager**: Verifica modo desarrollo para sincronización automática

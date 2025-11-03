@@ -1,0 +1,1001 @@
+---
+title: SchedulerRenderer
+description: Componente para renderizar programadores y calendarios de citas con interfaz visual
+sidebar:
+  label: SchedulerRenderer
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# SchedulerRenderer
+
+El **SchedulerRenderer** es un componente avanzado de Glory Framework diseñado para renderizar programadores y calendarios de citas con una interfaz visual intuitiva. Es ideal para sistemas de reservas, agendas médicas, barberías, salones de belleza y cualquier aplicación que requiera gestión visual de horarios.
+
+## Filosofía
+
+SchedulerRenderer está diseñado para ser:
+- **Visual**: Interfaz clara y fácil de entender
+- **Flexible**: Adaptable a diferentes tipos de recursos y horarios
+- **Interactivo**: Soporte para eventos y acciones del usuario
+- **Escalable**: Manejo eficiente de múltiples recursos y eventos
+
+## Características Principales
+
+- **Vista de cuadrícula**: Muestra tiempo vs recursos en formato tabular
+- **Eventos visuales**: Representación gráfica de citas y reservas
+- **Configuración flexible**: Horarios, intervalos y recursos personalizables
+- **Sistema de colores**: Mapeo de colores por tipo de evento
+- **Responsive**: Adaptable a diferentes tamaños de pantalla
+- **JavaScript integration**: Eventos interactivos y actualizaciones dinámicas
+
+## Arquitectura
+
+### Estructura de Datos
+
+#### Eventos
+
+```php
+$eventos = [
+    [
+        'id' => 1,
+        'titulo' => 'Corte de cabello - Juan Pérez',
+        'horaInicio' => '2024-01-15 10:00:00',
+        'horaFin' => '2024-01-15 11:00:00',
+        'recursoId' => 'barbero-1',
+        'tipo' => 'corte-cabello',
+        'color' => '#4CAF50',
+        'descripcion' => 'Cliente regular - prefiere estilo moderno'
+    ],
+    [
+        'id' => 2,
+        'titulo' => 'Tinte completo - María García',
+        'horaInicio' => '2024-01-15 14:30:00',
+        'horaFin' => '2024-01-15 16:30:00',
+        'recursoId' => 'barbero-2',
+        'tipo' => 'tinte',
+        'color' => '#FF9800',
+        'descripcion' => 'Color rubio ceniza'
+    ]
+];
+```
+
+#### Configuración
+
+```php
+$config = [
+    'recursos' => [
+        'barbero-1' => 'Carlos Martínez',
+        'barbero-2' => 'Ana López',
+        'barbero-3' => 'Roberto Sánchez'
+    ],
+    'horaInicio' => '09:00',
+    'horaFin' => '19:00',
+    'intervalo' => 30, // minutos
+    'mapeoColores' => [
+        'corte-cabello' => '#4CAF50',
+        'tinte' => '#FF9800',
+        'lavado' => '#2196F3',
+        'tratamiento' => '#9C27B0'
+    ],
+    'alturaFila' => '40px',
+    'anchoColumna' => '150px'
+];
+```
+
+## Uso Básico
+
+### Renderizado Simple
+
+```php
+use Glory\Components\SchedulerRenderer;
+
+// Eventos de ejemplo
+$eventos = [
+    [
+        'titulo' => 'Cita 1',
+        'horaInicio' => '2024-01-15 10:00:00',
+        'horaFin' => '2024-01-15 11:00:00',
+        'recursoId' => 'barbero-1',
+        'tipo' => 'corte'
+    ]
+];
+
+// Configuración básica
+$config = [
+    'recursos' => ['barbero-1' => 'Carlos', 'barbero-2' => 'Ana'],
+    'horaInicio' => '09:00',
+    'horaFin' => '18:00',
+    'intervalo' => 60 // 1 hora
+];
+
+// Renderizar el programador
+SchedulerRenderer::render($eventos, $config);
+```
+
+### En Templates WordPress
+
+```php
+// En functions.php o archivo de template
+function mostrar_programador_barberia()
+{
+    // Obtener eventos de la base de datos
+    $eventos = get_posts([
+        'post_type' => 'cita',
+        'meta_query' => [
+            [
+                'key' => 'fecha_cita',
+                'value' => date('Y-m-d'),
+                'compare' => '='
+            ]
+        ]
+    ]);
+
+    // Convertir a formato del scheduler
+    $eventosFormateados = [];
+    foreach ($eventos as $cita) {
+        $eventosFormateados[] = [
+            'id' => $cita->ID,
+            'titulo' => get_post_meta($cita->ID, 'titulo_cita', true),
+            'horaInicio' => get_post_meta($cita->ID, 'fecha_hora_inicio', true),
+            'horaFin' => get_post_meta($cita->ID, 'fecha_hora_fin', true),
+            'recursoId' => 'barbero-' . get_post_meta($cita->ID, 'barbero_id', true),
+            'tipo' => get_post_meta($cita->ID, 'tipo_servicio', true)
+        ];
+    }
+
+    // Configuración
+    $config = [
+        'recursos' => [
+            'barbero-1' => 'Carlos',
+            'barbero-2' => 'Ana',
+            'barbero-3' => 'Roberto'
+        ],
+        'horaInicio' => '09:00',
+        'horaFin' => '19:00',
+        'intervalo' => 30
+    ];
+
+    // Renderizar
+    SchedulerRenderer::render($eventosFormateados, $config);
+}
+
+// En el template
+mostrar_programador_barberia();
+```
+
+## Configuración Avanzada
+
+### Horarios Personalizados
+
+```php
+// Horario de barbería (9 AM - 7 PM)
+$configBarberia = [
+    'horaInicio' => '09:00',
+    'horaFin' => '19:00',
+    'intervalo' => 30, // 30 minutos por cita
+    'recursos' => [
+        'barbero-1' => 'Carlos (Cortes)',
+        'barbero-2' => 'Ana (Tintes)',
+        'barbero-3' => 'Roberto (Estilista Senior)'
+    ]
+];
+
+// Horario médico (8 AM - 5 PM)
+$configMedico = [
+    'horaInicio' => '08:00',
+    'horaFin' => '17:00',
+    'intervalo' => 15, // 15 minutos por consulta
+    'recursos' => [
+        'dr-perez' => 'Dr. Pérez - Médico General',
+        'dr-garcia' => 'Dra. García - Pediatra',
+        'dr-lopez' => 'Dr. López - Cardiología'
+    ]
+];
+
+// Horario de restaurante (solo almuerzo y cena)
+$configRestaurante = [
+    'horaInicio' => '12:00', // Almuerzo
+    'horaFin' => '15:00',   // Fin almuerzo
+    'intervalo' => 60,      // Reservas por hora
+    'recursos' => [
+        'mesa-1' => 'Mesa 1 (Terraza)',
+        'mesa-2' => 'Mesa 2 (Interior)',
+        'mesa-3' => 'Mesa 3 (VIP)'
+    ]
+];
+```
+
+### Sistema de Colores
+
+```php
+$config = [
+    'mapeoColores' => [
+        // Servicios de barbería
+        'corte-cabello' => '#4CAF50',    // Verde
+        'tinte' => '#FF9800',            // Naranja
+        'lavado' => '#2196F3',            // Azul
+        'tratamiento-capilar' => '#9C27B0', // Morado
+
+        // Estados de citas
+        'confirmada' => '#4CAF50',
+        'pendiente' => '#FF9800',
+        'cancelada' => '#F44336',
+        'completada' => '#9E9E9E',
+
+        // Tipos médicos
+        'consulta-general' => '#2196F3',
+        'urgencia' => '#F44336',
+        'revision' => '#FF9800',
+        'vacuna' => '#4CAF50'
+    ]
+];
+
+// Los colores se aplican automáticamente según el campo 'tipo' del evento
+$evento = [
+    'titulo' => 'Consulta General',
+    'tipo' => 'consulta-general', // Color: #2196F3
+    'horaInicio' => '2024-01-15 10:00:00',
+    'horaFin' => '2024-01-15 10:30:00',
+    'recursoId' => 'dr-perez'
+];
+```
+
+## Estilos CSS
+
+### CSS Base Requerido
+
+```css
+/* Estilos base para el scheduler */
+.glorySchedulerContenedor {
+    position: relative;
+    width: 100%;
+    overflow-x: auto;
+    font-family: Arial, sans-serif;
+}
+
+.glorySchedulerGrid {
+    display: grid;
+    grid-template-columns: 100px repeat(var(--columnas-grid), 1fr);
+    gap: 1px;
+    background: #ddd;
+}
+
+.celdaGrid {
+    background: white;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.celdaEncabezadoTiempo,
+.celdaEncabezadoRecurso {
+    background: #f5f5f5;
+    font-weight: bold;
+    color: #333;
+}
+
+.celdaTiempo {
+    background: #fafafa;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.celdaVacia {
+    background: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.celdaVacia:hover {
+    background: #f0f8ff;
+}
+
+.capaEventos {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.evento-scheduler {
+    position: absolute;
+    background: #4CAF50;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    pointer-events: auto;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evento-scheduler:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+```
+
+### CSS Responsive
+
+```css
+/* Responsive design */
+@media (max-width: 768px) {
+    .glorySchedulerGrid {
+        grid-template-columns: 80px repeat(var(--columnas-grid), 1fr);
+        font-size: 0.8em;
+    }
+
+    .celdaGrid {
+        padding: 4px;
+        min-height: 30px;
+    }
+
+    .evento-scheduler {
+        font-size: 0.7em;
+        padding: 2px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .glorySchedulerContenedor {
+        font-size: 0.8em;
+    }
+
+    .glorySchedulerGrid {
+        grid-template-columns: 70px repeat(var(--columnas-grid), 1fr);
+    }
+
+    .celdaEncabezadoRecurso {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        height: 120px;
+        white-space: nowrap;
+    }
+}
+```
+
+## JavaScript Integration
+
+### Eventos Interactivos
+
+```javascript
+// Inicializar scheduler con eventos
+document.addEventListener('DOMContentLoaded', function() {
+    const schedulers = document.querySelectorAll('.glorySchedulerContenedor');
+
+    schedulers.forEach(function(container) {
+        const eventos = JSON.parse(container.dataset.eventos || '[]');
+        const config = JSON.parse(container.dataset.config || '{}');
+
+        inicializarScheduler(container, eventos, config);
+    });
+});
+
+function inicializarScheduler(container, eventos, config) {
+    // Renderizar eventos
+    renderizarEventos(container, eventos, config);
+
+    // Añadir interactividad
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('celdaVacia')) {
+            manejarClickCelda(e.target, config);
+        } else if (e.target.classList.contains('evento-scheduler')) {
+            manejarClickEvento(e.target);
+        }
+    });
+}
+
+function renderizarEventos(container, eventos, config) {
+    const capaEventos = container.querySelector('.capaEventos');
+    const grid = container.querySelector('.glorySchedulerGrid');
+
+    eventos.forEach(function(evento) {
+        const elementoEvento = crearElementoEvento(evento, config);
+        capaEventos.appendChild(elementoEvento);
+    });
+}
+
+function crearElementoEvento(evento, config) {
+    const div = document.createElement('div');
+    div.className = 'evento-scheduler';
+    div.textContent = evento.titulo;
+    div.dataset.eventoId = evento.id;
+
+    // Calcular posición
+    const posicion = calcularPosicionEvento(evento, config);
+    div.style.left = posicion.left;
+    div.style.top = posicion.top;
+    div.style.width = posicion.width;
+    div.style.height = posicion.height;
+
+    // Aplicar color
+    const color = config.mapeoColores?.[evento.tipo] || evento.color || '#4CAF50';
+    div.style.backgroundColor = color;
+
+    return div;
+}
+
+function calcularPosicionEvento(evento, config) {
+    // Lógica para calcular posición absoluta basada en tiempo y recurso
+    const minutosInicio = evento.inicioMinutos || 0;
+    const duracionMinutos = evento.duracionMinutos || 60;
+
+    // Calcular posición vertical (tiempo)
+    const minutosTotales = (config.horaFin - config.horaInicio) * 60;
+    const top = (minutosInicio / minutosTotales) * 100 + '%';
+    const height = (duracionMinutos / minutosTotales) * 100 + '%';
+
+    // Calcular posición horizontal (recurso)
+    const indiceRecurso = Object.keys(config.recursos).indexOf(evento.recursoId);
+    const columnasTotales = Object.keys(config.recursos).length + 1; // +1 por columna de tiempo
+    const left = ((indiceRecurso + 1) / columnasTotales) * 100 + '%'; // +1 porque la primera columna es tiempo
+    const width = (1 / columnasTotales) * 100 + '%';
+
+    return { left, top, width, height };
+}
+```
+
+### Funciones de Interacción
+
+```javascript
+function manejarClickCelda(celda, config) {
+    // Obtener información de la celda clickeada
+    const grid = celda.closest('.glorySchedulerGrid');
+    const indiceFila = Array.from(grid.children).indexOf(celda.parentNode);
+    const indiceColumna = Array.from(celda.parentNode.children).indexOf(celda);
+
+    // Calcular hora y recurso
+    const hora = calcularHoraDesdeIndice(indiceFila, config);
+    const recursoId = Object.keys(config.recursos)[indiceColumna - 1]; // -1 porque primera columna es tiempo
+
+    // Mostrar modal para crear cita
+    mostrarModalNuevaCita(hora, recursoId, config);
+}
+
+function manejarClickEvento(elementoEvento) {
+    const eventoId = elementoEvento.dataset.eventoId;
+
+    // Cargar detalles del evento
+    cargarDetallesEvento(eventoId)
+        .then(function(evento) {
+            mostrarModalDetallesEvento(evento);
+        });
+}
+
+function mostrarModalNuevaCita(hora, recursoId, config) {
+    const recursoNombre = config.recursos[recursoId];
+    const modalHtml = `
+        <div class="modal">
+            <h3>Nueva cita</h3>
+            <p>Fecha y hora: ${hora}</p>
+            <p>Recurso: ${recursoNombre}</p>
+            <form id="form-nueva-cita">
+                <input type="hidden" name="hora" value="${hora}">
+                <input type="hidden" name="recursoId" value="${recursoId}">
+                <input type="text" name="titulo" placeholder="Título de la cita" required>
+                <input type="number" name="duracion" placeholder="Duración (minutos)" value="60" required>
+                <button type="submit">Crear cita</button>
+            </form>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+```
+
+## Casos de Uso
+
+### Sistema de Barbería
+
+```php
+class SistemaBarberia
+{
+    public static function mostrarCalendarioDiario($fecha = null)
+    {
+        $fecha = $fecha ?: date('Y-m-d');
+
+        // Obtener citas del día
+        $citas = self::obtenerCitasPorFecha($fecha);
+
+        // Configurar recursos (barberos)
+        $barberos = get_posts([
+            'post_type' => 'barbero',
+            'posts_per_page' => -1
+        ]);
+
+        $recursos = [];
+        foreach ($barberos as $barbero) {
+            $recursos['barbero-' . $barbero->ID] = $barbero->post_title;
+        }
+
+        // Eventos del scheduler
+        $eventos = [];
+        foreach ($citas as $cita) {
+            $eventos[] = [
+                'id' => $cita->ID,
+                'titulo' => get_post_meta($cita->ID, 'cliente_nombre', true),
+                'horaInicio' => get_post_meta($cita->ID, 'fecha_hora_inicio', true),
+                'horaFin' => get_post_meta($cita->ID, 'fecha_hora_fin', true),
+                'recursoId' => 'barbero-' . get_post_meta($cita->ID, 'barbero_id', true),
+                'tipo' => get_post_meta($cita->ID, 'servicio_tipo', true),
+                'descripcion' => get_post_meta($cita->ID, 'notas', true)
+            ];
+        }
+
+        // Configuración
+        $config = [
+            'recursos' => $recursos,
+            'horaInicio' => '09:00',
+            'horaFin' => '19:00',
+            'intervalo' => 30,
+            'mapeoColores' => [
+                'corte-cabello' => '#4CAF50',
+                'tinte' => '#FF9800',
+                'lavado' => '#2196F3',
+                'tratamiento' => '#9C27B0'
+            ]
+        ];
+
+        // Renderizar
+        echo '<h2>Citas del día: ' . date('d/m/Y', strtotime($fecha)) . '</h2>';
+        SchedulerRenderer::render($eventos, $config);
+    }
+
+    private static function obtenerCitasPorFecha($fecha)
+    {
+        return get_posts([
+            'post_type' => 'cita',
+            'meta_query' => [
+                [
+                    'key' => 'fecha_cita',
+                    'value' => $fecha,
+                    'compare' => '='
+                ]
+            ],
+            'posts_per_page' => -1
+        ]);
+    }
+}
+
+// Uso en template
+SistemaBarberia::mostrarCalendarioDiario();
+```
+
+### Agenda Médica
+
+```php
+class AgendaMedica
+{
+    public static function mostrarAgendaMedico($medicoId, $fecha)
+    {
+        // Configuración para consultorio médico
+        $config = [
+            'recursos' => [
+                'consultorio-1' => 'Consultorio 1',
+                'consultorio-2' => 'Consultorio 2',
+                'consultorio-urgencias' => 'Urgencias'
+            ],
+            'horaInicio' => '08:00',
+            'horaFin' => '18:00',
+            'intervalo' => 15, // 15 minutos por paciente
+            'mapeoColores' => [
+                'consulta-general' => '#2196F3',
+                'pediatria' => '#4CAF50',
+                'urgencia' => '#F44336',
+                'revision' => '#FF9800'
+            ]
+        ];
+
+        // Obtener citas del médico
+        $eventos = self::obtenerCitasMedico($medicoId, $fecha);
+
+        // Renderizar agenda
+        SchedulerRenderer::render($eventos, $config);
+    }
+
+    private static function obtenerCitasMedico($medicoId, $fecha)
+    {
+        $citas = get_posts([
+            'post_type' => 'cita_medica',
+            'meta_query' => [
+                'relation' => 'AND',
+                [
+                    'key' => 'medico_id',
+                    'value' => $medicoId
+                ],
+                [
+                    'key' => 'fecha_cita',
+                    'value' => $fecha
+                ]
+            ]
+        ]);
+
+        return array_map(function($cita) {
+            return [
+                'id' => $cita->ID,
+                'titulo' => get_post_meta($cita->ID, 'paciente_nombre', true),
+                'horaInicio' => get_post_meta($cita->ID, 'hora_inicio', true),
+                'horaFin' => get_post_meta($cita->ID, 'hora_fin', true),
+                'recursoId' => 'consultorio-' . get_post_meta($cita->ID, 'consultorio_id', true),
+                'tipo' => get_post_meta($cita->ID, 'tipo_consulta', true),
+                'descripcion' => get_post_meta($cita->ID, 'sintomas', true)
+            ];
+        }, $citas);
+    }
+}
+```
+
+### Sistema de Reservas de Restaurante
+
+```php
+class ReservasRestaurante
+{
+    public static function mostrarDisponibilidad($fecha)
+    {
+        $config = [
+            'recursos' => [
+                'mesa-1' => 'Mesa 1 (Terraza, 2 personas)',
+                'mesa-2' => 'Mesa 2 (Interior, 4 personas)',
+                'mesa-3' => 'Mesa 3 (VIP, 6 personas)',
+                'barra-1' => 'Barra (2 personas)',
+                'barra-2' => 'Barra (2 personas)'
+            ],
+            'horaInicio' => '12:00', // Almuerzo
+            'horaFin' => '23:00',   // Cierre
+            'intervalo' => 60,      // Reservas por hora
+            'mapeoColores' => [
+                'reservada' => '#4CAF50',
+                'ocupada' => '#F44336',
+                'mantenimiento' => '#9E9E9E'
+            ]
+        ];
+
+        $eventos = self::obtenerReservas($fecha);
+        SchedulerRenderer::render($eventos, $config);
+    }
+
+    private static function obtenerReservas($fecha)
+    {
+        $reservas = get_posts([
+            'post_type' => 'reserva',
+            'meta_query' => [
+                [
+                    'key' => 'fecha_reserva',
+                    'value' => $fecha
+                ]
+            ]
+        ]);
+
+        return array_map(function($reserva) {
+            $horaInicio = get_post_meta($reserva->ID, 'hora_inicio', true);
+            $duracion = intval(get_post_meta($reserva->ID, 'duracion_horas', true)) ?: 2;
+
+            return [
+                'id' => $reserva->ID,
+                'titulo' => get_post_meta($reserva->ID, 'nombre_cliente', true),
+                'horaInicio' => $fecha . ' ' . $horaInicio,
+                'horaFin' => date('Y-m-d H:i:s', strtotime($fecha . ' ' . $horaInicio) + ($duracion * 3600)),
+                'recursoId' => get_post_meta($reserva->ID, 'mesa_id', true),
+                'tipo' => 'reservada',
+                'descripcion' => "Tel: " . get_post_meta($reserva->ID, 'telefono', true)
+            ];
+        }, $reservas);
+    }
+}
+```
+
+## Optimizaciones de Rendimiento
+
+### Virtual Scrolling
+
+```php
+// Para schedulers con muchos eventos, implementar virtual scrolling
+class SchedulerVirtual
+{
+    private $eventos;
+    private $alturaViewport = 600; // píxeles visibles
+    private $alturaFila = 40;
+
+    public function renderizarVirtual($container, $eventos, $config)
+    {
+        $totalFilas = $this->calcularTotalFilas($config);
+        $filasVisibles = ceil($this->alturaViewport / $this->alturaFila);
+
+        // Crear contenedor con scroll virtual
+        $scrollTop = 0;
+        $indiceInicio = floor($scrollTop / $this->alturaFila);
+        $indiceFin = min($indiceInicio + $filasVisibles, $totalFilas);
+
+        // Renderizar solo filas visibles
+        $this->renderizarFilas($container, $indiceInicio, $indiceFin, $eventos, $config);
+    }
+
+    private function calcularTotalFilas($config)
+    {
+        $inicio = new DateTime($config['horaInicio']);
+        $fin = new DateTime($config['horaFin']);
+        $intervalo = new DateInterval('PT' . $config['intervalo'] . 'M');
+
+        $periodo = new DatePeriod($inicio, $intervalo, $fin);
+        return iterator_count($periodo);
+    }
+}
+```
+
+### Cache de Eventos
+
+```php
+class CacheScheduler
+{
+    private const CACHE_KEY_PREFIX = 'glory_scheduler_';
+    private const CACHE_EXPIRATION = HOUR_IN_SECONDS;
+
+    public static function obtenerEventosCacheados($fecha, $tipo)
+    {
+        $cacheKey = self::CACHE_KEY_PREFIX . $tipo . '_' . md5($fecha);
+
+        $eventos = get_transient($cacheKey);
+        if ($eventos === false) {
+            $eventos = self::cargarEventosDesdeBD($fecha, $tipo);
+            set_transient($cacheKey, $eventos, self::CACHE_EXPIRATION);
+        }
+
+        return $eventos;
+    }
+
+    public static function invalidarCache($fecha, $tipo)
+    {
+        $cacheKey = self::CACHE_KEY_PREFIX . $tipo . '_' . md5($fecha);
+        delete_transient($cacheKey);
+    }
+
+    private static function cargarEventosDesdeBD($fecha, $tipo)
+    {
+        // Lógica específica para cargar eventos según tipo
+        switch ($tipo) {
+            case 'barberia':
+                return self::cargarCitasBarberia($fecha);
+            case 'medico':
+                return self::cargarCitasMedicas($fecha);
+            default:
+                return [];
+        }
+    }
+}
+```
+
+## Solución de Problemas
+
+### Eventos no se muestran
+
+**Posibles causas:**
+- Formato de fecha/hora incorrecto
+- `recursoId` no coincide con configuración
+- Problemas de zona horaria
+
+**Solución:**
+```php
+// Verificar formato de eventos
+function validarEventos($eventos, $config)
+{
+    foreach ($eventos as $evento) {
+        // Verificar campos requeridos
+        if (empty($evento['horaInicio']) || empty($evento['horaFin'])) {
+            error_log("Evento sin horas: " . json_encode($evento));
+            continue;
+        }
+
+        // Verificar que el recurso existe
+        if (!isset($config['recursos'][$evento['recursoId']])) {
+            error_log("Recurso no encontrado: " . $evento['recursoId']);
+            continue;
+        }
+
+        // Validar formato de fecha
+        $inicio = DateTime::createFromFormat('Y-m-d H:i:s', $evento['horaInicio']);
+        if (!$inicio) {
+            error_log("Formato de fecha inválido: " . $evento['horaInicio']);
+            continue;
+        }
+    }
+}
+```
+
+### Problemas de rendimiento
+
+**Síntomas:**
+- Scheduler lento con muchos eventos
+- Alto uso de memoria
+- Página se congela
+
+**Soluciones:**
+```php
+// Limitar eventos por día
+function limitarEventos($eventos, $maxEventos = 500)
+{
+    if (count($eventos) > $maxEventos) {
+        // Ordenar por hora de inicio
+        usort($eventos, function($a, $b) {
+            return strtotime($a['horaInicio']) - strtotime($b['horaInicio']);
+        });
+
+        // Tomar solo los primeros
+        $eventos = array_slice($eventos, 0, $maxEventos);
+    }
+
+    return $eventos;
+}
+
+// Optimizar configuración
+$configOptima = [
+    'intervalo' => 60, // Reducir granularidad
+    'horaInicio' => '09:00',
+    'horaFin' => '18:00'  // Reducir horario si es posible
+];
+```
+
+### Problemas de visualización
+
+**Problemas comunes:**
+- Eventos se sobreponen
+- Colores no se aplican
+- Horas no se muestran correctamente
+
+**Debugging:**
+```javascript
+// Función de debug para desarrollo
+function debugScheduler(container) {
+    const eventos = JSON.parse(container.dataset.eventos || '[]');
+    const config = JSON.parse(container.dataset.config || '{}');
+
+    console.log('=== DEBUG SCHEDULER ===');
+    console.log('Eventos:', eventos.length);
+    console.log('Recursos:', Object.keys(config.recursos || {}));
+    console.log('Horario:', config.horaInicio, 'a', config.horaFin);
+    console.log('Intervalo:', config.intervalo, 'minutos');
+
+    // Verificar cada evento
+    eventos.forEach(function(evento, index) {
+        console.log(`Evento ${index}:`, {
+            titulo: evento.titulo,
+            recurso: evento.recursoId,
+            inicio: evento.horaInicio,
+            fin: evento.horaFin,
+            tipo: evento.tipo
+        });
+    });
+}
+
+// Llamar en desarrollo
+document.addEventListener('DOMContentLoaded', function() {
+    const schedulers = document.querySelectorAll('.glorySchedulerContenedor');
+    schedulers.forEach(debugScheduler);
+});
+```
+
+## Mejores Prácticas
+
+### Estructura de Datos
+
+```php
+// Estructura recomendada para eventos
+$eventoEstructurado = [
+    'id' => uniqid('evento_'),           // ID único
+    'titulo' => 'Título descriptivo',     // Máximo 50 caracteres
+    'horaInicio' => 'Y-m-d H:i:s',       // Formato estricto
+    'horaFin' => 'Y-m-d H:i:s',          // Formato estricto
+    'recursoId' => 'recurso-slug',       // Debe existir en config
+    'tipo' => 'tipo-evento',             // Para colores
+    'color' => '#hexcolor',              // Opcional, sobreescribe tipo
+    'descripcion' => 'Texto adicional',   // Máximo 200 caracteres
+    'estado' => 'activo|cancelado',       // Para filtrado
+    'usuarioId' => get_current_user_id(), // Para permisos
+    'metadata' => []                     // Datos adicionales
+];
+```
+
+### Validación de Datos
+
+```php
+class ValidadorScheduler
+{
+    public static function validarEvento($evento, $config)
+    {
+        $errores = [];
+
+        // Campos requeridos
+        $requeridos = ['titulo', 'horaInicio', 'horaFin', 'recursoId'];
+        foreach ($requeridos as $campo) {
+            if (empty($evento[$campo])) {
+                $errores[] = "Campo requerido faltante: {$campo}";
+            }
+        }
+
+        // Validar formato de fecha
+        if (!self::esFechaValida($evento['horaInicio'])) {
+            $errores[] = "Formato de horaInicio inválido";
+        }
+
+        if (!self::esFechaValida($evento['horaFin'])) {
+            $errores[] = "Formato de horaFin inválido";
+        }
+
+        // Validar que horaFin > horaInicio
+        if (strtotime($evento['horaFin']) <= strtotime($evento['horaInicio'])) {
+            $errores[] = "horaFin debe ser posterior a horaInicio";
+        }
+
+        // Validar recurso
+        if (!isset($config['recursos'][$evento['recursoId']])) {
+            $errores[] = "Recurso no válido: {$evento['recursoId']}";
+        }
+
+        return $errores;
+    }
+
+    private static function esFechaValida($fecha)
+    {
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $fecha);
+        return $dt && $dt->format('Y-m-d H:i:s') === $fecha;
+    }
+}
+```
+
+### Gestión de Estados
+
+```php
+class GestorEstadosScheduler
+{
+    const ESTADO_ACTIVO = 'activo';
+    const ESTADO_CANCELADO = 'cancelado';
+    const ESTADO_COMPLETADO = 'completado';
+
+    public static function cambiarEstadoEvento($eventoId, $nuevoEstado)
+    {
+        if (!self::esEstadoValido($nuevoEstado)) {
+            throw new Exception("Estado inválido: {$nuevoEstado}");
+        }
+
+        update_post_meta($eventoId, 'estado_evento', $nuevoEstado);
+
+        // Invalidar caches relacionados
+        CacheScheduler::invalidarCachePorEvento($eventoId);
+
+        // Log de cambio
+        GloryLogger::info('Estado de evento cambiado', [
+            'eventoId' => $eventoId,
+            'estadoAnterior' => get_post_meta($eventoId, 'estado_evento', true),
+            'estadoNuevo' => $nuevoEstado
+        ]);
+    }
+
+    private static function esEstadoValido($estado)
+    {
+        return in_array($estado, [
+            self::ESTADO_ACTIVO,
+            self::ESTADO_CANCELADO,
+            self::ESTADO_COMPLETADO
+        ]);
+    }
+}
+```
+
+<Aside type="caution">
+⚠️ **Importante**: El SchedulerRenderer requiere CSS personalizado para funcionar correctamente. Asegúrate de incluir los estilos base en tu theme.
+</Aside>
+
+<Aside type="tip">
+💡 **Tip**: Para aplicaciones complejas, considera implementar lazy loading de eventos y paginación para mejorar el rendimiento con grandes cantidades de datos.
+</Aside>

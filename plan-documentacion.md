@@ -50,7 +50,7 @@ CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE NO REPETIR DOCUMENTACIONES; R
 - **BadgeList** ✅ (Documentado)
 - **DataGridRenderer** ✅ (Documentado)
 - **PaginationRenderer** ✅ (Documentado)
-- **SchedulerRenderer** ❌ (Falta)
+- **SchedulerRenderer** ✅ (Documentado)
 - **PerfilRenderer** ❌ (Falta)
 - **BarraFiltrosRenderer** ❌ (Falta)
 - **HeaderRenderer** ❌ (Falta)

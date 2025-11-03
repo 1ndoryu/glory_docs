@@ -1,0 +1,700 @@
+---
+title: BarraFiltrosRenderer
+description: Sistema dinámico para crear barras de filtros con múltiples tipos de campos, AJAX y personalización completa
+sidebar:
+  order: 5
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# BarraFiltrosRenderer
+
+El componente **BarraFiltrosRenderer** es un sistema altamente configurable para crear barras de filtros dinámicas en interfaces administrativas y frontend. Soporta múltiples tipos de campos (texto, búsqueda, fechas, selects, rangos de fecha), envío AJAX automático, y personalización completa de estilos y comportamientos.
+
+## Características Principales
+
+- **Múltiples tipos de campos**: search, text, date, select, date_range
+- **Envío AJAX automático**: Actualización de contenido sin recarga de página
+- **Estado persistente**: Mantiene valores de filtros aplicados
+- **Campos dinámicos**: Configuración declarativa de filtros
+- **Sistema de scopes**: Soporte para filtros contextuales
+- **Botón de limpieza**: Reset automático de todos los filtros
+- **Responsive**: Diseño adaptable a diferentes pantallas
+
+## Tipos de Campos Soportados
+
+### Campo Search
+Campo de búsqueda con autocompletado visual.
+
+```php
+[
+    'tipo' => 'search',
+    'name' => 's',
+    'label' => 'Buscar Cliente',
+    'placeholder' => 'Escribe para buscar...'
+]
+```
+
+### Campo Text
+Campo de texto simple para filtros libres.
+
+```php
+[
+    'tipo' => 'text',
+    'name' => 'titulo',
+    'label' => 'Título',
+    'placeholder' => 'Filtrar por título...'
+]
+```
+
+### Campo Date
+Selector de fecha para filtros por fecha específica.
+
+```php
+[
+    'tipo' => 'date',
+    'name' => 'fecha_creacion',
+    'label' => 'Fecha de Creación'
+]
+```
+
+### Campo Select
+Lista desplegable con opciones predefinidas.
+
+```php
+[
+    'tipo' => 'select',
+    'name' => 'estado',
+    'label' => 'Estado',
+    'opciones' => [
+        '' => 'Todos los estados',
+        'activo' => 'Activo',
+        'inactivo' => 'Inactivo',
+        'pendiente' => 'Pendiente'
+    ]
+]
+```
+
+### Campo Date Range
+Selector de rango de fechas con interfaz intuitiva.
+
+```php
+[
+    'tipo' => 'date_range',
+    'from_name' => 'fecha_desde',
+    'to_name' => 'fecha_hasta',
+    'label' => 'Rango de Fechas',
+    'placeholder' => 'Selecciona período'
+]
+```
+
+## Uso Básico
+
+### Barra de Filtros Simple
+
+```php
+use Glory\Components\BarraFiltrosRenderer;
+
+$campos = [
+    [
+        'tipo' => 'search',
+        'name' => 's',
+        'label' => 'Buscar',
+        'placeholder' => 'Buscar productos...'
+    ],
+    [
+        'tipo' => 'select',
+        'name' => 'categoria',
+        'label' => 'Categoría',
+        'opciones' => [
+            '' => 'Todas las categorías',
+            'electronica' => 'Electrónica',
+            'ropa' => 'Ropa',
+            'hogar' => 'Hogar'
+        ]
+    ]
+];
+
+$opciones = [
+    'container_class' => 'filtros-productos',
+    'submit_text' => 'Filtrar',
+    'clear_text' => 'Limpiar Filtros'
+];
+
+BarraFiltrosRenderer::render($campos, $opciones);
+```
+
+### Filtros Administrativos con AJAX
+
+```php
+$campos = [
+    [
+        'tipo' => 'text',
+        'name' => 'cliente',
+        'label' => 'Cliente',
+        'placeholder' => 'Nombre del cliente...'
+    ],
+    [
+        'tipo' => 'date_range',
+        'from_name' => 'fecha_desde',
+        'to_name' => 'fecha_hasta',
+        'label' => 'Período'
+    ],
+    [
+        'tipo' => 'select',
+        'name' => 'estado',
+        'label' => 'Estado del Pedido',
+        'opciones' => [
+            '' => 'Todos',
+            'pendiente' => 'Pendiente',
+            'procesando' => 'Procesando',
+            'completado' => 'Completado',
+            'cancelado' => 'Cancelado'
+        ]
+    ]
+];
+
+$opciones = [
+    'container_class' => 'admin-filters postbox',
+    'ajax_action' => 'filtrar_pedidos',
+    'target_selector' => '.pedidos-container',
+    'scope' => 'pedidos-admin',
+    'preservar_keys' => ['orderby', 'order'],
+    'submit_text' => 'Aplicar Filtros',
+    'limpiar_url' => admin_url('admin.php?page=pedidos')
+];
+
+BarraFiltrosRenderer::render($campos, $opciones);
+```
+
+## Opciones de Configuración
+
+### Opciones de Contenedor y Layout
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `container_class` | string | 'glory-analytics-filters postbox' | Clases CSS del contenedor principal |
+| `form_class` | string | '' | Clases CSS adicionales del formulario |
+| `layout_row_class` | string | 'form-row' | Clase CSS del contenedor de campos |
+| `actions_class` | string | 'form-actions' | Clase CSS del contenedor de botones |
+
+### Opciones de Texto y URLs
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `submit_text` | string | 'Aplicar Filtros' | Texto del botón de aplicar |
+| `clear_text` | string | 'Limpiar' | Texto del botón de limpiar |
+| `limpiar_url` | string | URL actual | URL para resetear filtros |
+
+### Opciones de AJAX y Estado
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `ajax_action` | string | null | Acción AJAX para envío asíncrono |
+| `target_selector` | string | null | Selector del elemento a actualizar |
+| `scope` | string | null | Scope para identificación contextual |
+| `preservar_keys` | array | [] | Claves GET/POST a preservar |
+
+## HTML Generado
+
+### Estructura Básica
+
+```html
+<div class="glory-analytics-filters postbox">
+    <div class="inside">
+        <form method="GET" action="">
+            <!-- Campos ocultos para preservar estado -->
+            <input type="hidden" name="page" value="mi-pagina">
+
+            <!-- Contenedor de campos -->
+            <div class="form-row">
+                <p class="form-field">
+                    <label for="s">Buscar</label>
+                    <input type="search" id="s" name="s" placeholder="Buscar...">
+                </p>
+                <!-- Más campos... -->
+            </div>
+
+            <!-- Contenedor de acciones -->
+            <div class="form-actions">
+                <button type="submit" class="button button-primary">Aplicar Filtros</button>
+                <a href="/admin.php?page=mi-pagina" class="button">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+### Con AJAX Habilitado
+
+```html
+<div class="glory-analytics-filters postbox">
+    <div class="inside">
+        <form method="POST" action=""
+              data-glory-filters="ajax"
+              data-ajax-action="filtrar_contenido"
+              data-target=".contenido-actualizable"
+              data-glory-scope="productos">
+            <!-- Campos del formulario -->
+        </form>
+    </div>
+</div>
+```
+
+## Integración con AJAX
+
+### Configuración del Handler AJAX
+
+```php
+// En functions.php o archivo AJAX
+function manejar_filtros_ajax() {
+    // Verificar nonce y permisos
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'filtros_nonce')) {
+        wp_die('Acceso no autorizado');
+    }
+
+    // Obtener parámetros de filtro
+    $filtros = [
+        'search' => sanitize_text_field($_POST['s'] ?? ''),
+        'categoria' => sanitize_text_field($_POST['categoria'] ?? ''),
+        'fecha_desde' => sanitize_text_field($_POST['fecha_desde'] ?? ''),
+        'fecha_hasta' => sanitize_text_field($_POST['fecha_hasta'] ?? ''),
+    ];
+
+    // Realizar consulta filtrada
+    $query = new WP_Query([
+        's' => $filtros['search'],
+        'meta_query' => [
+            [
+                'key' => 'fecha_evento',
+                'value' => [$filtros['fecha_desde'], $filtros['fecha_hasta']],
+                'compare' => 'BETWEEN',
+                'type' => 'DATE'
+            ]
+        ],
+        // Más filtros...
+    ]);
+
+    // Renderizar resultados
+    ob_start();
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            get_template_part('template-parts/content', get_post_type());
+        }
+    } else {
+        echo '<p>No se encontraron resultados.</p>';
+    }
+    wp_reset_postdata();
+
+    $html = ob_get_clean();
+
+    // Retornar HTML + paginación si es necesario
+    wp_send_json_success([
+        'html' => $html,
+        'total' => $query->found_posts
+    ]);
+}
+add_action('wp_ajax_filtrar_contenido', 'manejar_filtros_ajax');
+```
+
+### JavaScript para AJAX
+
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar envío AJAX de formularios de filtros
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.hasAttribute('data-glory-filters') && form.getAttribute('data-glory-filters') === 'ajax') {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            formData.append('action', form.getAttribute('data-ajax-action'));
+            formData.append('nonce', gloryAjax.nonce);
+
+            const targetSelector = form.getAttribute('data-target');
+            const targetElement = targetSelector ? document.querySelector(targetSelector) : null;
+
+            // Mostrar loading
+            if (targetElement) {
+                targetElement.style.opacity = '0.5';
+            }
+
+            fetch(gloryAjax.ajax_url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && targetElement) {
+                    targetElement.innerHTML = data.data.html;
+                    targetElement.style.opacity = '1';
+
+                    // Actualizar URL sin recargar
+                    const url = new URL(window.location);
+                    formData.forEach((value, key) => {
+                        if (value && key !== 'action' && key !== 'nonce') {
+                            url.searchParams.set(key, value);
+                        }
+                    });
+                    history.pushState(null, null, url);
+                }
+            })
+            .catch(error => {
+                console.error('Error en filtros AJAX:', error);
+                if (targetElement) {
+                    targetElement.style.opacity = '1';
+                }
+            });
+        }
+    });
+});
+```
+
+## Casos de Uso Avanzados
+
+### Filtros de Dashboard Administrativo
+
+```php
+<?php
+use Glory\Components\BarraFiltrosRenderer;
+
+// Filtros para gestión de pedidos
+function renderizar_filtros_pedidos() {
+    $campos = [
+        [
+            'tipo' => 'search',
+            'name' => 'cliente',
+            'label' => 'Cliente',
+            'placeholder' => 'Buscar por nombre o email...'
+        ],
+        [
+            'tipo' => 'date_range',
+            'from_name' => 'fecha_inicio',
+            'to_name' => 'fecha_fin',
+            'label' => 'Período'
+        ],
+        [
+            'tipo' => 'select',
+            'name' => 'estado',
+            'label' => 'Estado',
+            'opciones' => [
+                '' => 'Todos los estados',
+                'pending' => 'Pendiente',
+                'processing' => 'Procesando',
+                'completed' => 'Completado',
+                'cancelled' => 'Cancelado',
+                'refunded' => 'Reembolsado'
+            ]
+        ],
+        [
+            'tipo' => 'select',
+            'name' => 'metodo_pago',
+            'label' => 'Método de Pago',
+            'opciones' => [
+                '' => 'Todos',
+                'tarjeta' => 'Tarjeta de Crédito',
+                'paypal' => 'PayPal',
+                'transferencia' => 'Transferencia',
+                'efectivo' => 'Efectivo'
+            ]
+        ]
+    ];
+
+    $opciones = [
+        'container_class' => 'pedidos-filters postbox',
+        'ajax_action' => 'admin_filtrar_pedidos',
+        'target_selector' => '.pedidos-table-container',
+        'scope' => 'pedidos-admin',
+        'preservar_keys' => ['paged', 'orderby', 'order'],
+        'submit_text' => 'Filtrar Pedidos',
+        'limpiar_url' => admin_url('admin.php?page=wc-orders')
+    ];
+
+    BarraFiltrosRenderer::render($campos, $opciones);
+}
+?>
+
+<div class="wrap">
+    <h1>Gestión de Pedidos</h1>
+
+    <?php renderizar_filtros_pedidos(); ?>
+
+    <div class="pedidos-table-container">
+        <!-- Tabla de pedidos se actualiza vía AJAX -->
+    </div>
+</div>
+```
+
+### Filtros de Frontend para Productos
+
+```php
+<?php
+use Glory\Components\BarraFiltrosRenderer;
+
+// Filtros para tienda online
+function renderizar_filtros_productos() {
+    // Obtener categorías dinámicamente
+    $categorias = get_terms([
+        'taxonomy' => 'product_cat',
+        'hide_empty' => false,
+        'fields' => 'id=>name'
+    ]);
+
+    $campos = [
+        [
+            'tipo' => 'search',
+            'name' => 's',
+            'label' => 'Buscar Productos',
+            'placeholder' => '¿Qué buscas?'
+        ],
+        [
+            'tipo' => 'select',
+            'name' => 'product_cat',
+            'label' => 'Categoría',
+            'opciones' => array_merge(['' => 'Todas las categorías'], $categorias)
+        ],
+        [
+            'tipo' => 'select',
+            'name' => 'orderby',
+            'label' => 'Ordenar por',
+            'opciones' => [
+                'menu_order' => 'Orden por defecto',
+                'popularity' => 'Más populares',
+                'rating' => 'Mejor valorados',
+                'date' => 'Más recientes',
+                'price' => 'Precio: menor a mayor',
+                'price-desc' => 'Precio: mayor a menor'
+            ]
+        ]
+    ];
+
+    $opciones = [
+        'container_class' => 'productos-filtros',
+        'ajax_action' => 'filtrar_productos',
+        'target_selector' => '.productos-grid',
+        'scope' => 'productos-frontend',
+        'submit_text' => 'Buscar',
+        'clear_text' => 'Limpiar Filtros'
+    ];
+
+    BarraFiltrosRenderer::render($campos, $opciones);
+}
+?>
+
+<div class="tienda-container">
+    <aside class="filtros-sidebar">
+        <?php renderizar_filtros_productos(); ?>
+    </aside>
+
+    <main class="productos-grid">
+        <!-- Productos se cargan vía AJAX -->
+    </main>
+</div>
+```
+
+### Sistema de Filtros con Paginación
+
+```php
+<?php
+use Glory\Components\BarraFiltrosRenderer;
+use Glory\Components\PaginationRenderer;
+
+function renderizar_filtros_con_paginacion($query_vars = []) {
+    // Filtros
+    $campos = [
+        // Definir campos de filtro...
+    ];
+
+    $opciones = [
+        'container_class' => 'filtros-con-paginacion',
+        'ajax_action' => 'filtrar_contenido_paginado',
+        'target_selector' => '.contenido-filtrado',
+        'preservar_keys' => ['paged'],
+        // Opciones adicionales...
+    ];
+
+    BarraFiltrosRenderer::render($campos, $opciones);
+
+    // Contenedor de resultados
+    echo '<div class="contenido-filtrado">';
+    // Renderizar contenido filtrado
+    echo '</div>';
+
+    // Paginación
+    if ($query_vars['paged'] ?? false) {
+        $query = new WP_Query($query_vars);
+        PaginationRenderer::render($query);
+    }
+}
+?>
+```
+
+## Estilización CSS
+
+### Estilos Base para Admin
+
+```css
+/* Contenedor de filtros */
+.glory-analytics-filters.postbox {
+    margin-bottom: 20px;
+}
+
+.glory-analytics-filters .inside {
+    padding: 12px;
+    margin: 0;
+}
+
+/* Campos del formulario */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-field {
+    flex: 1;
+    min-width: 200px;
+    margin: 0;
+}
+
+.form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #23282d;
+}
+
+.form-field input,
+.form-field select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+    outline: none;
+}
+
+/* Acciones */
+.form-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+}
+
+.form-actions .button {
+    padding: 6px 12px;
+}
+
+.form-actions .button-primary {
+    background: #007cba;
+    border-color: #007cba;
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-field {
+        min-width: auto;
+    }
+}
+```
+
+### Estilos para Frontend
+
+```css
+/* Filtros de frontend */
+.productos-filtros {
+    background: #f8f9fa;
+    padding: 24px;
+    border-radius: 8px;
+    margin-bottom: 32px;
+}
+
+.productos-filtros .form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+}
+
+.productos-filtros .form-field input,
+.productos-filtros .form-field select {
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.productos-filtros .form-field input:focus,
+.productos-filtros .form-field select:focus {
+    border-color: #007bff;
+}
+
+.productos-filtros .form-actions {
+    grid-column: 1 / -1;
+    justify-content: center;
+    border: none;
+    padding-top: 0;
+}
+
+/* Loading state */
+.contenido-filtrado {
+    transition: opacity 0.3s ease;
+}
+
+.contenido-filtrado.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .productos-filtros .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+```
+
+## JavaScript para Date Range
+
+Para que el campo `date_range` funcione correctamente, necesitas incluir el script correspondiente:
+
+```php
+// En functions.php
+function enqueue_date_range_scripts() {
+    wp_enqueue_script(
+        'glory-date-range',
+        get_template_directory_uri() . '/assets/js/gloryDateRange.js',
+        ['jquery', 'jquery-ui-datepicker'],
+        '1.0.0',
+        true
+    );
+}
+add_action('admin_enqueue_scripts', 'enqueue_date_range_scripts');
+add_action('wp_enqueue_scripts', 'enqueue_date_range_scripts');
+```
+
+<Aside type="tip">
+**Recomendación**: Para filtros complejos, siempre usa AJAX para evitar recargas de página. Incluye un indicador de carga visual durante las actualizaciones.
+
+```php
+// En el JavaScript de manejo AJAX
+const targetElement = document.querySelector(targetSelector);
+if (targetElement) {
+    targetElement.innerHTML = '<div class="loading-spinner">Cargando...</div>';
+}
+```
+</Aside>

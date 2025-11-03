@@ -67,6 +67,7 @@ export default defineConfig({
                                 'componentes/renderers/term-render',
                                 'componentes/renderers/busqueda-renderer',
                                 'componentes/renderers/logo-renderer',
+                                'componentes/renderers/barra-filtros-renderer',
                                 'componentes/renderers/scheduler-renderer',
                                 'componentes/renderers/perfil-renderer',
                                 'componentes/renderers/data-grid-renderer',

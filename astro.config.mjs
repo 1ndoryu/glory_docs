@@ -15,7 +15,8 @@ export default defineConfig({
                     items: [
                         'introduccion/bienvenida',
                         'introduccion/instalacion',
-                        'introduccion/primeros-pasos'
+                        'introduccion/primeros-pasos',
+                        'introduccion/como-crear-paginas'
                     ]
                 },
                 {

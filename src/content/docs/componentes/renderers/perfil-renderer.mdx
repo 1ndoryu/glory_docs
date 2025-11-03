@@ -1,0 +1,1085 @@
+---
+title: PerfilRenderer
+description: Componente para renderizar perfiles de usuario con imagen, información y acciones
+sidebar:
+  label: PerfilRenderer
+  order: 2
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# PerfilRenderer
+
+El **PerfilRenderer** es un componente especializado para renderizar información de perfiles de usuario en WordPress. Proporciona una interfaz unificada para mostrar avatares, datos personales, estadísticas y acciones relacionadas con usuarios, tanto del usuario actual como de otros usuarios del sistema.
+
+## Filosofía
+
+PerfilRenderer está diseñado para ser:
+- **Flexible**: Adaptable a diferentes contextos y necesidades de visualización
+- **Completo**: Incluye imagen, datos y acciones en un solo componente
+- **Seguro**: Respeta permisos y privacidad de usuarios
+- **Extensible**: Fácil de personalizar y expandir
+
+## Características Principales
+
+- **Avatar inteligente**: Soporte para imagen personalizada o Gravatar
+- **Información contextual**: Datos adaptados según permisos del usuario
+- **Acciones dinámicas**: Botones y enlaces basados en relación con el usuario
+- **Estilos responsivos**: Adaptable a diferentes tamaños de pantalla
+- **Cache automático**: Optimización de rendimiento con cache de datos
+
+## Arquitectura
+
+### Modos de Visualización
+
+#### Modo Compacto
+Vista minimalista con solo avatar e iniciales.
+
+#### Modo Estándar
+Avatar, nombre y rol básico.
+
+#### Modo Completo
+Información detallada con estadísticas y acciones.
+
+#### Modo Editable
+Vista especial para edición de perfil propio.
+
+## Uso Básico
+
+### Perfil del Usuario Actual
+
+```php
+use Glory\Components\PerfilRenderer;
+
+// Renderizar perfil del usuario actual
+PerfilRenderer::render();
+
+// O renderizar con configuración específica
+PerfilRenderer::render([
+    'modo' => 'completo',
+    'mostrarAcciones' => true,
+    'clasesCss' => 'perfil-header'
+]);
+```
+
+### Perfil de Otro Usuario
+
+```php
+// Renderizar perfil de usuario específico
+$userId = 123;
+PerfilRenderer::renderParaUsuario($userId, [
+    'modo' => 'estandar',
+    'contexto' => 'perfil-publico'
+]);
+```
+
+### En Templates WordPress
+
+```php
+// En header.php - perfil del usuario actual
+if (is_user_logged_in()) {
+    echo '<div class="user-profile-header">';
+    PerfilRenderer::render([
+        'modo' => 'compacto',
+        'clasesCss' => 'header-profile'
+    ]);
+    echo '</div>';
+}
+
+// En author.php - perfil del autor
+echo '<div class="author-profile">';
+PerfilRenderer::renderParaUsuario(get_queried_object_id(), [
+    'modo' => 'completo',
+    'mostrarEstadisticas' => true
+]);
+echo '</div>';
+```
+
+## Configuración Avanzada
+
+### Opciones de Configuración
+
+```php
+$config = [
+    // Modo de visualización
+    'modo' => 'completo', // 'compacto', 'estandar', 'completo', 'editable'
+
+    // Contenido a mostrar
+    'mostrarNombre' => true,
+    'mostrarEmail' => false, // Solo para usuario actual o admin
+    'mostrarRol' => true,
+    'mostrarBiografia' => true,
+    'mostrarEstadisticas' => true,
+    'mostrarAcciones' => true,
+
+    // Avatar
+    'tamanoAvatar' => 'thumbnail', // 'thumbnail', 'medium', 'large', 'full'
+    'avatarPersonalizado' => true, // Usar imagen personalizada si existe
+
+    // Acciones
+    'accionesPersonalizadas' => [], // Array de acciones adicionales
+
+    // Estilos
+    'clasesCss' => 'perfil-usuario',
+    'tema' => 'claro', // 'claro', 'oscuro'
+
+    // Contexto
+    'contexto' => 'perfil', // 'perfil', 'header', 'sidebar', 'comentario'
+    'relacionUsuario' => 'propio' // 'propio', 'otro', 'admin'
+];
+```
+
+## Componentes del Perfil
+
+### Avatar e Imagen
+
+```php
+// Sistema inteligente de avatar
+class AvatarHandler
+{
+    public static function obtenerAvatar($userId, $config = [])
+    {
+        // 1. Buscar imagen personalizada
+        $imagenPersonalizada = get_user_meta($userId, 'imagen_perfil_personalizada', true);
+        if ($imagenPersonalizada) {
+            return wp_get_attachment_image_url($imagenPersonalizada, $config['tamanoAvatar'] ?? 'thumbnail');
+        }
+
+        // 2. Usar Gravatar si está habilitado
+        if ($config['usarGravatar'] ?? true) {
+            return get_avatar_url($userId, [
+                'size' => $config['tamanoAvatar'] ?? 96
+            ]);
+        }
+
+        // 3. Generar avatar con iniciales
+        return self::generarAvatarIniciales($userId, $config);
+    }
+
+    private static function generarAvatarIniciales($userId, $config)
+    {
+        $user = get_userdata($userId);
+        $iniciales = strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1));
+
+        // Crear imagen SVG con iniciales
+        $svg = "<svg width='96' height='96' xmlns='http://www.w3.org/2000/svg'>
+            <circle cx='48' cy='48' r='48' fill='#007cba'/>
+            <text x='48' y='58' font-family='Arial' font-size='32' fill='white' text-anchor='middle'>{$iniciales}</text>
+        </svg>";
+
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+    }
+}
+```
+
+### Información Personal
+
+```php
+// Datos a mostrar según permisos
+function obtenerDatosPerfil($userId, $currentUserId, $esAdmin = false)
+{
+    $user = get_userdata($userId);
+    $datos = [
+        'nombre' => $user->display_name,
+        'usuario' => $user->user_login,
+        'registro' => $user->user_registered,
+    ];
+
+    // Email - solo visible para el propio usuario o admin
+    if ($userId === $currentUserId || $esAdmin) {
+        $datos['email'] = $user->user_email;
+    }
+
+    // Información adicional
+    if ($userId === $currentUserId || $esAdmin) {
+        $datos['telefono'] = get_user_meta($userId, 'telefono', true);
+        $datos['direccion'] = get_user_meta($userId, 'direccion', true);
+    }
+
+    // Biografía - siempre visible
+    $datos['biografia'] = get_user_meta($userId, 'description', true);
+
+    // Redes sociales - si están configuradas
+    $datos['redesSociales'] = [
+        'twitter' => get_user_meta($userId, 'twitter', true),
+        'linkedin' => get_user_meta($userId, 'linkedin', true),
+        'website' => $user->user_url
+    ];
+
+    return $datos;
+}
+```
+
+### Estadísticas de Usuario
+
+```php
+// Estadísticas según el rol del usuario
+function obtenerEstadisticasUsuario($userId, $rolUsuario)
+{
+    $stats = [];
+
+    // Estadísticas básicas para todos
+    $stats['miembroDesde'] = date_i18n('F Y', strtotime(get_userdata($userId)->user_registered));
+
+    switch ($rolUsuario) {
+        case 'administrator':
+        case 'editor':
+            $stats['postsPublicados'] = count_user_posts($userId, 'post', true);
+            $stats['paginasCreadas'] = count_user_posts($userId, 'page', true);
+            $stats['comentariosAprobados'] = get_comments([
+                'user_id' => $userId,
+                'status' => 'approve',
+                'count' => true
+            ]);
+            break;
+
+        case 'author':
+            $stats['postsPublicados'] = count_user_posts($userId, 'post', true);
+            $stats['vistasTotales'] = self::calcularVistasTotales($userId);
+            break;
+
+        case 'subscriber':
+            $stats['comentariosHechos'] = get_comments([
+                'user_id' => $userId,
+                'count' => true
+            ]);
+            $stats['miembroActivo'] = self::esMiembroActivo($userId);
+            break;
+    }
+
+    return $stats;
+}
+
+private static function calcularVistasTotales($userId)
+{
+    global $wpdb;
+
+    $postsUsuario = get_posts([
+        'author' => $userId,
+        'posts_per_page' => -1,
+        'fields' => 'ids'
+    ]);
+
+    if (empty($postsUsuario)) {
+        return 0;
+    }
+
+    $placeholders = str_repeat('%d,', count($postsUsuario) - 1) . '%d';
+    $query = $wpdb->prepare(
+        "SELECT SUM(meta_value) FROM {$wpdb->postmeta}
+         WHERE meta_key = 'post_views_count'
+         AND post_id IN ({$placeholders})",
+        $postsUsuario
+    );
+
+    return (int) $wpdb->get_var($query);
+}
+```
+
+### Acciones Disponibles
+
+```php
+// Acciones según relación con el usuario
+function obtenerAccionesPerfil($userId, $currentUserId, $esAdmin = false)
+{
+    $acciones = [];
+
+    // Acciones para el propio perfil
+    if ($userId === $currentUserId) {
+        $acciones[] = [
+            'titulo' => 'Editar Perfil',
+            'url' => admin_url('profile.php'),
+            'icono' => 'edit',
+            'clase' => 'btn-primary'
+        ];
+
+        $acciones[] = [
+            'titulo' => 'Cambiar Contraseña',
+            'url' => admin_url('profile.php'),
+            'icono' => 'key',
+            'clase' => 'btn-secondary'
+        ];
+    }
+
+    // Acciones para otros usuarios (si es admin)
+    elseif ($esAdmin) {
+        $acciones[] = [
+            'titulo' => 'Editar Usuario',
+            'url' => admin_url('user-edit.php?user_id=' . $userId),
+            'icono' => 'admin-users',
+            'clase' => 'btn-warning'
+        ];
+    }
+
+    // Acciones sociales
+    $acciones[] = [
+        'titulo' => 'Enviar Mensaje',
+        'url' => '#',
+        'icono' => 'email',
+        'clase' => 'btn-info',
+        'onclick' => 'abrirModalMensaje(' . $userId . ')'
+    ];
+
+    return $acciones;
+}
+```
+
+## Estilos CSS
+
+### CSS Base
+
+```css
+/* Estilos base para PerfilRenderer */
+.perfil-usuario {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.perfil-avatar {
+    flex-shrink: 0;
+}
+
+.perfil-avatar img {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #f0f0f0;
+}
+
+.perfil-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.perfil-nombre {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: #333;
+}
+
+.perfil-meta {
+    font-size: 0.875rem;
+    color: #666;
+    margin: 0.25rem 0;
+}
+
+.perfil-acciones {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.perfil-accion {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.perfil-accion:hover {
+    border-color: #007cba;
+    background: #007cba;
+    color: white;
+}
+
+/* Modos de visualización */
+.perfil-modo-compacto {
+    gap: 0.5rem;
+}
+
+.perfil-modo-estandar .perfil-info {
+    max-width: 200px;
+}
+
+.perfil-modo-completo {
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+}
+
+.perfil-modo-completo .perfil-avatar img {
+    width: 120px;
+    height: 120px;
+}
+
+.perfil-modo-completo .perfil-acciones {
+    justify-content: center;
+}
+
+/* Estados */
+.perfil-offline .perfil-avatar img {
+    opacity: 0.6;
+    filter: grayscale(100%);
+}
+
+.perfil-online::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    background: #4CAF50;
+    border: 3px solid white;
+    border-radius: 50%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .perfil-usuario {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .perfil-acciones {
+        justify-content: center;
+    }
+
+    .perfil-modo-completo .perfil-avatar img {
+        width: 80px;
+        height: 80px;
+    }
+}
+```
+
+### Tema Oscuro
+
+```css
+/* Tema oscuro */
+.perfil-tema-oscuro {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+.perfil-tema-oscuro .perfil-nombre {
+    color: #f7fafc;
+}
+
+.perfil-tema-oscuro .perfil-meta {
+    color: #a0aec0;
+}
+
+.perfil-tema-oscuro .perfil-accion {
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+.perfil-tema-oscuro .perfil-accion:hover {
+    border-color: #63b3ed;
+    background: #63b3ed;
+}
+```
+
+## Casos de Uso
+
+### Perfil en Header
+
+```php
+// En functions.php
+function agregar_perfil_header()
+{
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    add_action('wp_head', function() {
+        echo '<style>
+            .header-profile {
+                position: absolute;
+                top: 10px;
+                right: 20px;
+                z-index: 1000;
+            }
+        </style>';
+    });
+
+    add_action('wp_footer', function() {
+        echo '<div class="header-profile">';
+        PerfilRenderer::render([
+            'modo' => 'compacto',
+            'clasesCss' => 'perfil-tema-oscuro',
+            'tamanoAvatar' => 'thumbnail'
+        ]);
+        echo '</div>';
+    });
+}
+add_action('init', 'agregar_perfil_header');
+```
+
+### Página de Autor
+
+```php
+// En author.php
+get_header();
+
+$userId = get_queried_object_id();
+$user = get_userdata($userId);
+
+echo '<div class="author-profile-container">';
+echo '<div class="author-profile-main">';
+
+// Perfil principal
+PerfilRenderer::renderParaUsuario($userId, [
+    'modo' => 'completo',
+    'mostrarEstadisticas' => true,
+    'mostrarBiografia' => true,
+    'contexto' => 'author-page'
+]);
+
+echo '</div>';
+
+// Información adicional
+echo '<div class="author-stats">';
+$stats = obtenerEstadisticasUsuario($userId, $user->roles[0]);
+foreach ($stats as $label => $valor) {
+    echo "<div class='stat-item'><strong>{$label}:</strong> {$valor}</div>";
+}
+echo '</div>';
+
+echo '</div>';
+
+get_footer();
+```
+
+### Perfil en Comentarios
+
+```php
+// Modificar la función de comentarios
+function formato_comentario_personalizado($comment, $args, $depth)
+{
+    $commenter = get_comment_author();
+    $user = get_user_by('login', $commenter);
+
+    if ($user) {
+        echo '<div class="comment-author-profile">';
+        PerfilRenderer::renderParaUsuario($user->ID, [
+            'modo' => 'compacto',
+            'mostrarAcciones' => false,
+            'contexto' => 'comentario'
+        ]);
+        echo '</div>';
+    }
+
+    // Resto del comentario...
+}
+```
+
+### Sistema de Membresía
+
+```php
+// Dashboard de usuario
+function mostrar_dashboard_usuario()
+{
+    if (!is_user_logged_in()) {
+        wp_redirect(home_url('/login'));
+        exit;
+    }
+
+    echo '<div class="user-dashboard">';
+
+    // Perfil del usuario
+    echo '<div class="dashboard-profile">';
+    PerfilRenderer::render([
+        'modo' => 'completo',
+        'mostrarEstadisticas' => true,
+        'accionesPersonalizadas' => [
+            [
+                'titulo' => 'Ver Mis Compras',
+                'url' => home_url('/mis-compras'),
+                'icono' => 'cart'
+            ],
+            [
+                'titulo' => 'Editar Preferencias',
+                'url' => home_url('/preferencias'),
+                'icono' => 'settings'
+            ]
+        ]
+    ]);
+    echo '</div>';
+
+    // Contenido del dashboard
+    echo '<div class="dashboard-content">';
+    // ... contenido específico del usuario
+    echo '</div>';
+
+    echo '</div>';
+}
+```
+
+## Integración con Plugins
+
+### BuddyPress Integration
+
+```php
+// Integración con BuddyPress
+class PerfilRendererBuddyPress extends PerfilRenderer
+{
+    public static function renderParaUsuarioBP($userId, $config = [])
+    {
+        // Verificar si BuddyPress está activo
+        if (!function_exists('bp_core_get_user_domain')) {
+            return parent::renderParaUsuario($userId, $config);
+        }
+
+        $configBP = array_merge($config, [
+            'accionesPersonalizadas' => [
+                [
+                    'titulo' => 'Ver Perfil Completo',
+                    'url' => bp_core_get_user_domain($userId),
+                    'icono' => 'user'
+                ],
+                [
+                    'titulo' => 'Enviar Mensaje',
+                    'url' => bp_core_get_user_domain($userId) . 'messages/compose/',
+                    'icono' => 'email'
+                ]
+            ]
+        ]);
+
+        return parent::renderParaUsuario($userId, $configBP);
+    }
+
+    protected static function obtenerEstadisticasBP($userId)
+    {
+        if (!function_exists('bp_get_total_friend_count')) {
+            return [];
+        }
+
+        return [
+            'amigos' => bp_get_total_friend_count($userId),
+            'grupos' => bp_get_total_group_count_for_user($userId),
+            'actividad' => bp_get_total_mention_count_for_user($userId)
+        ];
+    }
+}
+```
+
+### WooCommerce Integration
+
+```php
+// Integración con WooCommerce
+class PerfilRendererWooCommerce extends PerfilRenderer
+{
+    public static function renderParaCliente($userId, $config = [])
+    {
+        $configWC = array_merge($config, [
+            'mostrarEstadisticas' => true,
+            'accionesPersonalizadas' => [
+                [
+                    'titulo' => 'Mis Pedidos',
+                    'url' => wc_get_account_endpoint_url('orders'),
+                    'icono' => 'cart'
+                ],
+                [
+                    'titulo' => 'Direcciones',
+                    'url' => wc_get_account_endpoint_url('edit-address'),
+                    'icono' => 'location'
+                ]
+            ]
+        ]);
+
+        return parent::renderParaUsuario($userId, $configWC);
+    }
+
+    protected static function obtenerEstadisticasWC($userId)
+    {
+        if (!function_exists('wc_get_customer_order_count')) {
+            return [];
+        }
+
+        $cliente = new WC_Customer($userId);
+
+        return [
+            'pedidosTotales' => wc_get_customer_order_count($userId),
+            'gastoTotal' => wc_price($cliente->get_total_spent()),
+            'ultimoPedido' => wc_get_customer_last_order($userId) ?
+                wc_get_customer_last_order($userId)->get_date_created()->date('d/m/Y') : 'Nunca'
+        ];
+    }
+}
+```
+
+## Seguridad y Privacidad
+
+### Control de Acceso a Información
+
+```php
+// Verificar permisos antes de mostrar información sensible
+function puedeVerInformacion($userIdSolicitado, $currentUserId, $esAdmin = false)
+{
+    // El propio usuario siempre puede ver su información
+    if ($userIdSolicitado === $currentUserId) {
+        return true;
+    }
+
+    // Los administradores pueden ver toda la información
+    if ($esAdmin) {
+        return true;
+    }
+
+    // Verificar si el perfil es público
+    $perfilPublico = get_user_meta($userIdSolicitado, 'perfil_publico', true);
+    if ($perfilPublico) {
+        return true;
+    }
+
+    // Verificar relación (amigos, seguidores, etc.)
+    return self::sonAmigos($currentUserId, $userIdSolicitado);
+}
+
+function filtrarDatosPerfil($datos, $userIdSolicitado, $currentUserId, $esAdmin)
+{
+    $datosFiltrados = [];
+
+    foreach ($datos as $campo => $valor) {
+        // Campos siempre públicos
+        if (in_array($campo, ['nombre', 'avatar', 'biografia'])) {
+            $datosFiltrados[$campo] = $valor;
+            continue;
+        }
+
+        // Verificar permisos para campos sensibles
+        if (puedeVerInformacion($userIdSolicitado, $currentUserId, $esAdmin)) {
+            $datosFiltrados[$campo] = $valor;
+        } else {
+            $datosFiltrados[$campo] = null; // O valor por defecto
+        }
+    }
+
+    return $datosFiltrados;
+}
+```
+
+### Protección contra XSS
+
+```php
+// Sanitizar datos antes de renderizar
+function sanitizarDatosPerfil($datos)
+{
+    return [
+        'nombre' => sanitize_text_field($datos['nombre'] ?? ''),
+        'email' => sanitize_email($datos['email'] ?? ''),
+        'biografia' => wp_kses($datos['biografia'] ?? '', [
+            'strong' => [],
+            'em' => [],
+            'a' => ['href' => [], 'title' => []],
+            'br' => []
+        ]),
+        'telefono' => sanitize_text_field($datos['telefono'] ?? ''),
+        'direccion' => sanitize_textarea_field($datos['direccion'] ?? ''),
+        'website' => esc_url($datos['website'] ?? ''),
+        'redesSociales' => array_map('esc_url', $datos['redesSociales'] ?? [])
+    ];
+}
+```
+
+## Optimizaciones de Rendimiento
+
+### Cache de Datos
+
+```php
+class CachePerfil
+{
+    private const CACHE_PREFIX = 'glory_perfil_';
+    private const CACHE_EXPIRATION = HOUR_IN_SECONDS;
+
+    public static function obtenerDatosCacheados($userId, $config = [])
+    {
+        $cacheKey = self::CACHE_PREFIX . $userId . '_' . md5(serialize($config));
+
+        $datos = get_transient($cacheKey);
+        if ($datos === false) {
+            $datos = self::generarDatosPerfil($userId, $config);
+            set_transient($cacheKey, $datos, self::CACHE_EXPIRATION);
+        }
+
+        return $datos;
+    }
+
+    public static function invalidarCache($userId)
+    {
+        global $wpdb;
+
+        $cacheKeyPattern = self::CACHE_PREFIX . $userId . '_%';
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+            $cacheKeyPattern
+        ));
+    }
+
+    // Invalidar cache cuando se actualiza el perfil
+    public static function configurarInvalidacion()
+    {
+        add_action('profile_update', [self::class, 'invalidarCache']);
+        add_action('user_register', [self::class, 'invalidarCache']);
+        add_action('delete_user', [self::class, 'invalidarCache']);
+    }
+}
+```
+
+### Lazy Loading de Avatares
+
+```php
+// Cargar avatares de forma diferida
+function renderizarAvatarLazy($userId, $config = [])
+{
+    $avatarUrl = AvatarHandler::obtenerAvatar($userId, $config);
+
+    // Usar lazy loading para mejorar rendimiento
+    return sprintf(
+        '<img src="data:image/svg+xml;base64,%s" data-src="%s" class="perfil-avatar lazy" alt="Avatar">',
+        base64_encode('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#f0f0f0"/></svg>'),
+        esc_url($avatarUrl)
+    );
+}
+
+// JavaScript para lazy loading
+add_action('wp_footer', function() {
+    ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const lazyImages = document.querySelectorAll('img.lazy');
+
+        const imageObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+
+        lazyImages.forEach(function(img) {
+            imageObserver.observe(img);
+        });
+    });
+    </script>
+    <?php
+});
+```
+
+## Solución de Problemas
+
+### Avatar no se muestra
+
+**Posibles causas:**
+- Usuario no tiene imagen personalizada ni Gravatar
+- Problemas de permisos en archivos subidos
+- Cache del navegador
+
+**Solución:**
+```php
+// Forzar regeneración de avatar
+function debug_avatar_usuario($userId)
+{
+    echo "<!-- DEBUG AVATAR -->\n";
+
+    // Verificar imagen personalizada
+    $imagenId = get_user_meta($userId, 'imagen_perfil_personalizada', true);
+    echo "<!-- Imagen personalizada ID: {$imagenId} -->\n";
+
+    if ($imagenId) {
+        $url = wp_get_attachment_image_url($imagenId, 'thumbnail');
+        echo "<!-- URL imagen personalizada: {$url} -->\n";
+    }
+
+    // Verificar Gravatar
+    $gravatar = get_avatar_url($userId);
+    echo "<!-- URL Gravatar: {$gravatar} -->\n";
+
+    // Verificar si Gravatar existe realmente
+    $headers = get_headers($gravatar);
+    $gravatarExiste = strpos($headers[0], '200') !== false;
+    echo "<!-- Gravatar existe: " . ($gravatarExiste ? 'SÍ' : 'NO') . " -->\n";
+}
+```
+
+### Información incorrecta se muestra
+
+**Posibles causas:**
+- Cache desactualizado
+- Permisos insuficientes
+- Datos corruptos en usermeta
+
+**Solución:**
+```php
+// Limpiar cache y verificar permisos
+function diagnosticar_problemas_perfil($userId, $currentUserId)
+{
+    // Limpiar cache
+    CachePerfil::invalidarCache($userId);
+
+    // Verificar permisos
+    $esAdmin = current_user_can('manage_options');
+    $esPropioPerfil = $userId === $currentUserId;
+
+    echo "<!-- DIAGNOSTICO PERFIL -->\n";
+    echo "<!-- Usuario solicitado: {$userId} -->\n";
+    echo "<!-- Usuario actual: {$currentUserId} -->\n";
+    echo "<!-- Es admin: " . ($esAdmin ? 'SÍ' : 'NO') . " -->\n";
+    echo "<!-- Es propio perfil: " . ($esPropioPerfil ? 'SÍ' : 'NO') . " -->\n";
+
+    // Verificar datos del usuario
+    $user = get_userdata($userId);
+    echo "<!-- Usuario existe: " . ($user ? 'SÍ' : 'NO') . " -->\n";
+
+    if ($user) {
+        echo "<!-- Nombre: {$user->display_name} -->\n";
+        echo "<!-- Email: {$user->user_email} -->\n";
+        echo "<!-- Roles: " . implode(', ', $user->roles) . " -->\n";
+    }
+}
+```
+
+### Acciones no funcionan
+
+**Problema:** Los botones de acción no responden
+**Causa:** JavaScript no está cargado o hay conflictos
+**Solución:**
+```javascript
+// Verificar que el JavaScript esté funcionando
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('PerfilRenderer JS cargado');
+
+    // Verificar elementos interactivos
+    const acciones = document.querySelectorAll('.perfil-accion');
+    console.log('Acciones encontradas:', acciones.length);
+
+    acciones.forEach(function(accion, index) {
+        console.log('Acción ' + index + ':', accion.href || accion.onclick);
+    });
+});
+```
+
+## Mejores Prácticas
+
+### Estructura de Templates
+
+```php
+<!-- Template recomendado para perfiles -->
+<div class="perfil-usuario perfil-modo-<?php echo esc_attr($config['modo']); ?> <?php echo esc_attr($config['clasesCss']); ?>">
+    <div class="perfil-avatar">
+        <?php echo $avatarHtml; ?>
+        <?php if ($estadoOnline): ?>
+            <span class="perfil-estado-online" title="En línea"></span>
+        <?php endif; ?>
+    </div>
+
+    <div class="perfil-info">
+        <h3 class="perfil-nombre"><?php echo esc_html($datos['nombre']); ?></h3>
+
+        <?php if (!empty($datos['rol'])): ?>
+            <div class="perfil-meta perfil-rol"><?php echo esc_html($datos['rol']); ?></div>
+        <?php endif; ?>
+
+        <?php if (!empty($datos['registro'])): ?>
+            <div class="perfil-meta perfil-registro">
+                Miembro desde <?php echo esc_html($datos['registro']); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($datos['biografia'])): ?>
+            <div class="perfil-biografia">
+                <?php echo wp_kses($datos['biografia'], ['strong' => [], 'em' => [], 'a' => ['href' => []], 'br' => []]); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($estadisticas)): ?>
+            <div class="perfil-estadisticas">
+                <?php foreach ($estadisticas as $label => $valor): ?>
+                    <div class="estadistica-item">
+                        <span class="estadistica-label"><?php echo esc_html($label); ?>:</span>
+                        <span class="estadistica-valor"><?php echo esc_html($valor); ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!empty($acciones)): ?>
+        <div class="perfil-acciones">
+            <?php foreach ($acciones as $accion): ?>
+                <a href="<?php echo esc_url($accion['url']); ?>"
+                   class="perfil-accion <?php echo esc_attr($accion['clase']); ?>"
+                   <?php if (!empty($accion['onclick'])): ?>
+                       onclick="<?php echo esc_attr($accion['onclick']); ?>"
+                   <?php endif; ?>
+                   title="<?php echo esc_attr($accion['titulo']); ?>">
+                    <?php if (!empty($accion['icono'])): ?>
+                        <span class="icono-accion icono-<?php echo esc_attr($accion['icono']); ?>"></span>
+                    <?php endif; ?>
+                    <?php echo esc_html($accion['titulo']); ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</div>
+```
+
+### Configuración por Contexto
+
+```php
+// Configuraciones recomendadas por contexto
+$configContextos = [
+    'header' => [
+        'modo' => 'compacto',
+        'mostrarNombre' => true,
+        'mostrarAcciones' => false,
+        'tamanoAvatar' => 'thumbnail'
+    ],
+
+    'sidebar' => [
+        'modo' => 'estandar',
+        'mostrarBiografia' => false,
+        'mostrarEstadisticas' => false,
+        'mostrarAcciones' => true
+    ],
+
+    'perfil' => [
+        'modo' => 'completo',
+        'mostrarBiografia' => true,
+        'mostrarEstadisticas' => true,
+        'mostrarAcciones' => true,
+        'tamanoAvatar' => 'medium'
+    ],
+
+    'comentario' => [
+        'modo' => 'compacto',
+        'mostrarNombre' => true,
+        'mostrarAcciones' => false,
+        'tamanoAvatar' => 'thumbnail'
+    ],
+
+    'dashboard' => [
+        'modo' => 'completo',
+        'mostrarEstadisticas' => true,
+        'accionesPersonalizadas' => [
+            // Acciones específicas del dashboard
+        ]
+    ]
+];
+
+// Uso
+$config = $configContextos[$contexto] ?? $configContextos['perfil'];
+PerfilRenderer::render($config);
+```
+
+<Aside type="caution">
+⚠️ **Importante**: Siempre verifica permisos antes de mostrar información sensible de usuarios. Nunca muestres emails, teléfonos o direcciones sin el consentimiento explícito del usuario o permisos administrativos.
+</Aside>
+
+<Aside type="tip">
+💡 **Tip**: Para aplicaciones complejas, considera implementar un sistema de "amistades" o "seguidores" para controlar qué información de perfil pueden ver otros usuarios.
+</Aside>

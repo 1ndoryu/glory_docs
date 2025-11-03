@@ -64,6 +64,7 @@ export default defineConfig({
                             label: 'Renderers',
                             items: [
                                 'componentes/renderers/scheduler-renderer',
+                                'componentes/renderers/perfil-renderer',
                                 'componentes/renderers/data-grid-renderer',
                                 'componentes/renderers/pagination-renderer'
                             ]

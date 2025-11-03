@@ -51,7 +51,7 @@ CADA VEZ QUE PUEDAS ACTUALIZA EL MD Y ASEGURATE DE NO REPETIR DOCUMENTACIONES; R
 - **DataGridRenderer** ✅ (Documentado)
 - **PaginationRenderer** ✅ (Documentado)
 - **SchedulerRenderer** ❌ (Falta documentación)
-- **PerfilRenderer** ❌ (Falta documentación)
+- **PerfilRenderer** ✅ (Documentado)
 - **BarraFiltrosRenderer** ❌ (Falta documentación)
 - **HeaderRenderer** ❌ (Falta documentación)
 - **ThemeToggle** ✅ (Documentado)

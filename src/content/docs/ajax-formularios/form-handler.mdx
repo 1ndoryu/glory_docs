@@ -1,0 +1,748 @@
+---
+title: FormHandler
+description: Sistema de routing y procesamiento para formularios AJAX en WordPress
+sidebar:
+  label: FormHandler
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+# FormHandler
+
+El **FormHandler** es el núcleo del sistema de formularios AJAX de Glory Framework. Proporciona un sistema de routing inteligente que automáticamente encuentra y ejecuta el manejador apropiado para cada formulario basado en una `subAccion`, permitiendo una arquitectura modular y extensible.
+
+## Filosofía
+
+FormHandler está diseñado para ser:
+- **Modular**: Cada formulario tiene su propio manejador específico
+- **Extensible**: Permite registrar namespaces adicionales desde la aplicación
+- **Seguro**: Sanitiza todas las entradas y valida permisos
+- **Robusto**: Manejo completo de errores con logging detallado
+
+## Arquitectura
+
+### Componentes del Sistema
+
+1. **FormHandler**: Clase principal que maneja el routing
+2. **FormHandlerInterface**: Contrato que deben implementar todos los handlers
+3. **Handlers específicos**: Clases que procesan formularios particulares
+4. **Sistema de namespaces**: Permite extender desde la aplicación
+
+### Flujo de Procesamiento
+
+```mermaid
+graph TD
+    A[Frontend envía formulario] --> B[FormHandler::manejarPeticion]
+    B --> C[Extraer subAccion]
+    C --> D[Buscar handler en namespaces]
+    D --> E{Handler encontrado?}
+    E -->|No| F[Error: Handler no existe]
+    E -->|Sí| G[Instanciar handler]
+    G --> H[Validar método procesar()]
+    H --> I[Llamar procesar($_POST, $_FILES)]
+    I --> J[Retornar respuesta JSON]
+```
+
+## Configuración Inicial
+
+### Activación del Sistema
+
+```php
+use Glory\Handler\FormHandler;
+
+// Inicializar el sistema (se hace automáticamente si está activado)
+$formHandler = new FormHandler();
+
+// O verificar que esté activo
+if (GloryFeatures::isActive('gloryForm', 'glory_componente_glory_form_activado')) {
+    // El sistema está activo
+}
+```
+
+### Opciones de Configuración
+
+```php
+// En functions.php o configuración del tema
+OpcionManager::register('glory_componente_glory_form_activado', [
+    'type' => 'checkbox',
+    'label' => 'Activar sistema de formularios AJAX',
+    'description' => 'Permite el procesamiento de formularios vía AJAX',
+    'default' => true,
+    'section' => 'glory_ajax'
+]);
+```
+
+## Uso Básico
+
+### Estructura de un Formulario AJAX
+
+```php
+// En tu template PHP
+$form = new FormBuilder('mi-formulario');
+$form->action('gloryFormHandler')
+     ->method('POST')
+     ->addHidden('subAccion', 'CrearPublicacion')
+     ->addTextarea('postContent', 'Contenido de la publicación')
+     ->addSelect('postType', ['post' => 'Entrada', 'page' => 'Página'])
+     ->render();
+```
+
+### JavaScript para Envío
+
+```javascript
+// Usando GloryAjax (recomendado)
+document.getElementById('mi-formulario').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    gloryAjax.post('gloryFormHandler', formData)
+        .then(function(response) {
+            if (response.success) {
+                alert(response.data.alert);
+                // Recargar página o actualizar UI
+                location.reload();
+            } else {
+                alert('Error: ' + response.data.alert);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error AJAX:', error);
+            alert('Error al procesar el formulario');
+        });
+});
+```
+
+### Handler Específico
+
+```php
+<?php
+
+namespace App\Handlers\Form;
+
+use Glory\Handler\Form\FormHandlerInterface;
+
+class MiFormularioHandler implements FormHandlerInterface
+{
+    public function procesar(array $postDatos, array $archivos): array
+    {
+        // 1. Validar y sanitizar datos
+        $contenido = sanitize_textarea_field($postDatos['postContent'] ?? '');
+        $tipoPost = sanitize_text_field($postDatos['postType'] ?? 'post');
+
+        if (empty($contenido)) {
+            throw new \Exception('El contenido no puede estar vacío');
+        }
+
+        // 2. Verificar permisos
+        if (!current_user_can('publish_posts')) {
+            throw new \Exception('No tienes permisos para publicar');
+        }
+
+        // 3. Procesar la lógica
+        $postId = wp_insert_post([
+            'post_title' => 'Nueva publicación',
+            'post_content' => $contenido,
+            'post_type' => $tipoPost,
+            'post_status' => 'publish'
+        ]);
+
+        if (is_wp_error($postId)) {
+            throw new \Exception('Error al crear la publicación');
+        }
+
+        // 4. Retornar respuesta
+        return [
+            'alert' => '¡Publicación creada exitosamente!',
+            'postId' => $postId,
+            'redirect' => get_permalink($postId)
+        ];
+    }
+}
+```
+
+## Sistema de Namespaces
+
+### Extensión desde la Aplicación
+
+```php
+// En functions.php de tu tema
+use Glory\Handler\FormHandler;
+
+// Registrar namespace de tu aplicación (prioridad alta)
+FormHandler::registerHandlerNamespace('App\\Handlers\\Form\\');
+
+// Ahora el sistema buscará primero en App\Handlers\Form\ y luego en Glory\Handler\Form\
+```
+
+### Prioridad de Búsqueda
+
+El sistema busca handlers en el siguiente orden:
+
+1. **Namespaces registrados por la aplicación** (en orden de registro)
+2. **Namespace por defecto de Glory** (`Glory\Handler\Form\`)
+
+Esto permite sobreescribir handlers de Glory desde la aplicación.
+
+## Handlers Incluidos
+
+### CrearPublicacionHandler
+
+Crea publicaciones de cualquier tipo con metadatos y archivos adjuntos.
+
+```php
+// Uso en formulario
+$form->addHidden('subAccion', 'CrearPublicacion')
+     ->addTextarea('postContent', 'Contenido...')
+     ->addSelect('postType', ['post', 'page', 'evento'])
+     ->addFile('archivo_adjunto');
+```
+
+### GuardarMetaHandler
+
+Guarda metadatos en posts existentes.
+
+```php
+// Para actualizar metadatos de un post existente
+$form->addHidden('subAccion', 'GuardarMeta')
+     ->addHidden('postId', $postId)
+     ->addText('meta_clave', 'Valor del metadato');
+```
+
+## Creación de Handlers Personalizados
+
+### Estructura Básica
+
+```php
+<?php
+
+namespace App\Handlers\Form;
+
+use Glory\Handler\Form\FormHandlerInterface;
+
+class ContactoHandler implements FormHandlerInterface
+{
+    public function procesar(array $postDatos, array $archivos): array
+    {
+        try {
+            // 1. Validación de datos
+            $this->validarDatos($postDatos);
+
+            // 2. Procesamiento específico
+            $resultado = $this->procesarContacto($postDatos);
+
+            // 3. Logging
+            GloryLogger::info('Formulario de contacto procesado', [
+                'email' => $postDatos['email']
+            ]);
+
+            // 4. Respuesta de éxito
+            return [
+                'alert' => '¡Mensaje enviado correctamente!',
+                'contactId' => $resultado['id']
+            ];
+
+        } catch (\Exception $e) {
+            GloryLogger::error('Error en formulario de contacto', [
+                'error' => $e->getMessage(),
+                'datos' => $postDatos
+            ]);
+
+            throw $e; // Re-lanzar para manejo automático
+        }
+    }
+
+    private function validarDatos(array $datos): void
+    {
+        $requeridos = ['nombre', 'email', 'mensaje'];
+
+        foreach ($requeridos as $campo) {
+            if (empty($datos[$campo])) {
+                throw new \Exception("El campo {$campo} es obligatorio");
+            }
+        }
+
+        if (!is_email($datos['email'])) {
+            throw new \Exception('El email no es válido');
+        }
+    }
+
+    private function procesarContacto(array $datos): array
+    {
+        // Lógica específica (guardar en BD, enviar email, etc.)
+        // ...
+
+        return ['id' => uniqid('contact_')];
+    }
+}
+```
+
+### Convenciones de Nomenclatura
+
+- **Nombre del archivo**: `{SubAccion}Handler.php`
+- **Nombre de clase**: `{SubAccion}Handler`
+- **SubAccion**: PascalCase, sin espacios
+- **Namespace**: Debe terminar en `\Form\`
+
+Ejemplos:
+- `subAccion: 'CrearUsuario'` → `CrearUsuarioHandler`
+- `subAccion: 'EnviarEmail'` → `EnviarEmailHandler`
+
+## Manejo de Archivos
+
+### Upload de Archivos
+
+```php
+public function procesar(array $postDatos, array $archivos): array
+{
+    // Procesar archivos adjuntos
+    if (!empty($archivos)) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+        foreach ($archivos as $campo => $archivo) {
+            if ($archivo['error'] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            // Subir archivo a WordPress
+            $attachmentId = media_handle_upload($campo, 0);
+
+            if (is_wp_error($attachmentId)) {
+                throw new \Exception("Error al subir {$campo}: " . $attachmentId->get_error_message());
+            }
+
+            // Guardar referencia
+            update_post_meta($postId, $campo, $attachmentId);
+        }
+    }
+
+    return ['alert' => 'Archivos procesados correctamente'];
+}
+```
+
+### Validación de Archivos
+
+```php
+private function validarArchivo(array $archivo, array $config): void
+{
+    // Verificar errores de upload
+    if ($archivo['error'] !== UPLOAD_ERR_OK) {
+        throw new \Exception('Error al subir el archivo');
+    }
+
+    // Verificar tamaño
+    $maxSize = $config['max_size'] ?? 5 * 1024 * 1024; // 5MB
+    if ($archivo['size'] > $maxSize) {
+        throw new \Exception('Archivo demasiado grande');
+    }
+
+    // Verificar tipo MIME
+    $tiposPermitidos = $config['mime_types'] ?? ['image/jpeg', 'image/png'];
+    $tipoMime = mime_content_type($archivo['tmp_name']);
+
+    if (!in_array($tipoMime, $tiposPermitidos)) {
+        throw new \Exception('Tipo de archivo no permitido');
+    }
+}
+```
+
+## Seguridad
+
+### Sanitización Automática
+
+El sistema automáticamente sanitiza:
+- **Campos de texto**: `sanitize_text_field()`
+- **Áreas de texto**: `sanitize_textarea_field()`
+- **Emails**: Validación específica
+- **Números**: `intval()`, `floatval()`
+
+### Validación de Permisos
+
+```php
+public function procesar(array $postDatos, array $archivos): array
+{
+    // Verificar nonce si se usa
+    if (isset($postDatos['nonce'])) {
+        if (!wp_verify_nonce($postDatos['nonce'], 'mi_form_nonce')) {
+            throw new \Exception('Nonce inválido');
+        }
+    }
+
+    // Verificar permisos del usuario
+    if (!current_user_can('publish_posts')) {
+        throw new \Exception('Permisos insuficientes');
+    }
+
+    // Verificar ownership si aplica
+    $postId = $postDatos['postId'] ?? 0;
+    if ($postId && get_post_field('post_author', $postId) != get_current_user_id()) {
+        throw new \Exception('No eres el autor de esta publicación');
+    }
+
+    // Continuar con procesamiento...
+}
+```
+
+### Protección contra XSS
+
+```php
+// El sistema previene XSS sanitizando automáticamente
+// Pero puedes añadir validación adicional
+
+private function validarContenido(string $contenido): string
+{
+    // Sanitizar HTML si se permite
+    $contenido = wp_kses($contenido, [
+        'strong' => [],
+        'em' => [],
+        'a' => ['href' => [], 'title' => []],
+        'br' => []
+    ]);
+
+    // Verificar longitud
+    if (strlen($contenido) > 10000) {
+        throw new \Exception('Contenido demasiado largo');
+    }
+
+    return $contenido;
+}
+```
+
+## Manejo de Errores
+
+### Errores Comunes
+
+```php
+try {
+    // Procesamiento del formulario
+} catch (\Exception $e) {
+    // Logging automático por FormHandler
+
+    // Tipos de errores comunes:
+    switch ($e->getMessage()) {
+        case 'No tienes permiso para crear este tipo de publicación.':
+            // Error de permisos
+            break;
+
+        case 'El tipo de publicación \'evento\' no es válido.':
+            // Tipo de post inválido
+            break;
+
+        default:
+            // Error genérico
+            break;
+    }
+
+    throw $e; // Dejar que FormHandler maneje la respuesta JSON
+}
+```
+
+### Respuestas Personalizadas
+
+```php
+public function procesar(array $postDatos, array $archivos): array
+{
+    // Respuesta básica
+    return [
+        'alert' => 'Operación completada',
+        'redirect' => '/gracias',
+        'reload' => false,
+        'extraData' => ['id' => 123]
+    ];
+
+    // Respuesta con múltiples mensajes
+    return [
+        'alert' => 'Usuario creado correctamente',
+        'messages' => [
+            'success' => ['Usuario registrado'],
+            'info' => ['Se envió email de confirmación']
+        ],
+        'userId' => $newUserId
+    ];
+}
+```
+
+## Integración con FormBuilder
+
+### Formulario Completo
+
+```php
+$form = new FormBuilder('contact-form');
+$form->action('gloryFormHandler')
+     ->method('POST')
+     ->addHidden('subAccion', 'Contacto')
+     ->addHidden('nonce', wp_create_nonce('contact_form'))
+     ->addText('nombre', 'Nombre completo', ['required' => true])
+     ->addEmail('email', 'Correo electrónico', ['required' => true])
+     ->addTextarea('mensaje', 'Mensaje', ['required' => true, 'rows' => 5])
+     ->addFile('adjunto', 'Archivo adjunto', [
+         'accept' => '.pdf,.doc,.docx',
+         'max_size' => 2 * 1024 * 1024 // 2MB
+     ])
+     ->addButton('submit', 'Enviar mensaje', ['type' => 'submit'])
+     ->render();
+```
+
+### JavaScript Avanzado
+
+```javascript
+// Con validación del lado cliente
+document.getElementById('contact-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Validación básica
+    const form = this;
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    // Mostrar loading
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+
+    // Enviar formulario
+    const formData = new FormData(form);
+
+    gloryAjax.post(form.action, formData)
+        .then(function(response) {
+            if (response.success) {
+                alert(response.data.alert);
+
+                // Redireccionar si se especifica
+                if (response.data.redirect) {
+                    window.location.href = response.data.redirect;
+                } else {
+                    form.reset();
+                }
+            } else {
+                alert('Error: ' + (response.data.alert || 'Error desconocido'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error al enviar el formulario. Inténtalo de nuevo.');
+        })
+        .finally(function() {
+            // Restaurar botón
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
+});
+```
+
+## Debugging y Monitoreo
+
+### Logging Automático
+
+FormHandler registra automáticamente:
+- Inicio de procesamiento
+- Éxito en operaciones
+- Errores con contexto completo
+- Datos de $_POST y $_FILES (en modo debug)
+
+### Depuración en Desarrollo
+
+```php
+// En wp-config.php para desarrollo
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+
+// Los logs aparecerán en wp-content/debug.log
+// Busca entradas con "FormHandler" o "formulario"
+```
+
+### Verificación de Handlers
+
+```php
+// Función de utilidad para verificar handlers disponibles
+function debug_form_handlers() {
+    if (!WP_DEBUG) return;
+
+    $namespaces = [
+        'App\\Handlers\\Form\\',
+        'Glory\\Handler\\Form\\'
+    ];
+
+    echo '<h3>Handlers de Formulario Disponibles</h3>';
+    echo '<ul>';
+
+    foreach ($namespaces as $ns) {
+        $path = str_replace('\\', '/', $ns);
+        $files = glob(get_template_directory() . '/src/' . $path . '*Handler.php');
+
+        foreach ($files as $file) {
+            $className = basename($file, '.php');
+            $subAccion = str_replace('Handler', '', $className);
+            echo "<li>{$ns}{$className} → subAccion: '{$subAccion}'</li>";
+        }
+    }
+
+    echo '</ul>';
+}
+add_action('wp_footer', 'debug_form_handlers');
+```
+
+## Casos de Uso Avanzados
+
+### Formulario de Registro Multi-paso
+
+```php
+class RegistroUsuarioHandler implements FormHandlerInterface
+{
+    public function procesar(array $postDatos, array $archivos): array
+    {
+        $paso = intval($postDatos['paso'] ?? 1);
+
+        switch ($paso) {
+            case 1:
+                return $this->procesarPaso1($postDatos);
+            case 2:
+                return $this->procesarPaso2($postDatos);
+            case 3:
+                return $this->procesarPaso3($postDatos);
+            default:
+                throw new \Exception('Paso inválido');
+        }
+    }
+
+    private function procesarPaso1(array $datos): array
+    {
+        // Validar email único
+        if (email_exists($datos['email'])) {
+            throw new \Exception('Este email ya está registrado');
+        }
+
+        // Guardar datos temporales en sesión/transient
+        $tempId = wp_generate_uuid4();
+        set_transient('registro_' . $tempId, $datos, HOUR_IN_SECONDS);
+
+        return [
+            'alert' => 'Email verificado correctamente',
+            'siguiente_paso' => 2,
+            'temp_id' => $tempId
+        ];
+    }
+}
+```
+
+### Formulario con Dependencias
+
+```php
+class PedidoProductoHandler implements FormHandlerInterface
+{
+    public function procesar(array $postDatos, array $archivos): array
+    {
+        $productoId = intval($postDatos['producto_id']);
+        $cantidad = intval($postDatos['cantidad']);
+
+        // Verificar stock disponible
+        $stock = get_post_meta($productoId, '_stock', true);
+        if ($cantidad > $stock) {
+            throw new \Exception("Solo hay {$stock} unidades disponibles");
+        }
+
+        // Calcular precio total
+        $precioUnitario = get_post_meta($productoId, '_price', true);
+        $total = $precioUnitario * $cantidad;
+
+        // Crear pedido
+        $pedidoId = wp_insert_post([
+            'post_type' => 'pedido',
+            'post_title' => "Pedido de " . get_current_user()->display_name,
+            'post_status' => 'pending'
+        ]);
+
+        // Guardar metadatos del pedido
+        update_post_meta($pedidoId, 'producto_id', $productoId);
+        update_post_meta($pedidoId, 'cantidad', $cantidad);
+        update_post_meta($pedidoId, 'total', $total);
+
+        return [
+            'alert' => 'Pedido creado correctamente',
+            'pedido_id' => $pedidoId,
+            'total' => $total,
+            'redirect' => home_url('/checkout?pedido=' . $pedidoId)
+        ];
+    }
+}
+```
+
+## Mejores Prácticas
+
+### Estructura de Handlers
+
+```php
+class MiHandler implements FormHandlerInterface
+{
+    public function procesar(array $postDatos, array $archivos): array
+    {
+        // 1. Validación temprana
+        $this->validarDatosBasicos($postDatos);
+
+        // 2. Autorización
+        $this->verificarPermisos($postDatos);
+
+        // 3. Procesamiento principal
+        $resultado = $this->ejecutarLogica($postDatos, $archivos);
+
+        // 4. Limpieza
+        $this->limpiarDatosTemporales();
+
+        // 5. Respuesta
+        return $this->formatearRespuesta($resultado);
+    }
+
+    // Métodos privados para organización
+    private function validarDatosBasicos(array $datos): void { /* ... */ }
+    private function verificarPermisos(array $datos): void { /* ... */ }
+    private function ejecutarLogica(array $datos, array $archivos): array { /* ... */ }
+    private function limpiarDatosTemporales(): void { /* ... */ }
+    private function formatearRespuesta(array $resultado): array { /* ... */ }
+}
+```
+
+### Testing de Handlers
+
+```php
+// Función de testeo para desarrollo
+function test_form_handler(string $handlerClass, array $testData): array
+{
+    if (!WP_DEBUG) return ['error' => 'Solo disponible en modo debug'];
+
+    try {
+        $handler = new $handlerClass();
+        $resultado = $handler->procesar($testData, []);
+
+        return [
+            'success' => true,
+            'resultado' => $resultado
+        ];
+    } catch (\Exception $e) {
+        return [
+            'success' => false,
+            'error' => $e->getMessage()
+        ];
+    }
+}
+
+// Uso en desarrollo
+$resultado = test_form_handler('App\\Handlers\\Form\\ContactoHandler', [
+    'nombre' => 'Juan Pérez',
+    'email' => 'juan@example.com',
+    'mensaje' => 'Mensaje de prueba'
+]);
+```
+
+<Aside type="caution">
+⚠️ **Importante**: Los handlers tienen acceso completo a $_POST y $_FILES. Siempre valida y sanitiza todas las entradas para prevenir vulnerabilidades de seguridad.
+</Aside>
+
+<Aside type="tip">
+💡 **Tip**: Usa el patrón de namespaces para mantener tus handlers organizados y permitir sobreescribir funcionalidades de Glory según las necesidades específicas de tu aplicación.
+</Aside>

@@ -7,22 +7,19 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 # 📄 Cómo Crear Páginas con Glory
 
-Glory utiliza un sistema elegante para crear páginas basado en el `PageManager`. Este sistema separa la definición de páginas de su renderizado, permitiendo un código más organizado y mantenible.
+Glory simplifica la creación de páginas mediante el `PageManager`. Las páginas se definen con un slug y una función handler que genera el contenido HTML.
 
-## 🏗️ Arquitectura del Sistema de Páginas
+## 🏗️ Cómo Funciona
 
-### Cómo Funciona
-
-1. **PageManager** registra páginas con un `slug` y una función `handler`
-2. **TemplateGlory.php** actúa como enrutador, ejecutando el `handler` correspondiente
-3. Las funciones `handler` generan el HTML completo de la página
+1. **Define** páginas en `App/Config/config.php` con `PageManager::define()`
+2. **Crea** funciones handler que generan solo el contenido (sin HTML completo)
+3. **TemplateGlory.php** se encarga del `<head>`, navegación y footer automáticamente
 
 ### Ventajas
 
-- ✅ Separación clara entre configuración y presentación
-- ✅ Reutilización de código
-- ✅ Fácil mantenimiento
-- ✅ Sistema de plantillas consistente
+- ✅ Sin repetir HTML boilerplate en cada página
+- ✅ Header/footer consistentes automáticamente
+- ✅ Enfoque en el contenido específico de cada página
 
 ## 🚀 Crear tu Primera Página
 
@@ -46,7 +43,7 @@ PageManager::define('producto', 'renderProducto');
 
 ### Paso 2: Crear la Función Handler
 
-Crea `templates/Pages/Contacto.php`:
+Crea la función en cualquier archivo PHP cargado por tu tema (recomendado: `functions.php` o archivos dedicados):
 
 ```php
 <?php
@@ -58,86 +55,63 @@ function renderContacto() {
     $email = get_option('admin_email');
     $telefono = OpcionManager::get('telefono_contacto');
     ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Contacto - <?php bloginfo('name'); ?></title>
-        <?php wp_head(); ?>
-    </head>
-    <body class="page-contacto">
-        <header class="site-header">
-            <nav class="main-nav">
-                <a href="<?php echo home_url(); ?>">Inicio</a>
-                <a href="<?php echo PageManager::getUrl('sobre-nosotros'); ?>">Sobre Nosotros</a>
-                <a href="<?php echo PageManager::getUrl('contacto'); ?>" class="active">Contacto</a>
-            </nav>
-        </header>
 
-        <main class="main-content">
-            <div class="container">
-                <h1>Contáctanos</h1>
+    <div class="contacto-hero">
+        <h1>Contáctanos</h1>
+        <p>Estamos aquí para ayudarte</p>
+    </div>
 
-                <div class="contacto-info">
-                    <div class="info-item">
-                        <h3>Email</h3>
-                        <p><?php echo esc_html($email); ?></p>
-                    </div>
-                    <?php if ($telefono): ?>
-                    <div class="info-item">
-                        <h3>Teléfono</h3>
-                        <p><?php echo esc_html($telefono); ?></p>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="contacto-form">
-                    <h2>Envíanos un mensaje</h2>
-                    <?php
-                    use Glory\Components\FormBuilder;
-
-                    echo FormBuilder::inicio([
-                        'atributos' => ['id' => 'form-contacto']
-                    ]);
-
-                    echo FormBuilder::campoTexto([
-                        'nombre' => 'nombre',
-                        'label' => 'Nombre completo',
-                        'requerido' => true
-                    ]);
-
-                    echo FormBuilder::campoEmail([
-                        'nombre' => 'email',
-                        'label' => 'Correo electrónico',
-                        'requerido' => true
-                    ]);
-
-                    echo FormBuilder::campoTextarea([
-                        'nombre' => 'mensaje',
-                        'label' => 'Mensaje',
-                        'requerido' => true,
-                        'placeholder' => 'Escribe tu mensaje aquí...'
-                    ]);
-
-                    echo FormBuilder::botonEnviar([
-                        'accion' => 'procesarContacto',
-                        'texto' => 'Enviar Mensaje'
-                    ]);
-
-                    echo FormBuilder::fin();
-                    ?>
-                </div>
+    <div class="contacto-content">
+        <div class="contacto-info">
+            <div class="info-item">
+                <h3>Email</h3>
+                <p><?php echo esc_html($email); ?></p>
             </div>
-        </main>
+            <?php if ($telefono): ?>
+            <div class="info-item">
+                <h3>Teléfono</h3>
+                <p><?php echo esc_html($telefono); ?></p>
+            </div>
+            <?php endif; ?>
+        </div>
 
-        <footer class="site-footer">
-            <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?></p>
-        </footer>
+        <div class="contacto-form">
+            <h2>Envíanos un mensaje</h2>
+            <?php
+            use Glory\Components\FormBuilder;
 
-        <?php wp_footer(); ?>
-    </body>
-    </html>
+            echo FormBuilder::inicio([
+                'atributos' => ['id' => 'form-contacto']
+            ]);
+
+            echo FormBuilder::campoTexto([
+                'nombre' => 'nombre',
+                'label' => 'Nombre completo',
+                'requerido' => true
+            ]);
+
+            echo FormBuilder::campoEmail([
+                'nombre' => 'email',
+                'label' => 'Correo electrónico',
+                'requerido' => true
+            ]);
+
+            echo FormBuilder::campoTextarea([
+                'nombre' => 'mensaje',
+                'label' => 'Mensaje',
+                'requerido' => true,
+                'placeholder' => 'Escribe tu mensaje aquí...'
+            ]);
+
+            echo FormBuilder::botonEnviar([
+                'accion' => 'procesarContacto',
+                'texto' => 'Enviar Mensaje'
+            ]);
+
+            echo FormBuilder::fin();
+            ?>
+        </div>
+    </div>
     <?php
 }
 ```
@@ -157,8 +131,6 @@ PageManager::define('producto', 'renderProducto');
 
 #### Crear el Handler
 
-Crea `templates/Pages/Producto.php`:
-
 ```php
 <?php
 function renderProducto() {
@@ -171,7 +143,7 @@ function renderProducto() {
         exit;
     }
 
-    // Obtener datos del producto (esto depende de tu implementación)
+    // Obtener datos del producto
     $producto = get_post($producto_id);
 
     if (!$producto || $producto->post_type !== 'producto') {
@@ -180,34 +152,25 @@ function renderProducto() {
         return;
     }
     ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title><?php echo esc_html($producto->post_title); ?> - <?php bloginfo('name'); ?></title>
-        <?php wp_head(); ?>
-    </head>
-    <body class="page-producto">
-        <div class="producto-detalle">
+
+    <div class="producto-detalle">
+        <div class="producto-hero">
             <h1><?php echo esc_html($producto->post_title); ?></h1>
-
-            <div class="producto-imagen">
-                <?php echo get_the_post_thumbnail($producto_id, 'large'); ?>
-            </div>
-
-            <div class="producto-contenido">
-                <?php echo apply_filters('the_content', $producto->post_content); ?>
-            </div>
-
-            <div class="producto-meta">
-                <p><strong>Precio:</strong> <?php echo get_post_meta($producto_id, 'precio', true); ?>€</p>
-                <p><strong>Categoría:</strong> <?php the_terms($producto_id, 'categoria_producto'); ?></p>
-            </div>
         </div>
 
-        <?php wp_footer(); ?>
-    </body>
-    </html>
+        <div class="producto-imagen">
+            <?php echo get_the_post_thumbnail($producto_id, 'large'); ?>
+        </div>
+
+        <div class="producto-contenido">
+            <?php echo apply_filters('the_content', $producto->post_content); ?>
+        </div>
+
+        <div class="producto-meta">
+            <p><strong>Precio:</strong> <?php echo get_post_meta($producto_id, 'precio', true); ?>€</p>
+            <p><strong>Categoría:</strong> <?php the_terms($producto_id, 'categoria_producto'); ?></p>
+        </div>
+    </div>
     <?php
 }
 ```
@@ -228,8 +191,6 @@ add_filter('query_vars', 'agregar_query_vars');
 
 ### Página de Blog con ContentRender
 
-Crea `templates/Pages/Blog.php`:
-
 ```php
 <?php
 function renderBlog() {
@@ -248,51 +209,42 @@ function renderBlog() {
         $args['category_name'] = sanitize_text_field($_GET['categoria']);
     }
     ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <title>Blog - <?php bloginfo('name'); ?></title>
-        <?php wp_head(); ?>
-    </head>
-    <body class="page-blog">
-        <header>
-            <h1>Nuestro Blog</h1>
-        </header>
 
-        <main>
-            <div class="filtros-blog">
-                <form method="GET" action="<?php echo PageManager::getUrl('blog'); ?>">
-                    <select name="categoria">
-                        <option value="">Todas las categorías</option>
-                        <?php
-                        $categorias = get_categories();
-                        foreach ($categorias as $cat) {
-                            $selected = (isset($_GET['categoria']) && $_GET['categoria'] === $cat->slug) ? 'selected' : '';
-                            echo "<option value='{$cat->slug}' {$selected}>{$cat->name}</option>";
-                        }
-                        ?>
-                    </select>
-                    <button type="submit">Filtrar</button>
-                </form>
-            </div>
+    <div class="blog-header">
+        <h1>Nuestro Blog</h1>
+        <p>Descubre nuestros últimos artículos</p>
+    </div>
 
-            <div class="posts-container">
-                <?php
-                use Glory\Components\ContentRender;
+    <div class="blog-content">
+        <div class="filtros-blog">
+            <form method="GET" action="<?php echo PageManager::getUrl('blog'); ?>">
+                <select name="categoria">
+                    <option value="">Todas las categorías</option>
+                    <?php
+                    $categorias = get_categories();
+                    foreach ($categorias as $cat) {
+                        $selected = (isset($_GET['categoria']) && $_GET['categoria'] === $cat->slug) ? 'selected' : '';
+                        echo "<option value='{$cat->slug}' {$selected}>{$cat->name}</option>";
+                    }
+                    ?>
+                </select>
+                <button type="submit">Filtrar</button>
+            </form>
+        </div>
 
-                ContentRender::print('post', [
-                    'queryArgs' => $args,
-                    'publicacionesPorPagina' => 10,
-                    'paginacion' => true,
-                    'plantillaCallback' => 'plantillaPostBlog'
-                ]);
-                ?>
-            </div>
-        </main>
+        <div class="posts-container">
+            <?php
+            use Glory\Components\ContentRender;
 
-        <?php wp_footer(); ?>
-    </body>
-    </html>
+            ContentRender::print('post', [
+                'queryArgs' => $args,
+                'publicacionesPorPagina' => 10,
+                'paginacion' => true,
+                'plantillaCallback' => 'plantillaPostBlog'
+            ]);
+            ?>
+        </div>
+    </div>
     <?php
 }
 
@@ -323,8 +275,6 @@ function plantillaPostBlog($post) {
 
 ### Página con AJAX y Realtime
 
-Crea una página de dashboard con actualizaciones en tiempo real:
-
 ```php
 <?php
 function renderDashboard() {
@@ -332,225 +282,79 @@ function renderDashboard() {
     use Glory\Core\GloryFeatures;
     GloryFeatures::enable('gloryRealtime');
     ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <title>Dashboard - <?php bloginfo('name'); ?></title>
-        <?php wp_head(); ?>
-    </head>
-    <body class="page-dashboard">
-        <div id="notificaciones-container"></div>
 
-        <div class="stats-grid">
-            <div class="stat-card" data-channel="nuevo_pedido">
-                <h3>Pedidos Hoy</h3>
-                <span class="numero" id="pedidos-hoy">0</span>
-            </div>
-            <div class="stat-card" data-channel="nuevo_usuario">
-                <h3>Usuarios Nuevos</h3>
-                <span class="numero" id="usuarios-nuevos">0</span>
-            </div>
+    <div class="dashboard-header">
+        <h1>Dashboard</h1>
+        <p>Panel de control en tiempo real</p>
+    </div>
+
+    <div id="notificaciones-container"></div>
+
+    <div class="stats-grid">
+        <div class="stat-card" data-channel="nuevo_pedido">
+            <h3>Pedidos Hoy</h3>
+            <span class="numero" id="pedidos-hoy">0</span>
         </div>
+        <div class="stat-card" data-channel="nuevo_usuario">
+            <h3>Usuarios Nuevos</h3>
+            <span class="numero" id="usuarios-nuevos">0</span>
+        </div>
+    </div>
 
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cargar datos iniciales
-            actualizarEstadisticas();
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cargar datos iniciales
+        actualizarEstadisticas();
 
-            // Configurar realtime
-            if (window.gloryRealtimePoll) {
-                window.gloryRealtimePoll(['nuevo_pedido', 'nuevo_usuario'], {
-                    intervalMs: 5000
-                });
+        // Configurar realtime
+        if (window.gloryRealtimePoll) {
+            window.gloryRealtimePoll(['nuevo_pedido', 'nuevo_usuario'], {
+                intervalMs: 5000
+            });
 
-                document.addEventListener('gloryRealtime:update', function(e) {
-                    actualizarEstadisticas();
-                });
-            }
-        });
-
-        function actualizarEstadisticas() {
-            gloryAjax('obtener_estadisticas_dashboard')
-                .then(function(response) {
-                    if (response.success) {
-                        document.getElementById('pedidos-hoy').textContent = response.data.pedidos_hoy;
-                        document.getElementById('usuarios-nuevos').textContent = response.data.usuarios_nuevos;
-                    }
-                });
+            document.addEventListener('gloryRealtime:update', function(e) {
+                actualizarEstadisticas();
+            });
         }
-        </script>
+    });
 
-        <?php wp_footer(); ?>
-    </body>
-    </html>
+    function actualizarEstadisticas() {
+        gloryAjax('obtener_estadisticas_dashboard')
+            .then(function(response) {
+                if (response.success) {
+                    document.getElementById('pedidos-hoy').textContent = response.data.pedidos_hoy;
+                    document.getElementById('usuarios-nuevos').textContent = response.data.usuarios_nuevos;
+                }
+            });
+    }
+    </script>
     <?php
 }
 ```
 
-## 📱 Páginas Responsivas
-
-### Estructura HTML Moderna
-
-```php
-<?php
-function renderPaginaResponsiva() {
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Título de Página</title>
-        <?php wp_head(); ?>
-    </head>
-    <body>
-        <!-- Header responsivo -->
-        <header class="site-header">
-            <div class="container">
-                <div class="logo">
-                    <a href="<?php echo home_url(); ?>">
-                        <?php bloginfo('name'); ?>
-                    </a>
-                </div>
-
-                <!-- Menú hamburguesa para móvil -->
-                <button class="menu-toggle" aria-label="Menú">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-
-                <nav class="main-nav">
-                    <a href="<?php echo PageManager::getUrl('home'); ?>">Inicio</a>
-                    <a href="<?php echo PageManager::getUrl('productos'); ?>">Productos</a>
-                    <a href="<?php echo PageManager::getUrl('contacto'); ?>">Contacto</a>
-                </nav>
-            </div>
-        </header>
-
-        <!-- Contenido principal -->
-        <main class="main-content">
-            <div class="container">
-                <!-- Tu contenido aquí -->
-            </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="site-footer">
-            <div class="container">
-                <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?></p>
-            </div>
-        </footer>
-
-        <?php wp_footer(); ?>
-    </body>
-    </html>
-    <?php
-}
-```
 
 ## 🎯 Mejores Prácticas
 
 ### Organización del Código
 
-1. **Un archivo por página**: Cada página debe tener su propio archivo handler
-2. **Funciones helpers**: Crea funciones auxiliares para lógica reutilizable
-3. **Separación de responsabilidades**: Mantén la lógica de negocio separada de la presentación
+- **Funciones claras**: Una función por página con nombres descriptivos
+- **Reutilización**: Crea helpers para lógica común
+- **Separación**: Lógica de negocio separada de la presentación
 
-### Ejemplo de Estructura Recomendada
+### Estructura Recomendada
 
 ```
-templates/Pages/
-├── Home.php              # Página principal
-├── Contacto.php          # Página de contacto
-├── SobreNosotros.php     # Página informativa
-├── Blog.php             # Listado de posts
-├── Producto.php         # Página dinámica de producto
-└── helpers/
-    ├── seo.php          # Funciones SEO
-    ├── forms.php        # Helpers de formularios
-    └── navigation.php   # Helpers de navegación
+App/
+├── Config/
+│   └── pages.php         # Definiciones de páginas
+└── Handlers/
+    ├── HomeHandler.php   # Lógica de página home
+    ├── BlogHandler.php   # Lógica de página blog
+    └── ContactHandler.php # Lógica de página contacto
 ```
 
-### Funciones Helper
+¡Listo! Ahora puedes crear páginas con Glory Framework. El sistema PageManager se encarga del enrutamiento, tú solo necesitas definir las funciones que generan el contenido.
 
-Crea `templates/Pages/helpers/seo.php`:
+## 🔍 Depuración
 
-```php
-<?php
-function generarMetaTags($titulo, $descripcion, $imagen = '') {
-    $meta = [];
-
-    // Título
-    $meta[] = '<title>' . esc_html($titulo) . ' - ' . get_bloginfo('name') . '</title>';
-
-    // Open Graph
-    $meta[] = '<meta property="og:title" content="' . esc_attr($titulo) . '">';
-    $meta[] = '<meta property="og:description" content="' . esc_attr($descripcion) . '">';
-    $meta[] = '<meta property="og:url" content="' . esc_url(get_permalink()) . '">';
-
-    if ($imagen) {
-        $meta[] = '<meta property="og:image" content="' . esc_url($imagen) . '">';
-    }
-
-    return implode("\n", $meta);
-}
-```
-
-## 🔍 Depuración y Testing
-
-### Verificar que las páginas funcionan
-
-```php
-// En functions.php para testing
-function debug_paginas_glory() {
-    if (current_user_can('administrator') && isset($_GET['debug_glory'])) {
-        $paginas = PageManager::getAllPages();
-        echo '<pre>';
-        print_r($paginas);
-        echo '</pre>';
-        die();
-    }
-}
-add_action('init', 'debug_paginas_glory');
-// Visita: tusitio.com?debug_glory=1
-```
-
-### Manejo de Errores
-
-```php
-<?php
-function renderErrorPage($codigo = 404) {
-    http_response_code($codigo);
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <title>Error <?php echo $codigo; ?> - <?php bloginfo('name'); ?></title>
-        <?php wp_head(); ?>
-    </head>
-    <body class="error-page">
-        <div class="error-container">
-            <h1>Error <?php echo $codigo; ?></h1>
-            <p><?php
-            switch($codigo) {
-                case 404:
-                    echo 'La página que buscas no existe.';
-                    break;
-                case 403:
-                    echo 'No tienes permisos para acceder a esta página.';
-                    break;
-                default:
-                    echo 'Ha ocurrido un error inesperado.';
-            }
-            ?></p>
-            <a href="<?php echo home_url(); ?>" class="btn-home">Volver al inicio</a>
-        </div>
-        <?php wp_footer(); ?>
-    </body>
-    </html>
-    <?php
-}
-```
-
-¡Ahora tienes las herramientas para crear páginas complejas y funcionales con Glory Framework! El sistema es flexible y escalable, permitiendo desde páginas simples hasta aplicaciones web completas.
+Para verificar que tus páginas funcionan, puedes usar la función de debug del administrador de WordPress o revisar los logs de Glory.

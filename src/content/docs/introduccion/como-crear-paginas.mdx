@@ -120,37 +120,62 @@ function renderContacto() {
 
 ### Página de Producto Detallado
 
-Para páginas que necesitan parámetros (como ver un producto específico), puedes usar el sistema de query vars de WordPress.
+Para páginas que necesitan parámetros dinámicos, WordPress ofrece varias opciones. La más recomendada es usar **Custom Post Types** con rewrite rules para URLs amigables.
 
-#### Definir la Página
+#### Opción 1: Custom Post Types (Recomendado)
+
+Esta es la forma más WordPress-native y SEO-friendly.
 
 ```php
-// En config.php
-PageManager::define('producto', 'renderProducto');
+// En functions.php o archivo de configuración
+function registrar_post_type_producto() {
+    register_post_type('producto', [
+        'labels' => [
+            'name' => 'Productos',
+            'singular_name' => 'Producto',
+        ],
+        'public' => true,
+        'has_archive' => true,
+        'rewrite' => [
+            'slug' => 'producto',
+            'with_front' => false
+        ],
+        'supports' => ['title', 'editor', 'thumbnail', 'custom-fields'],
+        'show_in_rest' => true, // Para Gutenberg
+    ]);
+
+    // Registrar taxonomía para categorías de producto
+    register_taxonomy('categoria_producto', 'producto', [
+        'labels' => [
+            'name' => 'Categorías de Producto',
+            'singular_name' => 'Categoría de Producto',
+        ],
+        'hierarchical' => true,
+        'rewrite' => [
+            'slug' => 'categoria-producto',
+            'with_front' => false
+        ],
+    ]);
+}
+add_action('init', 'registrar_post_type_producto');
 ```
 
-#### Crear el Handler
+#### Crear Template para Single Producto
+
+Crea `single-producto.php` en la raíz del tema:
 
 ```php
 <?php
-function renderProducto() {
-    // Obtener el ID del producto desde la URL
-    $producto_id = get_query_var('producto_id');
+/**
+ * Template Name: Single Producto
+ */
 
-    if (!$producto_id) {
-        // Mostrar página 404 o redirigir
-        wp_redirect(home_url());
-        exit;
-    }
+get_header();
 
-    // Obtener datos del producto
-    $producto = get_post($producto_id);
+// Obtener el producto actual
+$producto = get_queried_object();
 
-    if (!$producto || $producto->post_type !== 'producto') {
-        // Producto no encontrado
-        render404();
-        return;
-    }
+if ($producto && $producto->post_type === 'producto') {
     ?>
 
     <div class="producto-detalle">
@@ -159,7 +184,7 @@ function renderProducto() {
         </div>
 
         <div class="producto-imagen">
-            <?php echo get_the_post_thumbnail($producto_id, 'large'); ?>
+            <?php echo get_the_post_thumbnail($producto->ID, 'large'); ?>
         </div>
 
         <div class="producto-contenido">
@@ -167,24 +192,156 @@ function renderProducto() {
         </div>
 
         <div class="producto-meta">
-            <p><strong>Precio:</strong> <?php echo get_post_meta($producto_id, 'precio', true); ?>€</p>
-            <p><strong>Categoría:</strong> <?php the_terms($producto_id, 'categoria_producto'); ?></p>
+            <p><strong>Precio:</strong> <?php echo get_post_meta($producto->ID, 'precio', true); ?>€</p>
+            <p><strong>Categoría:</strong> <?php the_terms($producto->ID, 'categoria_producto'); ?></p>
         </div>
+
+        <div class="producto-acciones">
+            <a href="<?php echo get_post_type_archive_link('producto'); ?>" class="btn-volver">
+                ← Volver al catálogo
+            </a>
+        </div>
+    </div>
+
+    <?php
+} else {
+    // Producto no encontrado
+    ?>
+    <div class="error-404">
+        <h1>Producto no encontrado</h1>
+        <p>El producto que buscas no existe.</p>
+        <a href="<?php echo get_post_type_archive_link('producto'); ?>" class="btn-catalogo">
+            Ver todos los productos
+        </a>
+    </div>
+    <?php
+}
+
+get_footer();
+```
+
+#### Crear Página de Catálogo
+
+Usa PageManager para la página de catálogo general:
+
+```php
+// En App/Config/pages.php
+PageManager::define('productos', 'renderCatalogoProductos');
+```
+
+```php
+<?php
+function renderCatalogoProductos() {
+    $paged = get_query_var('paged') ?: 1;
+
+    $args = [
+        'post_type' => 'producto',
+        'posts_per_page' => 12,
+        'paged' => $paged,
+    ];
+
+    // Filtros opcionales
+    if (isset($_GET['categoria'])) {
+        $args['tax_query'] = [[
+            'taxonomy' => 'categoria_producto',
+            'field' => 'slug',
+            'terms' => sanitize_text_field($_GET['categoria']),
+        ]];
+    }
+
+    $productos = new WP_Query($args);
+    ?>
+
+    <div class="catalogo-productos">
+        <div class="catalogo-header">
+            <h1>Nuestro Catálogo</h1>
+            <p>Descubre nuestros productos</p>
+        </div>
+
+        <?php if ($productos->have_posts()): ?>
+            <div class="productos-grid">
+                <?php while ($productos->have_posts()): $productos->the_post(); ?>
+                    <article class="producto-card">
+                        <div class="producto-imagen">
+                            <a href="<?php the_permalink(); ?>">
+                                <?php the_post_thumbnail('medium'); ?>
+                            </a>
+                        </div>
+                        <div class="producto-info">
+                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                            <p class="precio"><?php echo get_post_meta(get_the_ID(), 'precio', true); ?>€</p>
+                            <a href="<?php the_permalink(); ?>" class="btn-ver-mas">Ver detalles</a>
+                        </div>
+                    </article>
+                <?php endwhile; ?>
+            </div>
+
+            <?php
+            // Paginación
+            echo paginate_links([
+                'total' => $productos->max_num_pages,
+                'current' => $paged,
+                'base' => PageManager::getUrl('productos') . '%_%',
+                'format' => '?paged=%#%',
+            ]);
+            ?>
+
+        <?php else: ?>
+            <p>No se encontraron productos.</p>
+        <?php endif; ?>
+
+        <?php wp_reset_postdata(); ?>
     </div>
     <?php
 }
 ```
 
-#### Registrar Query Var
+#### Opción 2: URL Rewriting Personalizado
 
-En `functions.php` o en un archivo de configuración:
+Si prefieres mantener el patrón PageManager, puedes usar URL rewriting:
 
 ```php
-function agregar_query_vars($vars) {
-    $vars[] = 'producto_id';
+// En functions.php
+function agregar_rewrites_productos() {
+    add_rewrite_rule(
+        '^producto/([^/]+)/?$',
+        'index.php?pagename=productos&producto_slug=$matches[1]',
+        'top'
+    );
+}
+add_action('init', 'agregar_rewrites_productos');
+
+function agregar_query_vars_productos($vars) {
+    $vars[] = 'producto_slug';
     return $vars;
 }
-add_filter('query_vars', 'agregar_query_vars');
+add_filter('query_vars', 'agregar_query_vars_productos');
+```
+
+```php
+// En App/Config/pages.php
+PageManager::define('productos', 'renderProductos');
+```
+
+```php
+<?php
+function renderProductos() {
+    $producto_slug = get_query_var('producto_slug');
+
+    if ($producto_slug) {
+        // Mostrar producto individual
+        $producto = get_page_by_path($producto_slug, OBJECT, 'producto');
+        if ($producto) {
+            // Renderizar producto individual (similar al template anterior)
+            renderProductoIndividual($producto);
+        } else {
+            render404();
+        }
+    } else {
+        // Mostrar catálogo (similar al código anterior)
+        renderCatalogoProductos();
+    }
+}
 ```
 
 ## 🧩 Crear Páginas con Componentes Reutilizables

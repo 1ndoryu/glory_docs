@@ -76,7 +76,9 @@ export default defineConfig({
                                 'componentes/ui/menu',
                                 'componentes/ui/menu-walker',
                                 'componentes/ui/modales',
-                                'componentes/ui/theme-toggle'
+                                'componentes/ui/theme-toggle',
+                                'componentes/ui/calendario',
+                                'componentes/ui/filtros'
                             ]
                         },
                         {
@@ -146,7 +148,8 @@ export default defineConfig({
                     items: [
                         'desarrollo/eventos-hooks',
                         'desarrollo/extensibilidad',
-                        'desarrollo/mejores-practicas'
+                        'desarrollo/mejores-practicas',
+                        'desarrollo/troubleshooting'
                     ]
                 }
             ],

@@ -1,0 +1,456 @@
+---
+title: Solución de Problemas
+description: Guía de resolución de problemas comunes durante el desarrollo con Glory Framework
+---
+
+# 🔧 Solución de Problemas
+
+Esta guía te ayudará a resolver los problemas más comunes que pueden surgir durante el desarrollo con Glory Framework. Si encuentras un problema que no está cubierto aquí, revisa los logs de Glory o consulta la documentación específica del componente.
+
+## 📋 Tabla de Contenidos
+
+- [🚀 Problemas de Instalación](#problemas-de-instalacion)
+- [🎨 Problemas con Componentes](#problemas-con-componentes)
+- [🌐 Problemas de AJAX](#problemas-de-ajax)
+- [📝 Problemas con Formularios](#problemas-con-formularios)
+- [⚡ Problemas de Rendimiento](#problemas-de-rendimiento)
+- [🔧 Problemas con Assets](#problemas-con-assets)
+- [🐛 Debug y Logs](#debug-y-logs)
+
+## 🚀 Problemas de Instalación
+
+### Error: "Class not found" al usar componentes de Glory
+
+**Síntomas:** Aparece un error `Fatal error: Class 'Glory\Components\...' not found`
+
+**Soluciones:**
+
+1. **Verificar autoload de Composer:**
+   ```bash
+   # En la raíz del tema
+   composer install
+   composer dump-autoload
+   ```
+
+2. **Verificar estructura de archivos:**
+   Asegúrate de que la carpeta `Glory/` esté en la raíz del tema y contenga:
+   ```
+   Glory/
+   ├── src/
+   ├── Components/
+   ├── Managers/
+   └── ...
+   ```
+
+3. **Verificar namespace en tu código:**
+   ```php
+   // Correcto
+   use Glory\Components\FormBuilder;
+
+   // Incorrecto
+   use Components\FormBuilder;
+   ```
+
+### Error: "Glory namespace not found"
+
+**Causa:** El autoload de Composer no está configurado correctamente.
+
+**Solución:**
+Verifica que `composer.json` incluya el autoload correcto:
+```json
+{
+    "autoload": {
+        "psr-4": {
+            "Glory\\": "Glory/src/"
+        }
+    }
+}
+```
+
+### Problemas con permisos de archivos
+
+**Síntomas:** No se pueden escribir archivos de cache o configuración.
+
+**Solución:**
+```bash
+# Otorgar permisos correctos
+chmod -R 755 wp-content/themes/tu-tema/
+chmod -R 775 wp-content/themes/tu-tema/Glory/cache/
+```
+
+## 🎨 Problemas con Componentes
+
+### Los modales no se abren
+
+**Posibles causas:**
+
+1. **JavaScript no cargado:**
+   Verifica que `glory-modal.js` esté en cola:
+   ```php
+   // En functions.php o App/Config/control.php
+   AssetManager::define('script', 'glory-modals', 'assets/js/glory-modal.js', [
+       'deps' => ['jquery'],
+       'in_footer' => true,
+       'area' => 'frontend'
+   ]);
+   ```
+
+2. **HTML mal estructurado:**
+   ```html
+   <!-- Correcto -->
+   <button class="glory-modal-trigger" data-modal="mi-modal">Abrir</button>
+   <div id="mi-modal" class="glory-modal" style="display: none;">
+       <div class="modal-content">
+           Contenido aquí
+       </div>
+   </div>
+   ```
+
+3. **Conflicto de IDs:**
+   Asegúrate de que cada modal tenga un ID único.
+
+### ContentRender no muestra contenido
+
+**Diagnóstico:**
+
+1. **Verificar parámetros:**
+   ```php
+   // Correcto
+   ContentRender::print('post', [
+       'publicacionesPorPagina' => 10,
+       'paginacion' => true
+   ]);
+
+   // Verificar que el tipo de post existe
+   ```
+
+2. **Query vacío:**
+   ```php
+   // Debug: Verificar si hay posts
+   $query = new WP_Query(['post_type' => 'tu_post_type']);
+   echo $query->found_posts; // Debe ser > 0
+   ```
+
+3. **Problemas de permisos:**
+   Verifica que el usuario actual tenga permisos para ver el contenido.
+
+### BadgeList no renderiza correctamente
+
+**Causa común:** Estructura de datos incorrecta.
+
+```php
+// Incorrecto
+BadgeList::render(['etiquetas' => 'etiqueta1, etiqueta2']);
+
+// Correcto
+BadgeList::render([
+    'etiquetas' => ['Etiqueta 1', 'Etiqueta 2', 'Etiqueta 3']
+]);
+
+// O con enlaces
+BadgeList::render([
+    'etiquetas' => [
+        ['texto' => 'Tecnología', 'url' => '/categoria/tecnologia'],
+        ['texto' => 'Noticias', 'url' => '/categoria/noticias']
+    ]
+]);
+```
+
+## 🌐 Problemas de AJAX
+
+### Las peticiones AJAX fallan
+
+**Diagnóstico paso a paso:**
+
+1. **Verificar endpoint de WordPress:**
+   ```javascript
+   // En la consola del navegador
+   console.log(ajaxurl); // Debe mostrar la URL correcta
+   ```
+
+2. **Verificar acción registrada:**
+   ```php
+   // En functions.php o control.php
+   add_action('wp_ajax_mi_accion', 'mi_funcion_ajax');
+   add_action('wp_ajax_nopriv_mi_accion', 'mi_funcion_ajax');
+   ```
+
+3. **Usar gloryAjax en lugar de jQuery.ajax:**
+   ```javascript
+   // Incorrecto
+   $.ajax({
+       url: ajaxurl,
+       data: {action: 'mi_accion'}
+   });
+
+   // Correcto
+   gloryAjax.post('mi_accion', {
+       parametro1: 'valor1'
+   }).then(function(response) {
+       console.log(response);
+   });
+   ```
+
+### Error 400 Bad Request en AJAX
+
+**Causas comunes:**
+- Acción no registrada
+- Nonce inválido
+- Datos mal formateados
+
+**Solución:**
+```php
+// Incluir nonce en la petición
+wp_nonce_field('mi_accion_nonce', 'security');
+
+gloryAjax.post('mi_accion', {
+    security: jQuery('#security').val(),
+    datos: misDatos
+});
+```
+
+### Navegación AJAX no funciona
+
+**Verificaciones:**
+
+1. **JavaScript cargado:**
+   Verifica que `glory-ajax-nav.js` esté incluido.
+
+2. **Contenedor correcto:**
+   ```html
+   <main id="main-content">
+       <!-- Contenido aquí -->
+   </main>
+   ```
+
+3. **Enlaces válidos:**
+   Los enlaces deben ser internos al sitio, no externos.
+
+## 📝 Problemas con Formularios
+
+### FormBuilder no valida correctamente
+
+**Problemas comunes:**
+
+1. **Campos requeridos sin validar:**
+   ```php
+   // Asegurar que 'requerido' esté en true
+   FormBuilder::campoTexto([
+       'nombre' => 'email',
+       'label' => 'Email',
+       'requerido' => true, // ← Importante
+       'tipo' => 'email'
+   ]);
+   ```
+
+2. **Handler no registrado:**
+   ```php
+   // En control.php
+   use Glory\Components\FormHandler;
+
+   FormHandler::register('procesarContacto', function($data) {
+       // Procesar formulario
+       return ['success' => true, 'message' => 'Enviado correctamente'];
+   });
+   ```
+
+### Los formularios se envían pero no procesan
+
+**Debug:**
+
+1. **Verificar acción del botón:**
+   ```php
+   FormBuilder::botonEnviar([
+       'accion' => 'mi_accion_handler', // Debe coincidir con el registro
+       'texto' => 'Enviar'
+   ]);
+   ```
+
+2. **Logs de Glory:**
+   ```php
+   // Activar debug en config.php
+   define('GLORY_DEBUG', true);
+   ```
+
+## ⚡ Problemas de Rendimiento
+
+### El sitio carga lento
+
+**Optimizaciones:**
+
+1. **Cache de assets:**
+   ```php
+   // En control.php
+   AssetManager::define('style', 'mi-estilo', 'assets/css/estilo.css', [
+       'version' => '1.0.0', // Forzar cache
+       'media' => 'all'
+   ]);
+   ```
+
+2. **Lazy loading de componentes:**
+   ```javascript
+   // Inicializar solo cuando sea visible
+   const observer = new IntersectionObserver((entries) => {
+       entries.forEach(entry => {
+           if (entry.isIntersecting) {
+               initializeComponent(entry.target);
+           }
+       });
+   });
+   ```
+
+3. **Optimización de imágenes:**
+   ```php
+   // Usar GloryImage para optimización automática
+   echo GloryImage::render('mi-imagen.jpg', [
+       'width' => 300,
+       'height' => 200,
+       'quality' => 85
+   ]);
+   ```
+
+### Alta carga del servidor
+
+**Soluciones:**
+
+1. **Paginación AJAX:**
+   ```php
+   ContentRender::print('post', [
+       'paginacion' => true,
+       'paginacionAjax' => true, // Reducir carga inicial
+       'publicacionesPorPagina' => 12
+   ]);
+   ```
+
+2. **Cache de consultas:**
+   ```php
+   // Usar transients para cache
+   $cache_key = 'mis_posts_' . md5(serialize($args));
+   $posts = get_transient($cache_key);
+
+   if (!$posts) {
+       $posts = get_posts($args);
+       set_transient($cache_key, $posts, HOUR_IN_SECONDS);
+   }
+   ```
+
+## 🔧 Problemas con Assets
+
+### Los estilos/JS no se cargan
+
+**Diagnóstico:**
+
+1. **Asset registrado correctamente:**
+   ```php
+   AssetManager::define('style', 'mi-css', 'assets/css/estilo.css', [
+       'area' => 'frontend', // 'admin', 'both'
+       'deps' => [], // Dependencias
+       'version' => '1.0.0'
+   ]);
+   ```
+
+2. **Ruta del archivo correcta:**
+   ```php
+   // Ruta relativa desde la raíz del tema
+   // Si el archivo está en: wp-content/themes/mi-tema/assets/css/estilo.css
+   // La ruta debe ser: 'assets/css/estilo.css'
+   ```
+
+3. **Archivo existe:**
+   ```bash
+   # Verificar desde la raíz del tema
+   ls -la assets/css/estilo.css
+   ```
+
+### Conflictos entre assets
+
+**Solución:**
+```php
+// Especificar dependencias y prioridades
+AssetManager::define('script', 'mi-script', 'assets/js/script.js', [
+    'deps' => ['jquery', 'glory-core'], // Cargar después de estos
+    'in_footer' => true, // Mejor rendimiento
+    'priority' => 20 // Orden de carga
+]);
+```
+
+## 🐛 Debug y Logs
+
+### Activar modo debug
+
+```php
+// En wp-config.php o config.php
+define('WP_DEBUG', true);
+define('GLORY_DEBUG', true);
+
+// En control.php
+if (defined('GLORY_DEBUG') && GLORY_DEBUG) {
+    ini_set('display_errors', 1);
+    error_reporting(E_ALL);
+}
+```
+
+### Ver logs de Glory
+
+```php
+// Los logs se guardan en wp-content/glory-logs/
+// O usar el logger de Glory
+use Glory\Services\GloryLogger;
+
+GloryLogger::info('Mensaje informativo', ['contexto' => 'adicional']);
+GloryLogger::error('Error ocurrido', ['error_details' => $error]);
+```
+
+### Inspeccionar respuestas AJAX
+
+```javascript
+// En la consola del navegador
+gloryAjax.post('mi_accion', {param: 'valor'})
+    .then(response => {
+        console.log('Éxito:', response);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+```
+
+### Verificar queries de base de datos
+
+```php
+// Activar en wp-config.php
+define('SAVEQUERIES', true);
+
+// Ver queries en debug bar o:
+global $wpdb;
+echo '<pre>';
+print_r($wpdb->queries);
+echo '</pre>';
+```
+
+## 🚨 Problemas Críticos
+
+### Error fatal al cargar el sitio
+
+**Acciones inmediatas:**
+1. Desactivar plugins uno por uno
+2. Cambiar a tema por defecto
+3. Verificar sintaxis PHP: `php -l functions.php`
+4. Revisar logs de error del servidor
+
+### Pérdida de datos
+
+**Prevención:**
+- Siempre hacer backup antes de cambios
+- Usar un entorno de desarrollo primero
+- Probar en staging antes de producción
+
+## 📞 Obtener Ayuda Adicional
+
+Si estos pasos no resuelven tu problema:
+
+1. **Revisa la documentación específica** del componente que estás usando
+2. **Busca en los logs** de Glory por mensajes de error
+3. **Verifica compatibilidad** con tu versión de WordPress/PHP
+4. **Comenta en el repositorio** con detalles específicos del problema
+
+Recuerda: la mayoría de los problemas tienen soluciones documentadas. ¡La paciencia y el método sistemático son tus mejores aliados!

@@ -3,8 +3,29 @@ title: Bienvenida
 description: Introducción a Glory — qué es, filosofía y primeros pasos
 ---
 
-Glory es un framework ligero para acelerar el desarrollo de temas y funcionalidades sobre WordPress. Su objetivo es ofrecer
-herramientas reutilizables (managers, componentes y utilidades) que fomenten código limpio, modular y fácil de mantener.
+Glory es un framework moderno y ligero diseñado para acelerar el desarrollo de temas y funcionalidades avanzadas en WordPress. Su objetivo principal es proporcionar herramientas reutilizables (managers, componentes y utilidades) que permitan escribir código más limpio, modular y fácil de mantener, reduciendo significativamente los tiempos de desarrollo.
+
+## ¿Por qué Glory?
+
+### 🚀 **Acelera tu desarrollo**
+- **Componentes preconstruidos**: Más de 40 componentes UI listos para usar (modales, formularios, navegación, etc.)
+- **Managers especializados**: AssetManager, PageManager, PostTypeManager y más para tareas comunes
+- **Utilidades integradas**: AJAX, logging, cache, email y herramientas de desarrollo
+
+### 🏗️ **Arquitectura sólida**
+- **Separación clara**: Framework agnóstico (`Glory/`) vs. código específico del proyecto (`App/`)
+- **Modularidad**: Cada componente es independiente y reutilizable
+- **Extensible**: Fácil de personalizar y expandir según necesidades del proyecto
+
+### ⚡ **Rendimiento optimizado**
+- **Carga inteligente**: Assets se cargan solo cuando son necesarios
+- **Cache integrado**: Sistema de cache local para CSS crítico y assets
+- **Optimización automática**: Minificación y defer de scripts por defecto
+
+### 🎯 **Desarrollo moderno**
+- **Código limpio**: Estructura organizada siguiendo mejores prácticas
+- **Documentación completa**: Guías detalladas con ejemplos funcionales
+- **Comunidad**: Framework en evolución con actualizaciones regulares
 
 ## Filosofía
 
@@ -19,26 +40,85 @@ herramientas reutilizables (managers, componentes y utilidades) que fomenten có
 
 ## Primeros pasos rápidos
 
-1. Clona el tema base en `wp-content/themes`:
+### Instalación básica
 
+1. **Clona el tema base** en `wp-content/themes`:
 ```bash
-git clone https://github.com/1ndoryu/glorytemplate.git
+git clone https://github.com/1ndoryu/glorytemplate.git mi-tema-glory
 ```
 
-2. Entra en la carpeta del tema e instala dependencias de Composer:
-
+2. **Instala dependencias** de Composer:
 ```bash
-cd glorytemplate
+cd mi-tema-glory
 composer install
 ```
 
-3. Clona el framework Glory dentro del tema:
-
+3. **Clona el framework Glory** dentro del tema:
 ```bash
-git clone https://github.com/1ndoryu/glory.git
+git clone https://github.com/1ndoryu/glory.git Glory
 ```
 
-4. Activa el tema desde el administrador de WordPress (`Apariencia → Temas`).
+4. **Activa el tema** desde WordPress Admin → `Apariencia → Temas`
+
+### Verificación de instalación
+
+Una vez instalado, verifica que todo funcione creando un archivo de prueba en `App/Config/control.php`:
+
+```php
+<?php
+// App/Config/control.php
+use Glory\Managers\AssetManager;
+
+AssetManager::define('script', 'mi-script-prueba', 'assets/js/prueba.js', [
+    'deps' => ['jquery'],
+    'in_footer' => true,
+    'area' => 'frontend'
+]);
+```
+
+## Ejemplo práctico: Crear tu primera página
+
+Después de la instalación, puedes crear rápidamente una página personalizada. Aquí tienes un ejemplo completo:
+
+### 1. Define la página en `App/Config/control.php`
+```php
+<?php
+use Glory\Managers\PageManager;
+use Glory\Managers\AssetManager;
+
+// Define assets necesarios
+AssetManager::defineFolder('assets/');
+
+// Crea una página personalizada
+PageManager::create('mi-pagina-demo', [
+    'title' => 'Demo Glory',
+    'menu_title' => 'Demo',
+    'capability' => 'manage_options',
+    'callback' => 'renderDemoPage'
+]);
+```
+
+### 2. Crea el template en `App/Pages/demo.php`
+```php
+<?php
+function renderDemoPage() {
+    echo '<div class="wrap">';
+    echo '<h1>¡Glory funcionando!</h1>';
+    echo '<p>Esta es tu primera página creada con Glory Framework.</p>';
+
+    // Usa un componente de Glory
+    $modal = new Glory\Components\Modal('mi-modal-demo');
+    $modal->setTitle('Modal de ejemplo');
+    $modal->setContent('<p>Este modal fue creado con un componente de Glory.</p>');
+    $modal->render();
+
+    echo '<button type="button" class="button button-primary" onclick="jQuery(\'#mi-modal-demo\').show()">Abrir Modal</button>';
+    echo '</div>';
+}
+```
+
+### 3. Resultado
+¡Listo! Tendrás una página funcional en el admin de WordPress con un modal interactivo, todo con código minimalista y reutilizable.
 
 ## Estructura relevante (rápida)
 

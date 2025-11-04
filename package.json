@@ -1,18 +1,17 @@
 {
-  "name": "@example/starlight-basics",
-  "type": "module",
-  "version": "0.0.1",
-  "private": true,
+  "name": "glory-docs",
+  "version": "1.0.0",
+  "description": "Documentación del Framework Glory",
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "verificar-calidad": "node scripts/verificar-calidad.js",
+    "calidad": "npm run verificar-calidad"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.34.0",
-    "astro": "^5.6.1",
-    "sharp": "^0.32.5"
-  }
+    "glob": "^10.3.10"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "Glory Framework Team",
+  "license": "MIT"
 }

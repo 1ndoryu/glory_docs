@@ -1,0 +1,235 @@
+---
+title: Sistema de Alertas
+description: Sistema de notificaciones personalizadas que reemplaza las funciones alert() y confirm() nativas del navegador
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+# Sistema de Alertas
+
+El **Sistema de Alertas** de Glory proporciona notificaciones personalizadas que reemplazan las funciones nativas `alert()` y `confirm()` del navegador, ofreciendo una experiencia de usuario más moderna y atractiva.
+
+## 🚀 Características
+
+- **Reemplazo nativo**: Sobrescribe automáticamente `window.alert()` y `window.confirm()`
+- **UI moderna**: Notificaciones con animaciones y diseño responsivo
+- **Confirmaciones interactivas**: Diálogos de confirmación con botones personalizados
+- **Integración automática**: Se activa con el evento `gloryRecarga`
+- **Fondo modal**: Soporte para fondo oscurecido en confirmaciones
+
+## 📁 Archivos
+
+- **JavaScript**: `Glory/assets/js/UI/alertas.js`
+- **CSS**: `Glory/assets/css/alert.css`
+
+## 🛠️ Instalación y Configuración
+
+### 1. Definir los Assets
+
+```php
+// En tu archivo de configuración del tema (App/Config/control.php)
+AssetManager::define('style', 'alert-css', 'assets/css/alert.css', [
+    'area' => 'frontend',
+    'ver' => '1.0.0'
+]);
+
+AssetManager::define('script', 'alert-js', 'assets/js/UI/alertas.js', [
+    'deps' => ['jquery'],
+    'in_footer' => true,
+    'area' => 'frontend',
+    'ver' => '1.0.0'
+]);
+```
+
+### 2. Inicialización Automática
+
+El sistema se inicializa automáticamente cuando se dispara el evento `gloryRecarga`:
+
+```javascript
+document.addEventListener('gloryRecarga', inicializarAlerta);
+```
+
+## 📖 Uso
+
+### Alertas Simples
+
+```javascript
+// Se reemplaza automáticamente por notificación personalizada
+alert("¡Operación completada con éxito!");
+```
+
+### Confirmaciones
+
+```javascript
+// Retorna una Promise que resuelve a true/false
+const resultado = await confirm("¿Estás seguro de eliminar este elemento?");
+
+if (resultado) {
+    // Usuario confirmó
+    eliminarElemento();
+} else {
+    // Usuario canceló
+    console.log("Operación cancelada");
+}
+```
+
+### Confirmaciones Síncronas (Legacy)
+
+```javascript
+if (confirm("¿Deseas continuar?")) {
+    // Lógica para cuando el usuario confirma
+    procesarAccion();
+}
+```
+
+## 🎨 Estilos y Animaciones
+
+### Contenedor Principal
+
+```css
+#glory-notification-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+    width: 100%;
+}
+```
+
+### Notificación Individual
+
+```css
+.notificacionPersonalizada {
+    padding: 15px;
+    border-radius: 5px;
+    background: var(--fondo);
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    font-size: 11px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: notification-slide-in 0.3s ease-out forwards;
+}
+```
+
+### Animaciones
+
+- **Entrada**: `notification-slide-in` - Desliza desde la derecha con fade-in
+- **Salida**: `notification-fade-out` - Escala y desvanece al cerrar
+
+## 🔧 API Interna
+
+### `inicializarAlerta()`
+
+Función principal que configura el sistema de alertas.
+
+**Parámetros**: Ninguno
+
+**Retorno**: `undefined`
+
+### `showCustomNotification(message, type)`
+
+Función interna que muestra la notificación personalizada.
+
+**Parámetros**:
+- `message` (string): El mensaje a mostrar
+- `type` (string): `'alert'` o `'confirm'`
+
+**Retorno**: `Promise<boolean>` - Para confirmaciones, resuelve al resultado de la selección del usuario
+
+## 🎯 Casos de Uso
+
+### 1. Reemplazo Transparente
+
+```javascript
+// Código existente que usa alert() nativo
+function guardarDatos() {
+    if (validarFormulario()) {
+        guardarEnBaseDatos();
+        alert("Datos guardados correctamente"); // Se muestra como notificación moderna
+    }
+}
+```
+
+### 2. Confirmaciones en Lote
+
+```javascript
+async function eliminarSeleccionados() {
+    const elementos = obtenerElementosSeleccionados();
+
+    for (const elemento of elementos) {
+        const confirmar = await confirm(`¿Eliminar "${elemento.nombre}"?`);
+        if (!confirmar) continue;
+
+        await eliminarElemento(elemento.id);
+    }
+}
+```
+
+### 3. Integración con AJAX
+
+```javascript
+function enviarFormularioAjax(formData) {
+    fetch('/api/enviar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Formulario enviado correctamente");
+        } else {
+            alert("Error al enviar el formulario: " + data.message);
+        }
+    });
+}
+```
+
+## ⚠️ Consideraciones
+
+- **Sobrescritura global**: Las funciones `alert()` y `confirm()` se sobrescriben globalmente
+- **Promesas**: Las confirmaciones modernas retornan promesas, pero mantienen compatibilidad con uso síncrono
+- **Z-index**: Las notificaciones tienen `z-index: 9999` para aparecer sobre otros elementos
+- **Responsive**: Diseño adaptativo que funciona en móviles y desktop
+- **Accesibilidad**: Incluye soporte básico para navegación por teclado
+
+## 🔄 Integración con Glory
+
+### Evento `gloryRecarga`
+
+El sistema se reinicializa automáticamente cuando ocurre una recarga de contenido:
+
+```javascript
+document.addEventListener('gloryRecarga', () => {
+    // El sistema de alertas se reinicializa automáticamente
+    inicializarAlerta();
+});
+```
+
+### Compatibilidad con Modales
+
+Se integra automáticamente con el sistema de modales de Glory cuando existe un elemento `#modalBackground`.
+
+## 🐛 Solución de Problemas
+
+### Las alertas no aparecen
+
+1. Verificar que `alertas.js` esté cargado
+2. Confirmar que `alert.css` esté incluido
+3. Revisar que no haya errores de JavaScript en consola
+
+### Las confirmaciones no funcionan
+
+1. Verificar que se esté usando `await` con confirmaciones modernas
+2. Para compatibilidad legacy, usar sin `await`
+3. Revisar que el Promise se esté resolviendo correctamente
+
+### Problemas de estilo
+
+1. Verificar que las variables CSS `--fondo` estén definidas
+2. Revisar que no haya conflictos de z-index
+3. Confirmar que el contenedor `#glory-notification-container` existe en el DOM

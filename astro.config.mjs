@@ -58,6 +58,7 @@ export default defineConfig({
                         {
                             label: 'UI',
                             items: [
+                                'componentes/ui/alertas',
                                 'componentes/ui/badge-list',
                                 'componentes/ui/button',
                                 'componentes/ui/formulario-fluente',

@@ -1,0 +1,681 @@
+---
+title: TermSyncHandler
+description: Manejador de sincronización de términos de taxonomía con gestión automática de categorías
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Descripción General
+
+El `TermSyncHandler` gestiona la sincronización automática de términos de taxonomía, especialmente categorías, durante los procesos de sincronización de contenido por defecto. Mantiene la consistencia entre las definiciones de términos y los términos existentes en WordPress.
+
+## Funcionalidades Principales
+
+### 📂 Gestión de Categorías
+- **Sincronización automática**: Crea y actualiza categorías desde definiciones
+- **Eliminación de obsoletos**: Remueve términos que ya no están en las definiciones
+- **Preservación de datos**: Mantiene relaciones existentes cuando es posible
+
+### 🏷️ Control de Términos
+- **Creación condicional**: Solo crea términos inexistentes
+- **Actualización de metadatos**: Gestiona campos adicionales como descripciones
+- **Imágenes de categoría**: Asocia imágenes a términos usando AssetsUtility
+
+### 🔄 Ciclo de Vida
+- **Sincronización completa**: Ejecuta creación, actualización y limpieza en secuencia
+- **Transaccional**: Maneja errores sin dejar estados inconsistentes
+- **Logging detallado**: Registra todas las operaciones realizadas
+
+## Uso Básico
+
+### Sincronización Completa
+
+```php
+use Glory\Services\Sync\TermSyncHandler;
+
+$handler = new TermSyncHandler();
+
+// Sincronizar todas las definiciones de términos
+$handler->sync();
+```
+
+## Definición de Términos
+
+### Estructura Global
+
+```php
+// En functions.php o archivo de configuración
+$GLOBALS['glory_categorias_definidas'] = [
+    [
+        'nombre' => 'Noticias',
+        'descripcion' => 'Artículos y novedades de la empresa',
+        'imagenAsset' => 'glory::news-category.jpg'
+    ],
+    [
+        'nombre' => 'Productos',
+        'descripcion' => 'Información sobre nuestros productos',
+        'imagenAsset' => 'colors::products-bg.jpg'
+    ],
+    [
+        'nombre' => 'Servicios',
+        'descripcion' => 'Servicios que ofrecemos',
+        // Sin imagen específica
+    ]
+];
+```
+
+## Proceso de Sincronización
+
+### Flujo de Trabajo
+
+```php
+public function sync(): void
+{
+    $categoriasDef = $GLOBALS['glory_categorias_definidas'] ?? [];
+
+    if (empty($categoriasDef)) {
+        return; // No hay definiciones para sincronizar
+    }
+
+    // 1. Eliminar términos obsoletos
+    $this->deleteObsoleteTerms($categoriasDef);
+
+    // 2. Crear/actualizar términos definidos
+    $this->createOrUpdateTerms($categoriasDef);
+}
+```
+
+## Gestión de Términos Obsoletos
+
+### Identificación y Eliminación
+
+```php
+private function deleteObsoleteTerms(array $definitions): void
+{
+    // Obtener nombres de términos definidos
+    $definedNames = array_filter(array_column($definitions, 'nombre'));
+
+    // Buscar términos gestionados automáticamente
+    $managedTerms = get_terms([
+        'taxonomy' => 'category',
+        'hide_empty' => false,
+        'meta_key' => self::META_CLAVE_CATEGORIA_GESTIONADA,
+        'meta_value' => '1'
+    ]);
+
+    if (is_wp_error($managedTerms)) {
+        return; // Error consultando términos
+    }
+
+    // Eliminar términos no definidos
+    foreach ($managedTerms as $term) {
+        if (!in_array($term->name, $definedNames, true)) {
+            wp_delete_term($term->term_id, 'category');
+            // Logging opcional aquí
+        }
+    }
+}
+```
+
+### Marcado de Términos Gestionados
+
+```php
+// Constante para identificar términos gestionados
+const META_CLAVE_CATEGORIA_GESTIONADA = '_glory_managed_category';
+
+// Al crear/actualizar términos
+update_term_meta($term->term_id, self::META_CLAVE_CATEGORIA_GESTIONADA, '1');
+```
+
+## Creación y Actualización de Términos
+
+### Proceso de Gestión Individual
+
+```php
+private function createOrUpdateTerms(array $definitions): void
+{
+    foreach ($definitions as $def) {
+        $nombre = $def['nombre'] ?? null;
+
+        if (!$nombre) {
+            continue; // Saltar definiciones sin nombre
+        }
+
+        // Buscar término existente
+        $term = get_term_by('name', $nombre, 'category');
+
+        if (!$term) {
+            // Crear nuevo término
+            $result = wp_insert_term($nombre, 'category', [
+                'description' => $def['descripcion'] ?? ''
+            ]);
+
+            if (!is_wp_error($result)) {
+                $term = get_term($result['term_id']);
+            }
+        }
+
+        // Si el término existe, actualizarlo
+        if ($term instanceof \WP_Term) {
+            $this->updateTermData($term, $def);
+        }
+    }
+}
+```
+
+### Actualización de Datos
+
+```php
+private function updateTermData(\WP_Term $term, array $definition): void
+{
+    // Marcar como gestionado
+    update_term_meta($term->term_id, self::META_CLAVE_CATEGORIA_GESTIONADA, '1');
+
+    // Actualizar descripción si es diferente
+    if ($term->description !== ($definition['descripcion'] ?? '')) {
+        wp_update_term($term->term_id, 'category', [
+            'description' => $definition['descripcion'] ?? ''
+        ]);
+    }
+
+    // Gestionar imagen asociada
+    $this->updateTermImage($term, $definition);
+}
+```
+
+## Gestión de Imágenes de Categoría
+
+### Asociación de Imágenes
+
+```php
+private function updateTermImage(\WP_Term $term, array $definition): void
+{
+    $imageAsset = $definition['imagenAsset'] ?? null;
+
+    if (!$imageAsset) {
+        return; // No hay imagen definida
+    }
+
+    // Verificar si ya tiene imagen asignada
+    $existingImageId = get_term_meta($term->term_id, 'glory_category_image_id', true);
+
+    if ($existingImageId) {
+        return; // Ya tiene imagen, no sobrescribir
+    }
+
+    // Obtener ID del adjunto desde asset
+    $attachmentId = AssetsUtility::get_attachment_id_from_asset($imageAsset);
+
+    if ($attachmentId) {
+        update_term_meta($term->term_id, 'glory_category_image_id', $attachmentId);
+    }
+}
+```
+
+## API de Métodos
+
+### `sync(): void`
+Sincroniza todas las definiciones de términos globales.
+
+## Consideraciones de Seguridad
+
+### Taxonomía Limitada
+
+Actualmente solo gestiona la taxonomía `category` (categorías por defecto de WordPress). Para otras taxonomías personalizadas, se requeriría extensión del código.
+
+### Preservación de Datos
+
+- **No elimina términos con posts**: Los términos que tienen posts asociados no se eliminan automáticamente
+- **No sobrescribe imágenes**: Si un término ya tiene imagen asignada, no se reemplaza
+- **Mantiene slugs**: Los slugs de términos existentes se preservan
+
+## Logging y Monitoreo
+
+### Operaciones Registradas
+
+```php
+// Logging se puede activar descomentando líneas en el código:
+/*
+GloryLogger::info("TermSyncHandler: Categoría '{$term->name}' eliminada.");
+GloryLogger::info("TermSyncHandler: Categoría '{$nombre}' creada.");
+GloryLogger::info("TermSyncHandler: Categoría '{$term->name}' actualizada.");
+*/
+```
+
+### Monitoreo de Estado
+
+```php
+function obtenerEstadoSincronizacionTerminos(): array {
+    $definidos = count($GLOBALS['glory_categorias_definidas'] ?? []);
+    $existentes = count(get_terms(['taxonomy' => 'category', 'hide_empty' => false]));
+    $gestionados = count(get_terms([
+        'taxonomy' => 'category',
+        'hide_empty' => false,
+        'meta_key' => '_glory_managed_category',
+        'meta_value' => '1'
+    ]));
+
+    return [
+        'definidos' => $definidos,
+        'existentes' => $existentes,
+        'gestionados' => $gestionados,
+        'sincronizados' => ($definidos === $gestionados)
+    ];
+}
+```
+
+## Ejemplos Prácticos
+
+### Definición Básica de Categorías
+
+```php
+// En functions.php
+function definirCategoriasEmpresa() {
+    $GLOBALS['glory_categorias_definidas'] = [
+        [
+            'nombre' => 'Empresa',
+            'descripcion' => 'Información institucional y corporativa',
+            'imagenAsset' => 'glory::empresa-category.jpg'
+        ],
+        [
+            'nombre' => 'Productos',
+            'descripcion' => 'Catálogo de productos y servicios',
+            'imagenAsset' => 'colors::blue-category.jpg'
+        ],
+        [
+            'nombre' => 'Blog',
+            'descripcion' => 'Artículos, noticias y actualidad',
+            'imagenAsset' => 'elements::blog-icon.jpg'
+        ],
+        [
+            'nombre' => 'Soporte',
+            'descripcion' => 'Preguntas frecuentes y soporte técnico',
+            // Sin imagen específica
+        ]
+    ];
+}
+add_action('init', 'definirCategoriasEmpresa');
+```
+
+### Sincronización Programada
+
+```php
+// Sincronización automática al activar tema
+function sincronizarTerminosAlActivar() {
+    $handler = new TermSyncHandler();
+    $handler->sync();
+}
+add_action('after_switch_theme', 'sincronizarTerminosAlActivar');
+
+// Sincronización manual vía AJAX
+function ajax_sync_terms() {
+    if (!current_user_can('manage_categories')) {
+        wp_die('No autorizado');
+    }
+
+    $handler = new TermSyncHandler();
+    $handler->sync();
+
+    wp_send_json_success(['message' => 'Términos sincronizados']);
+}
+add_action('wp_ajax_sync_glory_terms', 'ajax_sync_terms');
+```
+
+### Verificación de Sincronización
+
+```php
+function verificarSincronizacionTerminos(): array {
+    $definiciones = $GLOBALS['glory_categorias_definidas'] ?? [];
+    $problemas = [];
+
+    foreach ($definiciones as $def) {
+        $term = get_term_by('name', $def['nombre'], 'category');
+
+        if (!$term) {
+            $problemas[] = "Término '{$def['nombre']}' no existe";
+            continue;
+        }
+
+        // Verificar descripción
+        if ($term->description !== ($def['descripcion'] ?? '')) {
+            $problemas[] = "Descripción de '{$def['nombre']}' no coincide";
+        }
+
+        // Verificar imagen
+        if (!empty($def['imagenAsset'])) {
+            $imageId = get_term_meta($term->term_id, 'glory_category_image_id', true);
+            if (!$imageId) {
+                $problemas[] = "Imagen faltante para '{$def['nombre']}'";
+            }
+        }
+    }
+
+    return $problemas;
+}
+```
+
+## Extensión para Otras Taxonomías
+
+### Soporte para Taxonomías Personalizadas
+
+```php
+// Versión extendida para múltiples taxonomías
+class ExtendedTermSyncHandler extends TermSyncHandler
+{
+    private array $supportedTaxonomies = ['category', 'product_cat', 'custom_tax'];
+
+    public function syncAllTaxonomies(): void
+    {
+        foreach ($this->supportedTaxonomies as $taxonomy) {
+            $this->syncTaxonomy($taxonomy);
+        }
+    }
+
+    private function syncTaxonomy(string $taxonomy): void
+    {
+        $definitions = $this->getDefinitionsForTaxonomy($taxonomy);
+
+        if (empty($definitions)) {
+            return;
+        }
+
+        $this->deleteObsoleteTermsForTaxonomy($taxonomy, $definitions);
+        $this->createOrUpdateTermsForTaxonomy($taxonomy, $definitions);
+    }
+}
+```
+
+## Casos de Uso Avanzados
+
+### Sincronización Condicional
+
+```php
+// Solo sincronizar si han cambiado las definiciones
+function sincronizacionCondicionalTerminos(): bool {
+    $currentHash = md5(serialize($GLOBALS['glory_categorias_definidas'] ?? []));
+    $storedHash = get_option('glory_terms_definition_hash');
+
+    if ($currentHash !== $storedHash) {
+        update_option('glory_terms_definition_hash', $currentHash);
+        return true;
+    }
+
+    return false;
+}
+```
+
+### Backup de Términos
+
+```php
+function crearBackupTerminos(): void {
+    $terms = get_terms([
+        'taxonomy' => 'category',
+        'hide_empty' => false
+    ]);
+
+    $backup = [];
+    foreach ($terms as $term) {
+        $backup[] = [
+            'term_id' => $term->term_id,
+            'name' => $term->name,
+            'slug' => $term->slug,
+            'description' => $term->description,
+            'image_id' => get_term_meta($term->term_id, 'glory_category_image_id', true),
+            'managed' => get_term_meta($term->term_id, '_glory_managed_category', true),
+            'backup_date' => current_time('mysql')
+        ];
+    }
+
+    update_option('glory_terms_backup', $backup);
+}
+```
+
+### Restauración desde Backup
+
+```php
+function restaurarTerminosDesdeBackup(): void {
+    $backup = get_option('glory_terms_backup');
+
+    if (!$backup) {
+        return;
+    }
+
+    foreach ($backup as $termData) {
+        $term = get_term_by('name', $termData['name'], 'category');
+
+        if (!$term) {
+            // Recrear término
+            $result = wp_insert_term($termData['name'], 'category', [
+                'description' => $termData['description']
+            ]);
+
+            if (!is_wp_error($result)) {
+                $termId = $result['term_id'];
+
+                // Restaurar metadatos
+                if ($termData['image_id']) {
+                    update_term_meta($termId, 'glory_category_image_id', $termData['image_id']);
+                }
+
+                if ($termData['managed']) {
+                    update_term_meta($termId, '_glory_managed_category', $termData['managed']);
+                }
+            }
+        }
+    }
+}
+```
+
+## Integración con el Sistema
+
+### Con DefaultContentSynchronizer
+
+```php
+class DefaultContentSynchronizer
+{
+    private TermSyncHandler $termHandler;
+
+    public function __construct() {
+        $this->termHandler = new TermSyncHandler();
+    }
+
+    public function sincronizar(): void {
+        // 1. Sincronizar términos primero
+        $this->termHandler->sync();
+
+        // 2. Luego sincronizar posts (que pueden depender de términos)
+        $this->sincronizarPosts();
+    }
+}
+```
+
+### Hooks de WordPress
+
+```php
+// Sincronización automática en eventos importantes
+add_action('init', function() {
+    // Verificar si es necesario sincronizar (una vez por día)
+    $lastSync = get_option('glory_terms_last_sync');
+    $needsSync = !$lastSync || (time() - $lastSync) > DAY_IN_SECONDS;
+
+    if ($needsSync) {
+        $handler = new TermSyncHandler();
+        $handler->sync();
+        update_option('glory_terms_last_sync', time());
+    }
+});
+
+// Sincronización manual vía admin
+add_action('admin_post_sync_glory_terms', function() {
+    if (!current_user_can('manage_categories')) {
+        wp_die('No tienes permisos');
+    }
+
+    $handler = new TermSyncHandler();
+    $handler->sync();
+
+    wp_redirect(admin_url('admin.php?page=glory-settings&sync=success'));
+    exit;
+});
+```
+
+## Troubleshooting
+
+### Términos No Se Crean
+
+```php
+// Verificar definiciones
+$definitions = $GLOBALS['glory_categorias_definidas'] ?? [];
+if (empty($definitions)) {
+    error_log('No hay definiciones de términos');
+    return;
+}
+
+// Verificar nombres únicos
+$names = array_column($definitions, 'nombre');
+if (count($names) !== count(array_unique($names))) {
+    error_log('Nombres de términos duplicados');
+}
+```
+
+### Imágenes No Se Asocian
+
+```php
+// Verificar que AssetsUtility esté disponible
+if (!class_exists('Glory\\Utility\\AssetsUtility')) {
+    error_log('AssetsUtility no disponible');
+    return;
+}
+
+// Verificar que el asset existe
+$asset = 'glory::category-image.jpg';
+if (!AssetsUtility::assetExists($asset)) {
+    error_log("Asset no existe: {$asset}");
+}
+```
+
+### Términos No Se Eliminan
+
+```php
+// Verificar que no tienen posts asociados
+$term = get_term_by('name', 'Categoria Antigua', 'category');
+if ($term) {
+    $postsCount = $term->count;
+    if ($postsCount > 0) {
+        error_log("No se puede eliminar término '{$term->name}': tiene {$postsCount} posts");
+    }
+}
+```
+
+## Testing
+
+### Tests Básicos
+
+```php
+class TermSyncHandlerTest extends \PHPUnit\Framework\TestCase
+{
+    public function testSyncCreatesTerms()
+    {
+        // Configurar definiciones de prueba
+        $GLOBALS['glory_categorias_definidas'] = [
+            ['nombre' => 'Test Category', 'descripcion' => 'Descripción de prueba']
+        ];
+
+        $handler = new TermSyncHandler();
+        $handler->sync();
+
+        // Verificar que se creó
+        $term = get_term_by('name', 'Test Category', 'category');
+        $this->assertInstanceOf(\WP_Term::class, $term);
+        $this->assertEquals('Descripción de prueba', $term->description);
+    }
+
+    public function testSyncDeletesObsoleteTerms()
+    {
+        // Crear término manualmente
+        wp_insert_term('Term To Delete', 'category');
+
+        // Definir solo otro término
+        $GLOBALS['glory_categorias_definidas'] = [
+            ['nombre' => 'Keep This Term']
+        ];
+
+        $handler = new TermSyncHandler();
+        $handler->sync();
+
+        // Verificar que se eliminó el término obsoleto
+        $deletedTerm = get_term_by('name', 'Term To Delete', 'category');
+        $this->assertFalse($deletedTerm);
+    }
+}
+```
+
+### Tests de Integración
+
+```php
+public function testFullIntegration()
+{
+    // Configurar entorno de prueba
+    $this->setupTestDefinitions();
+
+    // Ejecutar sincronización
+    $handler = new TermSyncHandler();
+    $handler->sync();
+
+    // Verificar estado final
+    $this->assertTermExists('Category 1');
+    $this->assertTermExists('Category 2');
+    $this->assertTermHasDescription('Category 1', 'Description 1');
+    $this->assertTermHasImage('Category 1');
+}
+```
+
+## Rendimiento y Optimización
+
+### Consultas Eficientes
+
+```php
+// Usar get_terms con filtros apropiados
+$terms = get_terms([
+    'taxonomy' => 'category',
+    'hide_empty' => false,
+    'fields' => 'ids', // Solo IDs para mejor rendimiento
+    'meta_key' => self::META_CLAVE_CATEGORIA_GESTIONADA,
+    'meta_value' => '1'
+]);
+```
+
+### Procesamiento por Lotes
+
+```php
+// Para muchas definiciones, procesar en lotes
+function syncTermsInBatches(array $definitions, int $batchSize = 10): void {
+    $batches = array_chunk($definitions, $batchSize);
+
+    foreach ($batches as $batch) {
+        foreach ($batch as $definition) {
+            // Procesar cada definición
+        }
+
+        // Pequeña pausa entre lotes
+        usleep(100000); // 100ms
+    }
+}
+```
+
+### Caché de Resultados
+
+```php
+// Cache de términos para evitar consultas repetidas
+private static $termsCache = [];
+
+private function getTermCached(string $name, string $taxonomy): ?\WP_Term {
+    $key = $taxonomy . '_' . $name;
+
+    if (!isset(self::$termsCache[$key])) {
+        self::$termsCache[$key] = get_term_by('name', $name, $taxonomy);
+    }
+
+    return self::$termsCache[$key];
+}
+```

@@ -1,0 +1,655 @@
+---
+title: PostSyncHandler
+description: Manejador de sincronización de posts individuales con comparación inteligente de cambios
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Descripción General
+
+El `PostSyncHandler` es el componente central para la gestión individual de posts durante procesos de sincronización. Maneja la creación, actualización y comparación de posts, integrando servicios de relaciones y integridad de medios para mantener la consistencia del contenido.
+
+## Funcionalidades Principales
+
+### 📝 Operaciones CRUD Básicas
+- **Creación de posts**: Inserción con datos preparados y relaciones
+- **Actualización inteligente**: Modificación basada en comparación de cambios
+- **Comparación de estados**: Detección automática de diferencias
+
+### 🔍 Sistema de Comparación
+- **Campos principales**: Título, contenido, estado, extracto
+- **Metadatos personalizados**: Comparación de valores meta
+- **Relaciones externas**: Imágenes, galerías, taxonomías
+
+### 🔗 Integración de Servicios
+- **PostRelationHandler**: Gestión de relaciones del post
+- **MediaIntegrityService**: Verificación de medios asociados
+
+## Uso Básico
+
+### Creación de Posts
+
+```php
+use Glory\Services\Sync\PostSyncHandler;
+
+$handler = new PostSyncHandler();
+
+// Crear post desde definición
+$postId = $handler->create('page', [
+    'slugDefault' => 'contacto',
+    'titulo' => 'Página de Contacto',
+    'contenido' => 'Información de contacto...',
+    'estado' => 'publish',
+    'imagenDestacadaAsset' => 'glory::contact-hero.jpg'
+]);
+```
+
+### Actualización de Posts
+
+```php
+// Actualizar post existente
+$handler->update($postId, [
+    'titulo' => 'Página de Contacto Actualizada',
+    'contenido' => 'Nuevo contenido...',
+    'estado' => 'publish'
+], false); // false = actualización normal, true = forzada
+```
+
+### Comparación de Cambios
+
+```php
+// Verificar si un post necesita actualización
+$post = get_post($postId);
+$necesitaUpdate = $handler->needsUpdate($post, $definition);
+
+if ($necesitaUpdate) {
+    $handler->update($postId, $definition, false);
+}
+```
+
+## Arquitectura Interna
+
+### Servicios Integrados
+
+```php
+class PostSyncHandler
+{
+    private PostRelationHandler $relationHandler;
+    private MediaIntegrityService $mediaIntegrity;
+
+    // Constructor inyecta dependencias automáticamente
+    public function __construct()
+    {
+        $this->relationHandler = new PostRelationHandler(/*postId*/);
+        $this->mediaIntegrity = new MediaIntegrityService();
+    }
+}
+```
+
+## Creación de Posts
+
+### Proceso de Creación
+
+```php
+public function create(string $postType, array $definition): ?int
+{
+    // 1. Preparar datos base del post
+    $insertData = $this->prepareCorePostData($postType, $definition);
+
+    // 2. Insertar post en BD
+    $postId = wp_insert_post($insertData, true);
+
+    if (is_wp_error($postId)) {
+        GloryLogger::error("FALLÓ al insertar post", [
+            'error' => $postId->get_error_message()
+        ]);
+        return null;
+    }
+
+    // 3. Establecer relaciones (imágenes, taxonomías, etc.)
+    $this->relationHandler = new PostRelationHandler($postId);
+    $this->relationHandler->setRelations($definition);
+
+    // 4. Reparar integridad de medios
+    $this->mediaIntegrity->repairPostMedia($postId, $definition);
+
+    return $postId;
+}
+```
+
+### Preparación de Datos
+
+```php
+private function prepareCorePostData(string $postType, array $definition): array
+{
+    return [
+        'post_type' => $postType,
+        'post_title' => $definition['titulo'],
+        'post_content' => $definition['contenido'] ?? '',
+        'post_status' => $definition['estado'] ?? 'publish',
+        'post_excerpt' => $definition['extracto'] ?? '',
+        'meta_input' => $definition['metaEntrada'] ?? [],
+    ];
+}
+```
+
+## Actualización de Posts
+
+### Tipos de Actualización
+
+#### Actualización Normal
+```php
+$handler->update($postId, $definition, false);
+// Respeta ediciones manuales, actualiza solo si es necesario
+```
+
+#### Actualización Forzada
+```php
+$handler->update($postId, $definition, true);
+// Fuerza actualización completa, limpia metadatos antiguos
+```
+
+### Proceso de Actualización
+
+```php
+public function update(int $postId, array $definition, bool $isForced): void
+{
+    // Preparar datos de actualización
+    $updateData = $this->prepareCorePostData(get_post_type($postId), $definition);
+    $updateData['ID'] = $postId;
+
+    // Actualizar post base
+    $result = wp_update_post($updateData, true);
+
+    if (is_wp_error($result)) {
+        GloryLogger::error("FALLÓ al actualizar post ID {$postId}");
+        return;
+    }
+
+    // Establecer relaciones
+    $this->relationHandler = new PostRelationHandler($postId);
+    $this->relationHandler->setRelations($definition);
+
+    // Reparar medios
+    $this->mediaIntegrity->repairPostMedia($postId, $definition);
+
+    // Si es forzada, limpiar metadatos obsoletos
+    if ($isForced) {
+        $this->cleanupMeta($postId, $definition);
+        delete_post_meta($postId, self::META_CLAVE_EDITADO_MANUALMENTE);
+    }
+}
+```
+
+## Sistema de Comparación
+
+### Campos Comparados
+
+```php
+public function needsUpdate(\WP_Post $postDb, array $definition): bool
+{
+    // Comparar campos principales
+    $coreFieldsChanged = $this->compareCoreFields($postDb, $definition);
+    if ($coreFieldsChanged) {
+        return true;
+    }
+
+    // Comparar metadatos (excluyendo taxonomías)
+    $metaChanged = $this->compareMetaFields($postDb, $definition);
+    if ($metaChanged) {
+        return true;
+    }
+
+    // Verificar imagen destacada
+    $thumbnailChanged = $this->compareThumbnail($postDb, $definition);
+    if ($thumbnailChanged) {
+        return true;
+    }
+
+    return false;
+}
+```
+
+### Comparación de Campos Principales
+
+```php
+private function compareCoreFields(\WP_Post $post, array $definition): bool
+{
+    return (
+        $post->post_title !== ($definition['titulo'] ?? '') ||
+        $post->post_content !== ($definition['contenido'] ?? '') ||
+        $post->post_status !== ($definition['estado'] ?? 'publish') ||
+        $post->post_excerpt !== ($definition['extracto'] ?? '')
+    );
+}
+```
+
+### Comparación de Metadatos
+
+```php
+private function compareMetaFields(\WP_Post $post, array $definition): bool
+{
+    $taxonomies = get_object_taxonomies($post->post_type);
+    $definedMeta = $definition['metaEntrada'] ?? [];
+
+    foreach ($definedMeta as $key => $value) {
+        // Saltar taxonomías (se manejan en relaciones)
+        if (in_array($key, $taxonomies, true)) {
+            continue;
+        }
+
+        $currentValue = get_post_meta($post->ID, $key, true);
+        if ($currentValue != $value) {
+            return true;
+        }
+    }
+
+    return false;
+}
+```
+
+### Verificación de Imagen Destacada
+
+```php
+private function compareThumbnail(\WP_Post $post, array $definition): bool
+{
+    if (empty($definition['imagenDestacadaAsset'])) {
+        return false;
+    }
+
+    $currentThumbId = get_post_thumbnail_id($post->ID);
+    if (empty($currentThumbId)) {
+        // Solo marcar como cambio si existe adjunto válido
+        $aid = AssetsUtility::findExistingAttachmentIdForAsset(
+            $definition['imagenDestacadaAsset']
+        );
+        return !empty($aid);
+    }
+
+    return false;
+}
+```
+
+## Gestión de Metadatos
+
+### Metadatos de Control
+
+```php
+// Constantes para metadatos internos
+const META_CLAVE_SLUG_DEFAULT = '_glory_default_content_slug';
+const META_CLAVE_EDITADO_MANUALMENTE = '_glory_default_content_edited';
+```
+
+### Limpieza de Metadatos Obsoletos
+
+```php
+private function cleanupMeta(int $postId, array $definition): void
+{
+    $definedMeta = $definition['metaEntrada'] ?? [];
+    $existingMeta = get_post_meta($postId);
+
+    foreach (array_keys($existingMeta) as $existingKey) {
+        // No tocar metadatos protegidos
+        if (str_starts_with($existingKey, '_')) {
+            continue;
+        }
+
+        // Eliminar metadatos no definidos en la nueva definición
+        if (!array_key_exists($existingKey, $definedMeta)) {
+            delete_post_meta($postId, $existingKey);
+        }
+    }
+}
+```
+
+## Integración con Logging
+
+### Logging de Operaciones
+
+```php
+// Creación exitosa
+GloryLogger::info("Post '{$definition['slugDefault']}' creado", [
+    'postId' => $postId
+]);
+
+// Actualización
+GloryLogger::info("Post ID {$postId} actualizado", [
+    'forced' => $isForced
+]);
+
+// Comparación de cambios
+GloryLogger::info('Cambio detectado en campo principal', [
+    'postId' => $post->ID,
+    'field' => 'post_title',
+    'old' => $post->post_title,
+    'new' => $definition['titulo']
+]);
+```
+
+## API de Métodos
+
+### `create(string $postType, array $definition): ?int`
+Crea un nuevo post con todas sus relaciones y medios.
+
+### `update(int $postId, array $definition, bool $isForced): void`
+Actualiza un post existente con opción de forzamiento.
+
+### `needsUpdate(\WP_Post $postDb, array $definition): bool`
+Determina si un post necesita ser actualizado comparando con su definición.
+
+## Ejemplos Prácticos
+
+### Sincronización de Página de Inicio
+
+```php
+$homeDefinition = [
+    'slugDefault' => 'home',
+    'titulo' => 'Página Principal',
+    'contenido' => get_home_content(),
+    'estado' => 'publish',
+    'imagenDestacadaAsset' => 'glory::home-hero.jpg',
+    'metaEntrada' => [
+        '_wp_page_template' => 'template-home.php',
+        'slider_enabled' => '1'
+    ]
+];
+
+// Verificar si existe
+$existingPost = $repository->findPorSlug('page', 'home');
+
+if ($existingPost) {
+    // Comparar y actualizar si es necesario
+    if ($handler->needsUpdate($existingPost, $homeDefinition)) {
+        $handler->update($existingPost->ID, $homeDefinition, false);
+    }
+} else {
+    // Crear nueva página
+    $handler->create('page', $homeDefinition);
+}
+```
+
+### Actualización Forzada de Contenido
+
+```php
+// Para actualizar plantillas o contenido crítico
+function actualizarContenidoCritico() {
+    $postsCriticos = [
+        'terminos' => get_terminos_definition(),
+        'privacidad' => get_privacidad_definition(),
+        'contacto' => get_contacto_definition()
+    ];
+
+    foreach ($postsCriticos as $slug => $definition) {
+        $post = get_page_by_path($slug);
+        if ($post) {
+            $handler = new PostSyncHandler();
+            $handler->update($post->ID, $definition, true); // Forzado
+        }
+    }
+}
+```
+
+### Verificación Masiva de Cambios
+
+```php
+function verificarCambiosPendientes(): array {
+    $definitions = DefaultContentRegistry::getDefiniciones();
+    $cambiosPendientes = [];
+
+    foreach ($definitions as $postType => $config) {
+        foreach ($config['definicionesPost'] as $definition) {
+            $slug = $definition['slugDefault'];
+            $post = $repository->findPorSlug($postType, $slug);
+
+            if ($post) {
+                $handler = new PostSyncHandler();
+                if ($handler->needsUpdate($post, $definition)) {
+                    $cambiosPendientes[] = [
+                        'postId' => $post->ID,
+                        'slug' => $slug,
+                        'titulo' => $post->post_title
+                    ];
+                }
+            }
+        }
+    }
+
+    return $cambiosPendientes;
+}
+```
+
+## Optimizaciones de Rendimiento
+
+### Procesamiento por Lotes
+
+```php
+// Para sincronización masiva
+function sincronizarPorLotes(array $definitions, int $loteSize = 10): void {
+    $lotes = array_chunk($definitions, $loteSize);
+
+    foreach ($lotes as $lote) {
+        foreach ($lote as $definition) {
+            $handler = new PostSyncHandler();
+            // Procesar definición...
+
+            // Pequeña pausa entre posts
+            usleep(50000); // 50ms
+        }
+
+        // Pausa entre lotes
+        sleep(1);
+    }
+}
+```
+
+### Caché de Comparaciones
+
+```php
+// Evitar comparaciones repetidas del mismo post
+private static $comparisonCache = [];
+
+public function needsUpdateCached(\WP_Post $post, array $definition): bool {
+    $cacheKey = $post->ID . '_' . md5(serialize($definition));
+
+    if (!isset(self::$comparisonCache[$cacheKey])) {
+        self::$comparisonCache[$cacheKey] = $this->needsUpdate($post, $definition);
+    }
+
+    return self::$comparisonCache[$cacheKey];
+}
+```
+
+## Manejo de Errores
+
+### Errores de Creación
+
+```php
+$postId = $handler->create('post', $definition);
+
+if ($postId === null) {
+    // Error durante creación
+    GloryLogger::error("Fallo en creación de post", [
+        'definition' => $definition,
+        'error' => 'Ver logs para detalles'
+    ]);
+}
+```
+
+### Errores de Actualización
+
+```php
+try {
+    $handler->update($postId, $definition, false);
+} catch (\Exception $e) {
+    GloryLogger::error("Error actualizando post {$postId}", [
+        'error' => $e->getMessage(),
+        'definition' => $definition
+    ]);
+}
+```
+
+## Casos de Uso Avanzados
+
+### Sincronización Condicional
+
+```php
+// Solo sincronizar si han pasado X días desde la última edición
+function sincronizacionCondicional($postId, $definition, $diasLimite = 7): bool {
+    $ultimaEdicion = get_post_meta($postId, '_glory_last_sync', true);
+
+    if (!$ultimaEdicion) {
+        return true; // Nunca sincronizado
+    }
+
+    $diasDesdeSync = (time() - strtotime($ultimaEdicion)) / (60 * 60 * 24);
+    return $diasDesdeSync >= $diasLimite;
+}
+```
+
+### Backup Antes de Actualización
+
+```php
+function actualizarConBackup($postId, $definition): void {
+    // Crear backup
+    $backup = [
+        'titulo' => get_the_title($postId),
+        'contenido' => get_post_field('post_content', $postId),
+        'meta' => get_post_meta($postId),
+        'thumbnail' => get_post_thumbnail_id($postId),
+        'fecha_backup' => current_time('mysql')
+    ];
+
+    update_post_meta($postId, '_glory_backup_pre_sync', $backup);
+
+    // Actualizar
+    $handler = new PostSyncHandler();
+    $handler->update($postId, $definition, false);
+
+    // Marcar fecha de sincronización
+    update_post_meta($postId, '_glory_last_sync', current_time('mysql'));
+}
+```
+
+### Validación Previa
+
+```php
+function validarDefinicion(array $definition): array {
+    $errores = [];
+
+    // Validar campos requeridos
+    if (empty($definition['titulo'])) {
+        $errores[] = 'Título es requerido';
+    }
+
+    // Validar assets
+    if (!empty($definition['imagenDestacadaAsset'])) {
+        if (!AssetsUtility::assetExists($definition['imagenDestacadaAsset'])) {
+            $errores[] = "Asset no existe: {$definition['imagenDestacadaAsset']}";
+        }
+    }
+
+    // Validar taxonomías
+    if (!empty($definition['metaEntrada'])) {
+        foreach ($definition['metaEntrada'] as $key => $value) {
+            if (taxonomy_exists($key)) {
+                // Validar términos existen o se pueden crear
+            }
+        }
+    }
+
+    return $errores;
+}
+```
+
+## Integración con DefaultContentSynchronizer
+
+### Flujo de Sincronización Completo
+
+```php
+class DefaultContentSynchronizer
+{
+    private PostSyncHandler $postHandler;
+
+    public function sincronizarPostsParaTipo(string $postType, array $config): void
+    {
+        foreach ($config['definicionesPost'] as $definition) {
+            $slug = trim($definition['slugDefault']);
+            $existingPost = $this->repository->findPorSlug($postType, $slug);
+
+            if ($existingPost) {
+                $this->gestionarPostExistente($existingPost, $definition, $config['modoActualizacion']);
+            } else {
+                $this->postHandler->create($postType, $definition);
+            }
+        }
+    }
+
+    private function gestionarPostExistente($post, $definition, $updateMode): void
+    {
+        if ($updateMode === 'none') return;
+
+        $isEdited = $this->repository->haSidoEditadoManualmente($post->ID);
+
+        if ($updateMode === 'force') {
+            $this->postHandler->update($post->ID, $definition, true);
+        } elseif ($updateMode === 'smart' && !$isEdited) {
+            if ($this->postHandler->needsUpdate($post, $definition)) {
+                $this->postHandler->update($post->ID, $definition, false);
+            }
+        }
+    }
+}
+```
+
+## Testing y Depuración
+
+### Tests Unitarios
+
+```php
+class PostSyncHandlerTest extends \PHPUnit\Framework\TestCase
+{
+    public function testCreatePost()
+    {
+        $handler = new PostSyncHandler();
+
+        $definition = [
+            'slugDefault' => 'test-post',
+            'titulo' => 'Post de Prueba',
+            'contenido' => 'Contenido de prueba'
+        ];
+
+        $postId = $handler->create('post', $definition);
+
+        $this->assertIsInt($postId);
+        $this->assertGreaterThan(0, $postId);
+    }
+
+    public function testNeedsUpdate()
+    {
+        $handler = new PostSyncHandler();
+        $post = $this->createTestPost();
+
+        $definition = ['titulo' => 'Nuevo Título'];
+        $needsUpdate = $handler->needsUpdate($post, $definition);
+
+        $this->assertTrue($needsUpdate);
+    }
+}
+```
+
+### Logging Detallado
+
+```php
+// Activar logging detallado para depuración
+add_filter('glory_enable_detailed_logging', '__return_true');
+
+// Verificar logs durante sincronización
+function debugSincronizacion($postId, $definition) {
+    GloryLogger::info("DEBUG: Iniciando sincronización", [
+        'postId' => $postId,
+        'definition' => $definition,
+        'existing_post' => get_post($postId),
+        'needs_update' => $handler->needsUpdate(get_post($postId), $definition)
+    ]);
+}
+```

@@ -1,0 +1,435 @@
+---
+title: MediaIntegrityService
+description: Servicio de integridad automática de medios con reparación inteligente de imágenes faltantes
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Descripción General
+
+El `MediaIntegrityService` es un servicio especializado que mantiene la integridad de los medios asociados a posts de WordPress. Automáticamente detecta y repara imágenes destacadas faltantes, galerías rotas y URLs corruptas en contenido y metadatos.
+
+## Funcionalidades Principales
+
+### 🔍 Verificación Automática
+- **Imágenes destacadas**: Detecta thumbnails faltantes o corruptos
+- **Galerías de medios**: Verifica integridad de colecciones de imágenes
+- **URLs rotas**: Identifica enlaces a archivos inexistentes
+
+### 🔧 Reparación Inteligente
+- **Reasignación automática**: Usa assets existentes para reemplazar imágenes faltantes
+- **Fallbacks determinísticos**: Asigna imágenes por defecto de forma consistente
+- **Sanitización de contenido**: Corrige URLs rotas en posts y metadatos
+
+### ⏰ Gestión Temporal
+- **Ventana anti-reintento**: Evita asignaciones repetidas fallidas
+- **Cooldown inteligente**: Espera períodos apropiados entre intentos
+
+## Uso Básico
+
+### Reparación Completa de Medios
+
+```php
+use Glory\Services\Sync\MediaIntegrityService;
+
+$mediaService = new MediaIntegrityService();
+
+// Reparar todos los medios de un post
+$mediaService->repairPostMedia($postId, $definition);
+```
+
+### Reparación Específica
+
+```php
+// Solo reparar imagen destacada
+$mediaService->repairFeaturedImage($postId, 'glory::default-image.jpg');
+
+// Solo reparar galería
+$mediaService->repairGallery($postId, ['colors::img1.jpg', 'colors::img2.jpg']);
+```
+
+## Sistema de Fallbacks
+
+### Imágenes Destacadas
+
+#### Lógica de Reparación
+1. **Verificación inicial**: Comprueba si existe thumbnail asignado
+2. **Validación de archivo**: Confirma que el archivo físico existe
+3. **Búsqueda de asset alternativo**: Localiza asset válido usando referencia
+4. **Asignación de fallback**: Usa imagen por defecto si no hay alternativa
+
+#### Fallbacks Determinísticos
+
+```php
+// Los fallbacks se asignan consistentemente basado en el ID del post
+private function chooseFallbackAssetForPost(int $postId): string
+{
+    // Retorna asset consistente para el mismo post ID
+    // Ejemplo: 'colors::image_7.jpg' para post ID 123
+}
+```
+
+### Galerías de Medios
+
+#### Construcción Automática
+```php
+// Si no hay galería definida, crea una automática
+private function chooseFallbackGalleryForPost(int $postId, int $count): array
+{
+    // Retorna array de assets para galería
+    // Ejemplo: ['colors::img1.jpg', 'colors::img5.jpg', 'colors::img9.jpg']
+}
+```
+
+## Gestión de Assets
+
+### Referencias de Assets
+
+```php
+// Formatos soportados
+$referenciasValidas = [
+    'glory::imagen.jpg',        // Alias específico
+    'colors::hero.png',         // Alias de colores
+    'random::glory',           // Imagen aleatoria del alias
+    'elements::logo.svg'        // Elementos del tema
+];
+```
+
+### Validación de Existencia
+
+```php
+// Verifica si un asset existe físicamente
+$existe = AssetsUtility::assetExists('glory::imagen.jpg');
+
+if (!$existe) {
+    // Asset no encontrado, usar fallback
+    $fallback = $this->chooseFallbackAssetForPost($postId);
+}
+```
+
+## Sanitización de Contenido
+
+### URLs Rotas en Contenido
+
+```php
+// Detecta y repara URLs rotas en post_content
+private function sanitizeContentAndMetaUploads(int $postId): void
+{
+    // Busca patrones de URL en uploads/
+    // Reemplaza URLs rotas con fallbacks apropiados
+}
+```
+
+### Metadatos Corruptos
+
+```php
+// Limpia metadatos que contienen URLs a archivos inexistentes
+$metaRoto = get_post_meta($postId, 'imagen_personalizada', true);
+// Si la URL apunta a archivo faltante, la reemplaza
+```
+
+## Sistema Anti-Reintento
+
+### Ventana de Cooldown
+
+```php
+// Constantes de control
+const FALLBACK_COOLDOWN_SECONDS = 86400; // 24 horas
+
+// Evita reintentar asignaciones fallidas frecuentemente
+$ultimoIntento = get_post_meta($postId, self::META_FALLBACK_LAST_ATTEMPT, true);
+if (time() - $ultimoIntento < self::FALLBACK_COOLDOWN_SECONDS) {
+    return; // Aún en cooldown
+}
+```
+
+### Metadatos de Estado
+
+```php
+// Estados registrados por post
+$metadatos = [
+    '_glory_featured_fallback_last_attempt' => timestamp,
+    '_glory_featured_fallback_asset' => 'glory::fallback.jpg',
+    '_glory_featured_fallback_status' => 'success|fail'
+];
+```
+
+## Integración con DefaultContentSynchronizer
+
+### Sincronización Automática
+
+```php
+// El servicio se ejecuta automáticamente durante la sincronización
+class DefaultContentSynchronizer
+{
+    public function sincronizar()
+    {
+        // ... lógica de sincronización ...
+
+        // Reparación global de medios
+        $this->repairMediaIntegrityForAll();
+    }
+
+    private function repairMediaIntegrityForAll()
+    {
+        $svc = new MediaIntegrityService();
+        // Repara medios para todos los posts de tipos definidos
+    }
+}
+```
+
+### Restablecimiento Completo
+
+```php
+public function restablecer()
+{
+    // ... lógica de restablecimiento ...
+
+    // Reparación post-restablecimiento
+    $this->repairMediaIntegrityForAll();
+}
+```
+
+## Métodos de la API
+
+### `repairPostMedia(int $postId, array $definition = []): void`
+Repara todos los medios asociados a un post específico.
+
+### `repairFeaturedImage(int $postId, ?string $fallbackAssetRef): void`
+Repara específicamente la imagen destacada.
+
+### `repairGallery(int $postId, array $fallbackAssets): void`
+Repara la galería de medios del post.
+
+## Estrategias de Fallback
+
+### Por Alias de Asset
+
+```php
+// Estrategia 1: Alias específico
+$fallback = $this->chooseFallbackAssetForPost($postId, 'glory');
+// Busca en assets del alias 'glory'
+
+if (!$fallback) {
+    // Estrategia 2: Alias 'colors'
+    $fallback = $this->chooseFallbackAssetForPost($postId, 'colors');
+}
+
+if (!$fallback) {
+    // Estrategia 3: Defaults absolutos
+    $fallback = 'glory::default.jpg';
+}
+```
+
+### Por Tipo de Contenido
+
+```php
+// Fallbacks específicos por post type
+$fallbacksPorTipo = [
+    'page' => 'glory::page-default.jpg',
+    'post' => 'glory::post-default.jpg',
+    'producto' => 'glory::product-default.jpg'
+];
+```
+
+## Logging y Monitoreo
+
+### Información Registrada
+
+```php
+// Logging de operaciones exitosas
+GloryLogger::info("MediaIntegrity: Fallback asignado", [
+    'asset' => $fallbackAsset,
+    'postId' => $postId,
+    'tipo' => 'featured_image'
+]);
+
+// Logging de fallos
+GloryLogger::warning("MediaIntegrity: Fallback falló", [
+    'asset' => $fallbackAsset,
+    'postId' => $postId,
+    'error' => 'asset_not_found'
+]);
+```
+
+### Métricas de Rendimiento
+
+```php
+// Seguimiento de operaciones
+$metricas = [
+    'posts_procesados' => 150,
+    'imagenes_reparadas' => 23,
+    'fallbacks_asignados' => 5,
+    'tiempo_ejecucion' => '2.3s'
+];
+```
+
+## Ejemplos Prácticos
+
+### Reparación Manual
+
+```php
+function repararMediosPost($postId) {
+    $service = new MediaIntegrityService();
+
+    // Obtener definición del post (si existe)
+    $definition = obtenerDefinicionPost($postId);
+
+    // Reparar todos los medios
+    $service->repairPostMedia($postId, $definition);
+}
+```
+
+### Verificación Programada
+
+```php
+// Hook para verificación periódica
+add_action('wp_scheduled_check', function() {
+    $posts = get_posts(['numberposts' => 50]); // Procesar por lotes
+
+    foreach ($posts as $post) {
+        $service = new MediaIntegrityService();
+        $service->repairPostMedia($post->ID);
+    }
+});
+```
+
+### Limpieza de Metadatos
+
+```php
+function limpiarMetadatosRotos($postId) {
+    $service = new MediaIntegrityService();
+
+    // Fuerza sanitización de metadatos
+    $service->sanitizeContentAndMetaUploads($postId);
+}
+```
+
+## Consideraciones de Rendimiento
+
+### Procesamiento por Lotes
+```php
+// Para grandes volúmenes de posts
+$postsPorLote = 100;
+$loteActual = 0;
+
+do {
+    $posts = get_posts([
+        'numberposts' => $postsPorLote,
+        'offset' => $loteActual * $postsPorLote
+    ]);
+
+    foreach ($posts as $post) {
+        $service->repairPostMedia($post->ID);
+    }
+
+    $loteActual++;
+} while (!empty($posts));
+```
+
+### Optimización de Consultas
+- **Caché de assets**: AssetsUtility mantiene caché interno
+- **Verificación condicional**: Solo repara cuando es necesario
+- **Índices de BD**: Usa índices optimizados de WordPress
+
+## Troubleshooting
+
+### Imágenes No Se Reparan
+
+```php
+// Verificar existencia de assets
+$assetExiste = AssetsUtility::assetExists('glory::fallback.jpg');
+if (!$assetExiste) {
+    // Asset de fallback no existe
+}
+
+// Verificar permisos de escritura
+$uploadsDir = wp_get_upload_dir();
+$writable = is_writable($uploadsDir['basedir']);
+```
+
+### Fallbacks No Se Asignan
+
+```php
+// Verificar cooldown activo
+$ultimoIntento = get_post_meta($postId, '_glory_featured_fallback_last_attempt', true);
+$enCooldown = (time() - $ultimoIntento) < 86400;
+
+if ($enCooldown) {
+    // Esperar cooldown o forzar reset
+    delete_post_meta($postId, '_glory_featured_fallback_last_attempt');
+}
+```
+
+### URLs No Se Corrigen
+
+```php
+// Verificar estructura de uploads
+$uploads = wp_get_upload_dir();
+$estructuraValida = !empty($uploads['baseurl']) && !empty($uploads['basedir']);
+
+if (!$estructuraValida) {
+    // Configuración de uploads corrupta
+}
+```
+
+## Casos de Uso Avanzados
+
+### Integración con Plugins de Medios
+
+```php
+// Hook para plugins de optimización de imágenes
+add_filter('wp_generate_attachment_metadata', function($metadata, $attachmentId) {
+    // Después de optimización, verificar integridad
+    $service = new MediaIntegrityService();
+    $postId = wp_get_post_parent_id($attachmentId);
+
+    if ($postId) {
+        $service->repairPostMedia($postId);
+    }
+
+    return $metadata;
+}, 10, 2);
+```
+
+### Sistema de Backup de Medios
+
+```php
+// Backup automático antes de reparaciones
+function backupMediosAntesReparacion($postId) {
+    $thumbnailId = get_post_thumbnail_id($postId);
+    $galeria = get_post_meta($postId, '_glory_default_galeria_ids', true);
+
+    update_post_meta($postId, '_backup_medios_originales', [
+        'thumbnail' => $thumbnailId,
+        'galeria' => $galeria,
+        'timestamp' => time()
+    ]);
+}
+```
+
+### Reportes de Integridad
+
+```php
+function generarReporteIntegridad() {
+    $posts = get_posts(['numberposts' => -1]);
+    $reporte = [
+        'total_posts' => count($posts),
+        'con_thumbnail' => 0,
+        'sin_thumbnail' => 0,
+        'urls_rotas' => 0
+    ];
+
+    foreach ($posts as $post) {
+        if (has_post_thumbnail($post->ID)) {
+            $reporte['con_thumbnail']++;
+        } else {
+            $reporte['sin_thumbnail']++;
+        }
+
+        // Verificar URLs rotas...
+    }
+
+    return $reporte;
+}
+```

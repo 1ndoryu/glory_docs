@@ -1,0 +1,389 @@
+---
+title: PostActionManager
+description: Utilidades completas para operaciones CRUD de posts en WordPress con validación y logging
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Descripción General
+
+El `PostActionManager` proporciona una interfaz unificada y segura para realizar operaciones CRUD (Crear, Leer, Actualizar, Eliminar) en posts de WordPress. Incluye validación automática, manejo de errores, logging detallado y integración con el sistema de eventos.
+
+## Funcionalidades Principales
+
+### ✏️ Operaciones CRUD Completas
+- **Creación de posts**: Con validación de tipos y datos
+- **Actualización inteligente**: Preserva datos existentes, actualiza solo campos necesarios
+- **Eliminación segura**: Con verificación de permisos y estados
+- **Movimiento a papelera**: Operaciones reversibles
+
+### 🔍 Validación y Seguridad
+- **Validación de tipos**: Verifica existencia de post types
+- **Control de permisos**: Solo usuarios autorizados pueden modificar
+- **Sanitización automática**: Limpieza de datos de entrada
+- **Prevención de conflictos**: Estados de procesamiento seguros
+
+### 📊 Consultas Avanzadas
+- **Búsqueda por ID**: Recuperación eficiente por identificador
+- **Búsqueda por slug**: Localización por URL amigable
+- **Verificación de existencia**: Métodos múltiples de validación
+
+## Uso Básico
+
+### Creación de Posts
+
+```php
+use Glory\Services\PostActionManager;
+
+// Crear un post simple
+$postId = PostActionManager::crearPost('post', [
+    'post_title' => 'Mi Nuevo Artículo',
+    'post_content' => 'Contenido del artículo...',
+    'post_status' => 'publish'
+]);
+
+// Crear una página con metadatos
+$pageId = PostActionManager::crearPost('page', [
+    'post_title' => 'Página de Contacto',
+    'post_content' => 'Información de contacto...',
+    'meta_input' => [
+        '_wp_page_template' => 'template-contacto.php',
+        'contacto_email' => 'info@empresa.com'
+    ]
+]);
+```
+
+### Actualización de Posts
+
+```php
+// Actualizar contenido existente
+$resultado = PostActionManager::updatePost([
+    'ID' => 123,
+    'post_title' => 'Título Actualizado',
+    'post_content' => 'Nuevo contenido...'
+]);
+
+// Actualizar metadatos
+$resultado = PostActionManager::updatePost([
+    'ID' => 123,
+    'meta_input' => [
+        'precio' => 99.99,
+        'disponible' => true
+    ]
+]);
+```
+
+### Eliminación de Posts
+
+```php
+// Mover a papelera (reversible)
+$exito = PostActionManager::trashPost(123);
+
+// Eliminación permanente
+$exito = PostActionManager::deletePost(123, true); // true = force delete
+
+// Eliminación normal (va a papelera)
+$exito = PostActionManager::deletePost(123);
+```
+
+### Recuperación de Datos
+
+```php
+// Obtener post por ID
+$post = PostActionManager::getPostById(123);
+
+// Obtener post por slug
+$post = PostActionManager::getPostBySlug('mi-articulo', 'post');
+
+// Verificar existencia
+$existe = PostActionManager::postExiste(123); // por ID
+$existe = PostActionManager::postExiste('mi-slug', 'post', 'slug'); // por slug
+```
+
+## Gestión de Estados
+
+### Estados de Post Válidos
+
+```php
+// Estados permitidos para diferentes operaciones
+$estadosValidos = [
+    'publish',    // Publicado
+    'draft',      // Borrador
+    'pending',    // Pendiente de revisión
+    'private',    // Privado
+    'trash',      // En papelera
+    'future',     // Programado
+    'auto-draft'  // Auto-guardado
+];
+```
+
+### Validación de Estados
+
+```php
+// Para operaciones de eliminación
+PostActionManager::deletePost($postId); // Solo posts publicados, borradores, etc.
+
+// Para restaurar de papelera
+PostActionManager::untrashPost($postId); // Solo posts en estado 'trash'
+```
+
+## Sistema de Eventos
+
+### Eventos Automáticos
+
+El manager emite eventos automáticamente a través de `EventBus`:
+
+```php
+// Evento emitido al actualizar post
+EventBus::emit('post_' . $postType);
+
+// Ejemplo: actualizar un post de tipo 'producto'
+PostActionManager::updatePost(['ID' => 123, 'post_title' => 'Nuevo Título']);
+// Emite: 'post_producto'
+```
+
+### Manejo de Eventos
+
+```php
+// Escuchar eventos de posts
+EventBus::on('post_producto', function($data) {
+    // Lógica personalizada cuando se actualiza un producto
+    error_log('Producto actualizado: ' . $data['post_id']);
+});
+```
+
+## Validación y Manejo de Errores
+
+### Tipos de Error Comunes
+
+```php
+// Errores manejados automáticamente
+$erroresPosibles = [
+    'invalid_post_type'    => 'Tipo de post no válido o inexistente',
+    'missing_title'        => 'Título del post requerido',
+    'missing_id'           => 'ID del post requerido para actualización',
+    'post_not_found'       => 'Post no encontrado',
+    'insufficient_permissions' => 'Permisos insuficientes'
+];
+```
+
+### Manejo de Errores
+
+```php
+// Con retorno de WP_Error
+$resultado = PostActionManager::crearPost('invalid_type', $datos, true);
+if (is_wp_error($resultado)) {
+    $codigo = $resultado->get_error_code();
+    $mensaje = $resultado->get_error_message();
+    // Manejar error apropiadamente
+}
+
+// Con retorno de ID/0 (por defecto)
+$resultado = PostActionManager::crearPost('post', $datos);
+if ($resultado === 0) {
+    // Error ocurrido, revisar logs
+}
+```
+
+## Logging y Depuración
+
+### Niveles de Logging
+
+```php
+// Logging automático para todas las operaciones
+GloryLogger::error("PostActionManager::crearPost() - Invalid post type", [
+    'tipoPost' => $tipoPost,
+    'datos' => $datos
+]);
+
+GloryLogger::info("Post creado exitosamente", [
+    'postId' => $postId,
+    'tipoPost' => $tipoPost
+]);
+```
+
+### Información Registrada
+
+Cada operación registra:
+- Parámetros de entrada
+- Resultados de ejecución
+- Códigos y mensajes de error
+- Información de contexto del usuario
+
+## Ejemplos Avanzados
+
+### Creación de Contenido Complejo
+
+```php
+function crearProducto($datosProducto) {
+    return PostActionManager::crearPost('producto', [
+        'post_title' => $datosProducto['nombre'],
+        'post_content' => $datosProducto['descripcion'],
+        'post_status' => 'publish',
+        'post_excerpt' => $datosProducto['resumen'],
+        'meta_input' => [
+            'precio' => $datosProducto['precio'],
+            'sku' => $datosProducto['sku'],
+            'stock' => $datosProducto['stock'],
+            'categoria' => $datosProducto['categoria'],
+            '_wp_page_template' => 'single-producto.php'
+        ]
+    ]);
+}
+```
+
+### Sistema de Moderación
+
+```php
+function moderarContenido($postId, $accion) {
+    switch ($accion) {
+        case 'aprobar':
+            return PostActionManager::updatePost([
+                'ID' => $postId,
+                'post_status' => 'publish'
+            ]);
+
+        case 'rechazar':
+            return PostActionManager::trashPost($postId);
+
+        case 'borrador':
+            return PostActionManager::updatePost([
+                'ID' => $postId,
+                'post_status' => 'draft'
+            ]);
+    }
+}
+```
+
+### Limpieza Automática
+
+```php
+function limpiarPostsAntiguos($dias = 30) {
+    $postsAntiguos = get_posts([
+        'date_query' => [
+            'before' => $dias . ' days ago'
+        ],
+        'post_status' => 'trash',
+        'posts_per_page' => -1
+    ]);
+
+    foreach ($postsAntiguos as $post) {
+        PostActionManager::deletePost($post->ID, true); // Eliminación permanente
+    }
+}
+```
+
+## API de Métodos
+
+### `crearPost(string $tipoPost, array $datos, bool $retornarWpError = false): int|WP_Error`
+Crea un nuevo post con validación completa.
+
+### `updatePost(array $datos, bool $retornarWpError = false): int|WP_Error`
+Actualiza un post existente.
+
+### `deletePost(int $postId, bool $forzarBorrado = false): bool`
+Elimina un post (a papelera o permanentemente).
+
+### `trashPost(int $postId): bool`
+Mueve un post a la papelera.
+
+### `untrashPost(int $postId): bool`
+Restaura un post desde la papelera.
+
+### `getPostById(int $postId, string $formatoSalida = OBJECT): WP_Post|array|null`
+Recupera un post por su ID.
+
+### `getPostBySlug(string $slug, string $tipoPost, string $formatoSalida = OBJECT): WP_Post|array|null`
+Recupera un post por su slug.
+
+### `postExiste(int|string $identificador, string $tipoPost = 'post', string $campo = 'id'): bool`
+Verifica si un post existe.
+
+## Consideraciones de Seguridad
+
+### Permisos Requeridos
+- `edit_post` para actualización
+- `delete_post` para eliminación
+- Validación de capacidades de usuario
+
+### Sanitización Automática
+- Limpieza de datos de entrada
+- Validación de tipos de datos
+- Prevención de inyección de código
+
+## Integración con Otros Servicios
+
+### Con DefaultContentSynchronizer
+
+```php
+// Los servicios funcionan juntos
+$sync = new DefaultContentSynchronizer();
+$sync->sincronizar(); // Usa PostActionManager internamente
+
+// Operaciones directas también disponibles
+PostActionManager::updatePost($datos);
+```
+
+### Con FormHandler
+
+```php
+// Procesamiento de formularios
+$formHandler = new FormHandler();
+$resultado = $formHandler->procesar($_POST);
+
+// Si el formulario crea/edita posts
+if ($resultado['exito']) {
+    PostActionManager::updatePost([
+        'ID' => $resultado['post_id'],
+        'meta_input' => $resultado['datos_limpios']
+    ]);
+}
+```
+
+## Rendimiento y Optimización
+
+### Consultas Eficientes
+- Uso de funciones nativas de WordPress optimizadas
+- Caché automático de WordPress
+- Consultas indexadas
+
+### Manejo de Memoria
+- Procesamiento por lotes para operaciones masivas
+- Liberación de objetos después del uso
+- Prevención de memory leaks
+
+## Troubleshooting
+
+### Post No Se Crea
+```php
+// Verificar tipo de post existe
+if (!post_type_exists($tipoPost)) {
+    // Error: tipo de post no registrado
+}
+
+// Verificar título presente
+if (empty($datos['post_title'])) {
+    // Error: título requerido
+}
+```
+
+### Actualización Falla
+```php
+// Verificar post existe
+if (!PostActionManager::postExiste($postId)) {
+    // Error: post no encontrado
+}
+
+// Verificar permisos
+if (!current_user_can('edit_post', $postId)) {
+    // Error: permisos insuficientes
+}
+```
+
+### Eventos No Se Disparan
+```php
+// Verificar EventBus está disponible
+if (!class_exists('Glory\\Services\\EventBus')) {
+    // Error: EventBus no cargado
+}
+```

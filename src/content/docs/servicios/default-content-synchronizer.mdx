@@ -1,0 +1,222 @@
+---
+title: DefaultContentSynchronizer
+description: Servicio de sincronización automática de contenido por defecto con gestión inteligente de actualizaciones
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Descripción General
+
+El `DefaultContentSynchronizer` es un servicio avanzado que gestiona la sincronización automática de contenido por defecto en WordPress. Permite mantener posts predefinidos actualizados, detectar ediciones manuales y reparar automáticamente la integridad de medios.
+
+## Funcionalidades Principales
+
+### 🔄 Sincronización Inteligente
+- **Sincronización automática**: Actualiza contenido por defecto cuando cambian las definiciones
+- **Detección de ediciones manuales**: Preserva cambios realizados por usuarios administradores
+- **Modos de actualización**: Soporta modos 'none', 'smart' y 'force'
+
+### 🖼️ Reparación de Medios
+- **Integridad automática**: Verifica y repara imágenes destacadas y galerías faltantes
+- **Fallbacks inteligentes**: Asigna imágenes por defecto cuando faltan archivos originales
+- **Sanitización de contenido**: Corrige URLs rotas en contenido y metadatos
+
+### 🗂️ Gestión de Términos
+- **Sincronización de taxonomías**: Gestiona automáticamente términos asociados a posts
+
+## Uso Básico
+
+### Sincronización Completa
+
+```php
+use Glory\Services\DefaultContentSynchronizer;
+
+// Sincronizar todo el contenido por defecto
+$synchronizer = new DefaultContentSynchronizer();
+$synchronizer->sincronizar();
+```
+
+### Restablecimiento Forzado
+
+```php
+// Restablecer todo el contenido a valores por defecto
+$synchronizer->restablecer();
+```
+
+### Detección de Ediciones Manuales
+
+```php
+// Hook para detectar cuando un usuario edita contenido manualmente
+add_action('save_post', [$synchronizer, 'detectarEdicionManual'], 10, 3);
+```
+
+## Definición de Contenido
+
+### Estructura de Definiciones
+
+```php
+// En tu archivo de configuración (ej: config.php)
+$GLOBALS['glory_default_content_definitions'] = [
+    'post' => [
+        'permitirEliminacion' => true,
+        'modoActualizacion' => 'smart', // 'none', 'smart', 'force'
+        'definicionesPost' => [
+            [
+                'slugDefault' => 'pagina-inicio',
+                'titulo' => 'Página de Inicio',
+                'contenido' => 'Contenido de la página principal...',
+                'estado' => 'publish',
+                'extracto' => 'Descripción breve',
+                'imagenDestacadaAsset' => 'glory::hero-image.jpg',
+                'galeriaAssets' => ['colors::image1.jpg', 'colors::image2.jpg'],
+                'metaEntrada' => [
+                    '_wp_page_template' => 'template-home.php',
+                    'meta_personalizado' => 'valor'
+                ]
+            ]
+        ]
+    ]
+];
+```
+
+## Modos de Actualización
+
+### Modo 'none'
+```php
+'modoActualizacion' => 'none'
+// No actualiza contenido existente, solo crea posts nuevos
+```
+
+### Modo 'smart'
+```php
+'modoActualizacion' => 'smart'
+// Actualiza solo si el contenido no ha sido editado manualmente
+```
+
+### Modo 'force'
+```php
+'modoActualizacion' => 'force'
+// Fuerza actualización de todo el contenido, incluso si fue editado
+```
+
+## Gestión de Medios
+
+### Reparación Automática
+
+El servicio incluye `MediaIntegrityService` que automáticamente:
+
+- Verifica existencia de archivos de imagen destacada
+- Reasigna imágenes faltantes usando assets existentes
+- Genera galerías por defecto cuando no están definidas
+- Corrige URLs rotas en contenido y metadatos
+
+### Fallbacks Determinísticos
+
+```php
+// Los fallbacks se asignan de forma determinística basada en el ID del post
+// para mantener consistencia entre sincronizaciones
+private function chooseFallbackAssetForPost(int $postId): string
+{
+    // Lógica que selecciona imagen por defecto consistentemente
+}
+```
+
+## Integración con Hooks
+
+### Hook de Sincronización
+
+```php
+// Sincronización automática al activar/desactivar plugins
+register_activation_hook(__FILE__, function() {
+    $sync = new DefaultContentSynchronizer();
+    $sync->sincronizar();
+});
+
+// Sincronización periódica (opcional)
+add_action('wp_loaded', function() {
+    // Sincronización condicional según necesidades
+});
+```
+
+### Detección de Ediciones
+
+```php
+// Hook para marcar posts editados manualmente
+add_action('save_post', function($postId, $post, $isUpdate) {
+    $sync = new DefaultContentSynchronizer();
+    $sync->detectarEdicionManual($postId, $post, $isUpdate);
+}, 10, 3);
+```
+
+## Métodos de la API
+
+### `sincronizar()`
+Inicia proceso completo de sincronización de contenido por defecto.
+
+### `restablecer()`
+Restablece todo el contenido a valores por defecto, forzando actualización.
+
+### `detectarEdicionManual(int $postId, WP_Post $post, bool $isUpdate)`
+Detecta cuando un usuario administrador edita contenido manualmente.
+
+## Consideraciones de Rendimiento
+
+- **Procesamiento por lotes**: Maneja posts en lotes para evitar timeouts
+- **Prevención de bucles**: Evita procesamiento recursivo con flags internos
+- **Logging condicional**: Solo registra información detallada en desarrollo
+
+## Estados y Metadatos
+
+### Metadatos de Control
+- `_glory_default_content_slug`: Slug de la definición original
+- `_glory_default_content_edited`: Marca si fue editado manualmente
+- `_glory_content_mode`: Modo actual del contenido ('editor' o 'sync')
+
+## Ejemplos Prácticos
+
+### Página de Empresa
+
+```php
+[
+    'slugDefault' => 'empresa',
+    'titulo' => 'Sobre Nuestra Empresa',
+    'contenido' => 'Contenido detallado sobre la empresa...',
+    'imagenDestacadaAsset' => 'glory::empresa-hero.jpg',
+    'metaEntrada' => [
+        '_wp_page_template' => 'template-empresa.php',
+        'empresa_telefono' => '+1-234-567-8900'
+    ]
+]
+```
+
+### Artículo de Blog
+
+```php
+[
+    'slugDefault' => 'primer-post-blog',
+    'titulo' => 'Bienvenido a Nuestro Blog',
+    'contenido' => 'Contenido del primer post...',
+    'estado' => 'publish',
+    'extracto' => 'Introducción a nuestra serie de artículos',
+    'metaEntrada' => [
+        'blog_categoria' => 'noticias,anuncios'
+    ]
+]
+```
+
+## Troubleshooting
+
+### Contenido No Se Actualiza
+- Verificar que el modo de actualización no sea 'none'
+- Comprobar si el post fue marcado como editado manualmente
+- Revisar logs para errores de permisos
+
+### Imágenes No Aparecen
+- Verificar que los assets existan en las carpetas del tema
+- Comprobar permisos de escritura en uploads/
+- Revisar configuración de `MediaIntegrityService`
+
+### Rendimiento Lento
+- Considerar procesamiento por lotes más pequeños
+- Implementar sincronización programada en lugar de en cada carga
+- Optimizar consultas a base de datos

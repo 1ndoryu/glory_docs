@@ -112,18 +112,24 @@ export default defineConfig({
                 {
                     label: 'Servicios',
                     items: [
-                        'servicios/event-bus',
-                        'servicios/glory-logger',
-                        'servicios/query-profiler',
-                        'servicios/performance-profiler',
-                        'servicios/token-manager',
-                        'servicios/manejador-git',
-                        'servicios/gestor-css-critico',
-                        'servicios/local-critical-css',
                         'servicios/analytics-engine',
                         'servicios/busqueda-service',
+                        'servicios/default-content-synchronizer',
+                        'servicios/event-bus',
+                        'servicios/gestor-css-critico',
+                        'servicios/glory-logger',
                         'servicios/license-manager',
-                        'servicios/servidor-chat'
+                        'servicios/local-critical-css',
+                        'servicios/manejador-git',
+                        'servicios/media-integrity-service',
+                        'servicios/performance-profiler',
+                        'servicios/post-action-manager',
+                        'servicios/post-relation-handler',
+                        'servicios/post-sync-handler',
+                        'servicios/query-profiler',
+                        'servicios/servidor-chat',
+                        'servicios/term-sync-handler',
+                        'servicios/token-manager'
                     ]
                 },
                 {

@@ -1,0 +1,549 @@
+---
+title: PostRelationHandler
+description: Manejador especializado para gestionar relaciones de posts con imágenes, galerías y taxonomías
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Descripción General
+
+El `PostRelationHandler` es un servicio especializado que gestiona las relaciones entre posts y otros elementos de WordPress como imágenes destacadas, galerías de medios y términos de taxonomía. Proporciona una interfaz unificada para establecer y mantener estas conexiones de forma automática.
+
+## Funcionalidades Principales
+
+### 🖼️ Gestión de Imágenes Destacadas
+- **Asignación automática**: Establece thumbnails desde assets del tema
+- **Validación de existencia**: Verifica que los assets existan antes de asignar
+- **Soporte para aleatorios**: Imágenes destacadas aleatorias por alias
+
+### 🎞️ Manejo de Galerías
+- **Construcción de colecciones**: Crea galerías a partir de arrays de assets
+- **Gestión de adjuntos**: Vincula imágenes como hijos del post
+- **Galerías automáticas**: Genera galerías por defecto cuando no están definidas
+
+### 🏷️ Control de Taxonomías
+- **Asignación de términos**: Vincula posts con categorías y etiquetas
+- **Creación automática**: Genera términos inexistentes según definición
+- **Manejo de jerarquías**: Soporta taxonomías anidadas
+
+## Uso Básico
+
+### Configuración de Relaciones
+
+```php
+use Glory\Services\Sync\PostRelationHandler;
+
+$handler = new PostRelationHandler($postId);
+
+// Establecer todas las relaciones definidas
+$handler->setRelations($definition);
+```
+
+### Gestión Individual
+
+```php
+// Solo imagen destacada
+$handler->setFeaturedImage($definition);
+
+// Solo galería
+$handler->setGallery($definition);
+
+// Solo términos
+$handler->setTerms($definition);
+```
+
+## Definición de Relaciones
+
+### Estructura Completa
+
+```php
+$definition = [
+    'imagenDestacadaAsset' => 'glory::hero-image.jpg',
+    'galeriaAssets' => [
+        'colors::gallery1.jpg',
+        'colors::gallery2.jpg',
+        'random::glory'  // Imagen aleatoria del alias glory
+    ],
+    'metaEntrada' => [
+        'category' => 'Noticias, Anuncios',  // Taxonomías
+        'post_tag' => 'importante, destacado',
+        'custom_taxonomy' => 'valor1, valor2'
+    ]
+];
+```
+
+## Gestión de Imágenes Destacadas
+
+### Tipos de Referencias
+
+#### Assets Específicos
+```php
+'imagenDestacadaAsset' => 'glory::hero-image.jpg'
+// Asigna imagen específica del alias 'glory'
+```
+
+#### Imágenes Aleatorias
+```php
+'imagenDestacadaAsset' => 'random::colors'
+// Selecciona imagen aleatoria del alias 'colors'
+```
+
+#### Alias Directos
+```php
+'imagenDestacadaAsset' => 'elements::logo.svg'
+// Usa logo del alias 'elements'
+```
+
+### Proceso de Asignación
+
+```php
+private function resolveFeaturedImageAsset(array $datosPost): ?string
+{
+    $assetRef = $datosPost['imagenDestacadaAsset'] ?? null;
+
+    if (str_starts_with($assetRef, 'random')) {
+        // Resolver imagen aleatoria
+        $parts = explode('::', $assetRef, 2);
+        $alias = $parts[1] ?? 'glory';
+        return AssetsUtility::getRandomDefaultImageName($alias);
+    }
+
+    return $assetRef;
+}
+```
+
+### Validación y Seguridad
+
+```php
+// Verificación antes de asignación
+if (!AssetsUtility::assetExists($assetReference)) {
+    GloryLogger::warning("Asset inexistente: {$assetReference}");
+    return;
+}
+
+$attachmentId = AssetsUtility::get_attachment_id_from_asset($assetReference);
+if (!$attachmentId) {
+    GloryLogger::warning("No se pudo obtener adjunto para: {$assetReference}");
+    return;
+}
+```
+
+## Manejo de Galerías
+
+### Construcción de Galerías
+
+#### Galerías Explícitas
+```php
+'galeriaAssets' => [
+    'colors::image1.jpg',
+    'colors::image2.jpg',
+    'elements::photo.jpg'
+]
+```
+
+#### Galerías Automáticas
+```php
+// Si no hay galería pero sí imagen destacada
+private function resolveGalleryIds(array $definicion): array
+{
+    $assets = $definicion['galeriaAssets'] ?? [];
+
+    // Generar galería automática si está vacía
+    if (empty($assets) && !empty($definicion['imagenDestacadaAsset'])) {
+        $base = preg_replace('/\.[^.]+$/', '', $definicion['imagenDestacadaAsset']);
+        for ($i = 1; $i <= 3; $i++) {
+            $assets[] = "{$base}{$i}.jpg";
+        }
+    }
+
+    // Convertir assets a IDs de adjuntos
+    return array_map(function($asset) {
+        return AssetsUtility::get_attachment_id_from_asset($asset);
+    }, array_filter($assets));
+}
+```
+
+### Gestión de Adjuntos
+
+```php
+// Vincular imágenes como hijos del post
+foreach ($galleryIds as $attachmentId) {
+    wp_update_post([
+        'ID' => $attachmentId,
+        'post_parent' => $this->postId
+    ]);
+}
+```
+
+## Control de Taxonomías
+
+### Asignación de Términos
+
+```php
+private function setTerms(array $definicion): void
+{
+    $postType = get_post_type($this->postId);
+    $taxonomies = get_object_taxonomies($postType);
+    $meta = $definicion['metaEntrada'] ?? [];
+
+    foreach ($taxonomies as $taxonomy) {
+        if (isset($meta[$taxonomy])) {
+            $termNames = is_array($meta[$taxonomy])
+                ? $meta[$taxonomy]
+                : array_map('trim', explode(',', $meta[$taxonomy]));
+
+            $this->assignTermsToTaxonomy($taxonomy, $termNames);
+        }
+    }
+}
+```
+
+### Creación Automática de Términos
+
+```php
+private function assignTermsToTaxonomy(string $taxonomy, array $termNames): void
+{
+    $termIds = [];
+
+    foreach ($termNames as $name) {
+        $term = get_term_by('name', $name, $taxonomy);
+
+        if (!$term) {
+            // Crear término si no existe
+            $result = wp_insert_term($name, $taxonomy);
+            if (!is_wp_error($result)) {
+                $termIds[] = $result['term_id'];
+            }
+        } else {
+            $termIds[] = $term->term_id;
+        }
+    }
+
+    // Asignar términos al post
+    wp_set_object_terms($this->postId, $termIds, $taxonomy, false);
+}
+```
+
+## Integración con PostSyncHandler
+
+### Flujo de Sincronización
+
+```php
+class PostSyncHandler
+{
+    public function create(int $postType, array $definition): ?int
+    {
+        // 1. Crear post base
+        $postData = $this->prepareCorePostData($postType, $definition);
+        $postId = wp_insert_post($postData);
+
+        // 2. Establecer relaciones
+        $this->relationHandler = new PostRelationHandler($postId);
+        $this->relationHandler->setRelations($definition);
+
+        // 3. Reparar integridad de medios
+        $this->mediaIntegrity->repairPostMedia($postId, $definition);
+
+        return $postId;
+    }
+}
+```
+
+## API de Métodos
+
+### `setRelations(array $definicion): void`
+Establece todas las relaciones definidas para un post.
+
+### `setFeaturedImage(array $definicion): void`
+Configura la imagen destacada del post.
+
+### `setGallery(array $definicion): void`
+Configura la galería de medios del post.
+
+### `setTerms(array $definicion): void`
+Asigna términos de taxonomía al post.
+
+## Estrategias de Assets
+
+### Sistema de Alias
+
+```php
+// Alias disponibles en AssetsUtility
+$aliasesDisponibles = [
+    'glory' => '/assets/images/',      // Imágenes principales
+    'colors' => '/assets/images/colors/', // Paleta de colores
+    'elements' => '/assets/images/elements/', // Elementos UI
+    'logos' => '/assets/images/logos/' // Logos y marcas
+];
+```
+
+### Resolución de Referencias
+
+```php
+// Formato: alias::archivo.ext
+$referenciasValidas = [
+    'glory::hero.jpg',
+    'colors::blue-bg.png',
+    'elements::icon.svg',
+    'logos::brand-logo.svg'
+];
+```
+
+## Logging y Depuración
+
+### Información Registrada
+
+```php
+// Operaciones exitosas
+GloryLogger::info("RelationHandler: Imagen destacada asignada", [
+    'postId' => $this->postId,
+    'asset' => $assetReference,
+    'attachmentId' => $attachmentId
+]);
+
+// Advertencias
+GloryLogger::warning("RelationHandler: Asset inexistente", [
+    'asset' => $assetReference,
+    'postId' => $this->postId
+]);
+```
+
+### Depuración de Taxonomías
+
+```php
+// Verificar asignaciones
+$assignedTerms = wp_get_object_terms($postId, $taxonomy);
+GloryLogger::info("Términos asignados", [
+    'taxonomy' => $taxonomy,
+    'terms' => wp_list_pluck($assignedTerms, 'name')
+]);
+```
+
+## Ejemplos Prácticos
+
+### Configuración de Página de Producto
+
+```php
+$productoDefinition = [
+    'titulo' => 'Producto Premium',
+    'contenido' => 'Descripción detallada del producto...',
+    'imagenDestacadaAsset' => 'glory::producto-hero.jpg',
+    'galeriaAssets' => [
+        'colors::producto-1.jpg',
+        'colors::producto-2.jpg',
+        'colors::producto-3.jpg'
+    ],
+    'metaEntrada' => [
+        'product_cat' => 'Electrónicos, Premium',
+        'product_tag' => 'nuevo, destacado',
+        'precio' => 299.99
+    ]
+];
+
+$handler = new PostRelationHandler($postId);
+$handler->setRelations($productoDefinition);
+```
+
+### Creación de Artículo de Blog
+
+```php
+$blogDefinition = [
+    'titulo' => 'Tendencias 2024',
+    'contenido' => 'Análisis de tendencias tecnológicas...',
+    'imagenDestacadaAsset' => 'random::colors',  // Imagen aleatoria
+    'metaEntrada' => [
+        'category' => 'Tecnología, Tendencias',
+        'post_tag' => '2024, innovación, futuro'
+    ]
+];
+
+$handler = new PostRelationHandler($postId);
+$handler->setRelations($blogDefinition);
+```
+
+### Página Corporativa
+
+```php
+$empresaDefinition = [
+    'titulo' => 'Sobre Nosotros',
+    'contenido' => 'Historia y valores de la empresa...',
+    'imagenDestacadaAsset' => 'elements::team-photo.jpg',
+    'galeriaAssets' => [
+        'glory::oficina.jpg',
+        'glory::equipo.jpg'
+    ],
+    'metaEntrada' => [
+        'page_category' => 'Empresa, Institucional'
+    ]
+];
+```
+
+## Manejo de Errores
+
+### Assets Inexistentes
+
+```php
+try {
+    $handler->setFeaturedImage($definition);
+} catch (\Exception $e) {
+    GloryLogger::error("Error asignando imagen destacada", [
+        'postId' => $this->postId,
+        'error' => $e->getMessage(),
+        'definition' => $definition
+    ]);
+}
+```
+
+### Problemas de Taxonomía
+
+```php
+// Verificar taxonomía existe antes de asignar
+if (!taxonomy_exists($taxonomy)) {
+    GloryLogger::warning("Taxonomía no existe", [
+        'taxonomy' => $taxonomy,
+        'postId' => $this->postId
+    ]);
+    return;
+}
+```
+
+## Optimizaciones de Rendimiento
+
+### Procesamiento por Lotes
+
+```php
+// Para múltiples posts, procesar en lotes
+$posts = get_posts(['numberposts' => 50]);
+foreach ($posts as $post) {
+    $handler = new PostRelationHandler($post->ID);
+    $handler->setRelations($definition);
+    // Pequeña pausa para no sobrecargar
+    usleep(10000); // 10ms
+}
+```
+
+### Caché de Assets
+
+```php
+// AssetsUtility mantiene caché interno
+// Evitar consultas repetidas al mismo asset
+$cachedAssets = [];
+
+function getAttachmentIdCached($assetRef) {
+    if (!isset($cachedAssets[$assetRef])) {
+        $cachedAssets[$assetRef] = AssetsUtility::get_attachment_id_from_asset($assetRef);
+    }
+    return $cachedAssets[$assetRef];
+}
+```
+
+## Casos de Uso Avanzados
+
+### Sincronización Condicional
+
+```php
+// Solo actualizar relaciones si han cambiado
+function needsRelationUpdate($postId, $newDefinition): bool {
+    $currentThumb = get_post_thumbnail_id($postId);
+    $newAsset = $newDefinition['imagenDestacadaAsset'] ?? null;
+
+    if ($newAsset) {
+        $newAttachmentId = AssetsUtility::get_attachment_id_from_asset($newAsset);
+        return $currentThumb !== $newAttachmentId;
+    }
+
+    return false;
+}
+```
+
+### Backup de Relaciones
+
+```php
+function backupPostRelations($postId): array {
+    return [
+        'thumbnail' => get_post_thumbnail_id($postId),
+        'gallery' => get_post_meta($postId, '_glory_default_galeria_ids', true),
+        'terms' => wp_get_object_terms($postId, get_object_taxonomies(get_post_type($postId))),
+        'backup_date' => current_time('mysql')
+    ];
+}
+```
+
+### Restauración de Relaciones
+
+```php
+function restorePostRelations($postId, array $backup): void {
+    // Restaurar thumbnail
+    if ($backup['thumbnail']) {
+        set_post_thumbnail($postId, $backup['thumbnail']);
+    }
+
+    // Restaurar galería
+    if ($backup['gallery']) {
+        update_post_meta($postId, '_glory_default_galeria_ids', $backup['gallery']);
+    }
+
+    // Restaurar términos
+    foreach ($backup['terms'] as $term) {
+        wp_set_object_terms($postId, $term->term_id, $term->taxonomy, true);
+    }
+}
+```
+
+## Integración con Otros Componentes
+
+### Con FormularioFluente
+
+```php
+// Procesar formulario que incluye relaciones
+$formulario = new FormularioFluente();
+$formulario
+    ->campo('titulo', 'text', 'Título')
+    ->campo('imagen_destacada', 'asset_selector', 'Imagen Destacada')
+    ->campo('categorias', 'taxonomy_selector', 'Categorías')
+    ->procesar();
+
+if ($formulario->esValido()) {
+    $datos = $formulario->obtenerDatos();
+
+    // Crear post con relaciones
+    $postId = PostActionManager::crearPost('post', [
+        'post_title' => $datos['titulo'],
+        'post_content' => $datos['contenido']
+    ]);
+
+    // Establecer relaciones
+    $handler = new PostRelationHandler($postId);
+    $handler->setRelations([
+        'imagenDestacadaAsset' => $datos['imagen_destacada'],
+        'metaEntrada' => [
+            'category' => $datos['categorias']
+        ]
+    ]);
+}
+```
+
+### Con AssetManager
+
+```php
+// Verificar assets antes de asignar
+function validarAssetsAntesAsignacion(array $definition): array {
+    $errores = [];
+
+    if (!empty($definition['imagenDestacadaAsset'])) {
+        if (!AssetsUtility::assetExists($definition['imagenDestacadaAsset'])) {
+            $errores[] = "Asset de imagen destacada no existe: {$definition['imagenDestacadaAsset']}";
+        }
+    }
+
+    if (!empty($definition['galeriaAssets'])) {
+        foreach ($definition['galeriaAssets'] as $asset) {
+            if (!AssetsUtility::assetExists($asset)) {
+                $errores[] = "Asset de galería no existe: {$asset}";
+            }
+        }
+    }
+
+    return $errores;
+}
+```

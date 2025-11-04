@@ -46,8 +46,10 @@ export default defineConfig({
                 {
                     label: 'AJAX y Formularios',
                     items: [
+                        'ajax-formularios/sistema-formularios',
+                        'ajax-formularios/form-builder',
                         'ajax-formularios/form-handler',
-                        'ajax-formularios/form-builder'
+                        'ajax-formularios/handlers'
                     ]
                 },
                 {

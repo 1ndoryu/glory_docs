@@ -1,0 +1,506 @@
+---
+title: Sistema de Formularios Modales
+description: Gestor avanzado de formularios dentro de modales con creación/edición AJAX, upload de imágenes y validaciones dinámicas
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Formularios Modales (`formModal.js`)
+
+El sistema de formularios modales proporciona una solución completa para gestionar formularios dentro de modales con funcionalidades avanzadas como creación/edición AJAX, upload de imágenes con `wp.media`, selects dependientes, validaciones dinámicas y gestión de estado compleja.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Trigger para abrir modal en modo creación -->
+<button type="button"
+        class="abrir-modal"
+        data-modal-target="mi-modal"
+        data-form-mode="create"
+        data-submit-action="guardar_usuario"
+        data-modal-title="Crear Usuario">
+    Crear Usuario
+</button>
+
+<!-- Trigger para abrir modal en modo edición -->
+<button type="button"
+        class="abrir-modal"
+        data-modal-target="mi-modal"
+        data-form-mode="edit"
+        data-fetch-action="cargar_usuario"
+        data-object-id="123"
+        data-modal-title-edit="Editar Usuario">
+    Editar
+</button>
+
+<!-- Modal con formulario -->
+<div id="mi-modal" class="glory-modal">
+    <div class="modal-content">
+        <h2>Título del Modal</h2>
+        <form class="gloryForm">
+            <!-- Campos del formulario -->
+            <input type="text" name="nombre" required>
+            <input type="email" name="email" required>
+
+            <!-- Botón de envío -->
+            <button type="submit" class="dataSubir" data-accion="guardar_usuario">
+                Guardar
+            </button>
+        </form>
+    </div>
+</div>
+```
+
+```javascript
+// El sistema se inicializa automáticamente
+// No requiere configuración adicional
+```
+
+## 📋 Funcionalidades
+
+### Gestión de Estados del Modal
+
+#### Modo Creación (`data-form-mode="create"`)
+- Limpia automáticamente todos los campos del formulario
+- Resetea uploads de imágenes a estado inicial
+- Elimina cualquier dato residual de ediciones previas
+- Prepara el formulario para nuevos datos
+
+#### Modo Edición (`data-form-mode="edit"`)
+- Carga datos vía AJAX usando `data-fetch-action`
+- Rellena automáticamente todos los campos del formulario
+- Gestiona imágenes existentes y previews
+- Mantiene estado consistente entre cargas
+
+### Sistema de Upload de Imágenes
+Integración completa con `wp.media` para gestión de imágenes:
+
+```html
+<!-- Uploader básico de imágenes -->
+<div class="glory-image-uploader">
+    <input type="hidden" name="imagen_id" class="glory-image-id">
+    <div class="image-preview" data-placeholder="Haz clic para subir una imagen">
+        <span class="image-preview-placeholder">Haz clic para subir una imagen</span>
+    </div>
+    <button type="button" class="glory-upload-image-button">Seleccionar Imagen</button>
+    <button type="button" class="glory-remove-image-button oculto">Eliminar</button>
+</div>
+```
+
+### Selects Dependientes
+Sistema declarativo para cargar opciones dinámicamente:
+
+```html
+<!-- Select dependiente de otro campo -->
+<select name="pais" data-fm-depende="" data-fm-accion-opciones="cargar_paises">
+    <option value="">Seleccione país</option>
+</select>
+
+<select name="ciudad"
+        data-fm-depende="pais"
+        data-fm-accion-opciones="cargar_ciudades"
+        data-fm-placeholder-deshabilitado="Seleccione un país primero">
+    <option value="">Seleccione ciudad</option>
+</select>
+```
+
+### Validación Dinámica de Submit
+Habilita/deshabilita el botón de envío basado en campos requeridos:
+
+```html
+<form class="gloryForm" data-fm-submit-habilitar-cuando="email,telefono">
+    <input type="email" name="email">
+    <input type="tel" name="telefono">
+    <button type="submit" class="dataSubir" disabled>Enviar</button>
+</form>
+```
+
+### Gestión de Servicios/Grupos
+Sistema especial para checkboxes con opción "Seleccionar todos":
+
+```html
+<div class="services-field">
+    <label><input type="checkbox" name="services[]" value="all"> Todos los servicios</label>
+    <label><input type="checkbox" name="services[]" value="1"> Servicio 1</label>
+    <label><input type="checkbox" name="services[]" value="2"> Servicio 2</label>
+    <label><input type="checkbox" name="services[]" value="3"> Servicio 3</label>
+</div>
+```
+
+## 🎨 Características Visuales
+
+### Estados del Formulario
+- **Creación**: Campos limpios, placeholders activos, botones de eliminación ocultos
+- **Edición**: Campos poblados, imágenes cargadas, previews visibles
+- **Validación**: Botón submit habilitado/deshabilidado dinámicamente
+
+### Gestión de Imágenes
+- **Preview interactivo**: Click en preview abre selector de imágenes
+- **Estados visuales**: Placeholder cuando vacío, imagen cuando cargada
+- **Botón eliminar**: Visible solo cuando hay imagen seleccionada
+- **Sincronización**: ID y URL mantenidos en campos ocultos
+
+### Estructura HTML Generada
+
+```html
+<!-- Modal con formulario típico -->
+<div class="glory-modal">
+    <div class="modal-content">
+        <h2>Título Dinámico</h2>
+        <form class="gloryForm" data-object-id="123">
+            <!-- Campos del formulario -->
+
+            <!-- Uploader de imagen -->
+            <div class="glory-image-uploader">
+                <input type="hidden" name="imagen_id" class="glory-image-id" value="456">
+                <div class="image-preview">
+                    <img src="url-de-la-imagen.jpg" alt="Preview">
+                    <button class="previewRemover">×</button>
+                </div>
+                <button class="glory-upload-image-button">Cambiar</button>
+                <button class="glory-remove-image-button">Eliminar</button>
+            </div>
+
+            <button type="submit" class="dataSubir" data-accion="actualizar">
+                Actualizar
+            </button>
+        </form>
+    </div>
+</div>
+```
+
+## 🔧 Configuración Avanzada
+
+### Atributos de Datos para Triggers
+
+#### Atributos Comunes
+- `data-modal-target`: ID del modal a abrir
+- `data-modal-title`: Título base del modal
+- `data-modal-title-create`: Título específico para modo creación
+- `data-modal-title-edit`: Título específico para modo edición
+
+#### Modo Creación
+- `data-form-mode="create"`: Activa modo creación
+- `data-submit-action`: Action AJAX para guardar
+- `data-submit-text`: Texto del botón submit
+
+#### Modo Edición
+- `data-form-mode="edit"`: Activa modo edición
+- `data-fetch-action`: Action AJAX para cargar datos
+- `data-object-id`: ID del objeto a editar
+
+### Configuración de Selects Dependientes
+
+#### Atributos para Selects
+- `data-fm-accion-opciones`: Action AJAX para cargar opciones
+- `data-fm-depende`: Campos de los que depende (separados por coma)
+- `data-fm-placeholder-deshabilitado`: Placeholder cuando dependencias faltan
+- `data-fm-selected-value`: Valor preseleccionado tras carga
+- `data-fm-keep-current`: Mantiene valor actual visible aunque no esté en opciones
+- `data-fm-exclude-param`: Parámetro para excluir opción actual en edición
+
+### Configuración de Validación
+- `data-fm-submit-habilitar-cuando`: Campos requeridos (separados por coma)
+
+### Variables Globales de Debug
+```javascript
+// Habilitar logs detallados
+window.gloryDebug = true;
+
+// Ver estado de inicialización
+console.log('FormModal inicializado:', window.gloryFormModalInitialized);
+```
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `gloryFormModal()`
+Función principal que inicializa el sistema de formularios modales.
+
+```javascript
+// Se ejecuta automáticamente en DOMContentLoaded y gloryRecarga
+gloryFormModal();
+```
+
+### Eventos Personalizados
+
+#### `gloryModal:open`
+Se dispara cuando se abre un modal con formulario.
+
+```javascript
+document.addEventListener('gloryModal:open', function(event) {
+    const { modal, trigger } = event.detail;
+    console.log('Modal abierto:', modal.id);
+});
+```
+
+#### `gloryFormModal:beforeCreate`
+Antes de preparar el formulario para creación.
+
+```javascript
+document.addEventListener('gloryFormModal:beforeCreate', function(event) {
+    // Preparar datos específicos antes de limpiar
+});
+```
+
+#### `gloryFormModal:afterCreate`
+Después de preparar el formulario para creación.
+
+```javascript
+document.addEventListener('gloryFormModal:afterCreate', function(event) {
+    // Configuraciones adicionales post-creación
+});
+```
+
+#### `gloryFormModal:beforeEdit`
+Antes de cargar datos para edición.
+
+```javascript
+document.addEventListener('gloryFormModal:beforeEdit', function(event) {
+    const { objectId } = event.detail;
+    console.log('Cargando objeto:', objectId);
+});
+```
+
+#### `gloryFormModal:afterEdit`
+Después de cargar datos para edición.
+
+```javascript
+document.addEventListener('gloryFormModal:afterEdit', function(event) {
+    const { objectId, data } = event.detail;
+    console.log('Datos cargados para:', objectId, data);
+});
+```
+
+#### `gloryFormModal:optionsLoaded`
+Cuando se cargan opciones para un select dependiente.
+
+```javascript
+document.addEventListener('gloryFormModal:optionsLoaded', function(event) {
+    const { select, options, payload } = event.detail;
+    console.log('Opciones cargadas para', select.name, ':', options.length);
+});
+```
+
+### Sistema AJAX Interno
+Utiliza `gloryAjax` o fallback a `fetch` para WordPress:
+
+```javascript
+// Función interna para llamadas AJAX
+async function callAjax(action, payload) {
+    if (typeof window.gloryAjax === 'function') {
+        return await window.gloryAjax(action, payload);
+    }
+    // Fallback manual
+}
+```
+
+## 🎯 Casos de Uso
+
+### Formulario de Usuario Completo
+```html
+<!-- Trigger -->
+<button class="abrir-modal"
+        data-modal-target="usuario-modal"
+        data-form-mode="create"
+        data-submit-action="guardar_usuario"
+        data-modal-title-create="Crear Usuario">
+    Nuevo Usuario
+</button>
+
+<!-- Modal -->
+<div id="usuario-modal" class="glory-modal">
+    <div class="modal-content">
+        <h2>Crear Usuario</h2>
+        <form class="gloryForm" data-fm-submit-habilitar-cuando="email,nombre">
+            <div class="campo">
+                <label>Nombre:</label>
+                <input type="text" name="nombre" required>
+            </div>
+
+            <div class="campo">
+                <label>Email:</label>
+                <input type="email" name="email" required>
+            </div>
+
+            <div class="campo">
+                <label>País:</label>
+                <select name="pais" data-fm-accion-opciones="cargar_paises">
+                    <option value="">Seleccione país</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label>Ciudad:</label>
+                <select name="ciudad"
+                        data-fm-depende="pais"
+                        data-fm-accion-opciones="cargar_ciudades"
+                        data-fm-placeholder-deshabilitado="Seleccione un país primero">
+                    <option value="">Seleccione ciudad</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label>Avatar:</label>
+                <div class="glory-image-uploader">
+                    <input type="hidden" name="avatar_id" class="glory-image-id">
+                    <div class="image-preview" data-placeholder="Haz clic para subir avatar">
+                        <span class="image-preview-placeholder">Haz clic para subir avatar</span>
+                    </div>
+                    <button type="button" class="glory-upload-image-button">Seleccionar Avatar</button>
+                    <button type="button" class="glory-remove-image-button oculto">Eliminar</button>
+                </div>
+            </div>
+
+            <div class="campo">
+                <label>Servicios:</label>
+                <div class="services-field">
+                    <label><input type="checkbox" name="services[]" value="all"> Todos los servicios</label>
+                    <label><input type="checkbox" name="services[]" value="1"> Servicio 1</label>
+                    <label><input type="checkbox" name="services[]" value="2"> Servicio 2</label>
+                </div>
+            </div>
+
+            <button type="submit" class="dataSubir" data-accion="guardar_usuario">
+                Crear Usuario
+            </button>
+        </form>
+    </div>
+</div>
+```
+
+### Gestión de Productos con Dependencias
+```html
+<form class="gloryForm">
+    <select name="categoria" data-fm-accion-opciones="cargar_categorias">
+        <option value="">Seleccione categoría</option>
+    </select>
+
+    <select name="subcategoria"
+            data-fm-depende="categoria"
+            data-fm-accion-opciones="cargar_subcategorias"
+            data-fm-placeholder-deshabilitado="Seleccione una categoría primero">
+        <option value="">Seleccione subcategoría</option>
+    </select>
+
+    <select name="producto"
+            data-fm-depende="categoria,subcategoria"
+            data-fm-accion-opciones="cargar_productos">
+        <option value="">Seleccione producto</option>
+    </select>
+</form>
+```
+
+### Formulario de Configuración
+```html
+<form class="gloryForm" data-fm-submit-habilitar-cuando="titulo">
+    <input type="text" name="titulo" placeholder="Título requerido" required>
+
+    <div class="glory-image-uploader">
+        <input type="hidden" name="logo_id" class="glory-image-id">
+        <div class="image-preview" data-placeholder="Logo de la empresa">
+            <span class="image-preview-placeholder">Logo de la empresa</span>
+        </div>
+        <button type="button" class="glory-upload-image-button">Seleccionar Logo</button>
+        <button type="button" class="glory-remove-image-button oculto">Eliminar Logo</button>
+    </div>
+
+    <button type="submit" class="dataSubir" disabled>Guardar Configuración</button>
+</form>
+```
+
+## 🔄 Compatibilidad
+
+- ✅ **WordPress**: Integración completa con `wp.media` para uploads
+- ✅ **AJAX**: Compatible con `gloryAjax` y fallback manual
+- ✅ **Modales**: Funciona con cualquier sistema de modales que emita `gloryModal:open`
+- ✅ **Responsive**: Se adapta a diferentes tamaños de pantalla
+- ✅ **Accesibilidad**: Soporte básico para navegación por teclado
+- ✅ **Validación**: Validación HTML5 nativa + validación dinámica
+- ✅ **Estados**: Gestión robusta de estados creación/edición
+- ✅ **Dependencias**: Sistema de selects dependientes multi-nivel
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Modal no se abre**: Verificar `data-modal-target` coincide con ID del modal
+2. **Datos no se cargan en edición**: Revisar `data-fetch-action` y `data-object-id`
+3. **Selects dependientes no cargan**: Verificar `data-fm-depende` y `data-fm-accion-opciones`
+4. **Imágenes no se suben**: Confirmar que `wp.media` está disponible
+5. **Botón submit permanece deshabilitado**: Revisar `data-fm-submit-habilitar-cuando`
+
+### Debug Avanzado
+```javascript
+// Habilitar debug completo
+window.gloryDebug = true;
+
+// Monitorear eventos del formulario
+document.addEventListener('gloryFormModal:afterEdit', function(e) {
+    console.log('Datos cargados:', e.detail.data);
+});
+
+document.addEventListener('gloryFormModal:optionsLoaded', function(e) {
+    console.log('Opciones cargadas para', e.detail.select.name, ':', e.detail.options);
+});
+
+// Verificar estado del formulario
+const form = document.querySelector('.gloryForm');
+console.log('Object ID:', form.dataset.objectId);
+console.log('Campos con valor:', Array.from(form.elements).filter(el => el.value));
+```
+
+### Verificación de Integración
+```javascript
+// Verificar que todos los componentes estén disponibles
+console.log('gloryAjax disponible:', typeof window.gloryAjax);
+console.log('wp.media disponible:', typeof wp !== 'undefined' && wp.media);
+console.log('Modal system disponible:', typeof window.gloryModal !== 'undefined');
+
+// Verificar inicialización
+console.log('FormModal inicializado:', window.gloryFormModalInitialized);
+```
+
+### Troubleshooting de Imágenes
+```javascript
+// Verificar configuración de uploader
+const uploader = document.querySelector('.glory-image-uploader');
+if (uploader) {
+    const imageId = uploader.querySelector('.glory-image-id');
+    const preview = uploader.querySelector('.image-preview');
+    const uploadBtn = uploader.querySelector('.glory-upload-image-button');
+
+    console.log('Uploader config:', {
+        hasImageId: !!imageId,
+        hasPreview: !!preview,
+        hasUploadBtn: !!uploadBtn,
+        previewPlaceholder: preview?.dataset.placeholder
+    });
+}
+```
+
+### Reset Manual
+```javascript
+// Forzar reinicialización (solo para debug)
+window.gloryFormModalInitialized = false;
+gloryFormModal();
+
+// Limpiar formulario manualmente
+const form = document.querySelector('.gloryForm');
+if (form) {
+    form.reset();
+    form.removeAttribute('data-object-id');
+
+    // Limpiar uploaders
+    form.querySelectorAll('.glory-image-uploader').forEach(uploader => {
+        const imageId = uploader.querySelector('.glory-image-id');
+        const preview = uploader.querySelector('.image-preview');
+        if (imageId) imageId.value = '';
+        if (preview) {
+            preview.innerHTML = '<span class="image-preview-placeholder">' +
+                (preview.dataset.placeholder || 'Haz clic para subir una imagen') + '</span>';
+        }
+    });
+}
+```

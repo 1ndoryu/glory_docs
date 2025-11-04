@@ -1,0 +1,348 @@
+---
+title: Sistema de Fondos Modales
+description: Gestor centralizado de fondos oscuros para modales y overlays con contador de referencias múltiple
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Fondos Modales (`crearfondo.js`)
+
+El sistema de fondos modales proporciona un gestor centralizado para crear y controlar fondos oscuros que aparecen detrás de modales, menús desplegables y otros overlays. Utiliza un sistema de contador de referencias que permite múltiples componentes compartir el mismo fondo sin conflictos.
+
+## 🚀 Inicio Rápido
+
+```javascript
+// Mostrar fondo modal
+mostrarFondo();
+
+// El fondo aparece automáticamente
+// Se bloquea el scroll del body
+
+// Ocultar fondo modal
+ocultarFondo();
+
+// El fondo se oculta si no hay otras referencias activas
+```
+
+```html
+<!-- El fondo se crea automáticamente en el DOM -->
+<div id="fondoModalGlobal" style="display: none;">
+    <!-- Fondo oscuro con z-index alto -->
+</div>
+```
+
+## 📋 Funcionalidades
+
+### Gestión Centralizada de Fondos
+Sistema único que maneja un fondo modal global compartido por todos los componentes que lo necesiten.
+
+```javascript
+// Múltiples componentes pueden usar el mismo fondo
+function abrirModal() {
+    mostrarFondo(); // Contador: 1
+    // Mostrar modal
+}
+
+function abrirMenu() {
+    mostrarFondo(); // Contador: 2
+    // Mostrar menú
+}
+
+// Al cerrar cualquiera, el fondo permanece si hay otros activos
+function cerrarModal() {
+    ocultarFondo(); // Contador: 1 (fondo sigue visible)
+}
+
+function cerrarMenu() {
+    ocultarFondo(); // Contador: 0 (fondo se oculta)
+}
+```
+
+### Control de Scroll
+Automáticamente bloquea y restaura el scroll del body cuando el fondo está activo.
+
+```css
+/* Cuando el fondo está activo */
+body.noScroll {
+    overflow: hidden;
+}
+```
+
+### Sistema de Eventos
+Emite eventos personalizados para que los componentes puedan reaccionar al clic en el fondo.
+
+```javascript
+// Escuchar clics en el fondo
+document.addEventListener('gloryFondo:click', function() {
+    // Cerrar modales, menús, etc.
+    cerrarMiModal();
+    cerrarMiMenu();
+});
+```
+
+## 🎨 Características Visuales
+
+### Estilos del Fondo
+- **Color**: `rgba(0, 0, 0, 0.65)` (negro semi-transparente)
+- **Posicionamiento**: `fixed` cubriendo toda la pantalla
+- **z-index**: `999` (alto para estar sobre la mayoría del contenido)
+- **Cursor**: `pointer` para indicar interactividad
+
+### Estados del Fondo
+- **Oculto**: `display: none` cuando contador = 0
+- **Visible**: `display: block` cuando contador > 0
+- **Transición**: Sin animaciones (cambio instantáneo)
+
+### Estructura HTML Generada
+
+```html
+<!-- Fondo modal global (creado automáticamente) -->
+<div id="fondoModalGlobal"
+     style="
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background-color: rgba(0, 0, 0, 0.65);
+       z-index: 999;
+       display: none;
+       cursor: pointer;
+     ">
+</div>
+```
+
+## 🔧 Configuración Avanzada
+
+### Variables Globales
+
+```javascript
+// Referencia al elemento del fondo (null inicialmente)
+window.fondoElemento = null;
+
+// Contador de referencias activas
+window.fondoContador = 0;
+```
+
+### Personalización de Estilos
+Aunque el script aplica estilos inline, puedes sobrescribirlos con CSS:
+
+```css
+#fondoModalGlobal {
+    background-color: rgba(255, 0, 0, 0.5) !important; /* Fondo rojo */
+    transition: opacity 0.3s ease; /* Añadir transición */
+}
+
+#fondoModalGlobal.mostrar {
+    opacity: 1;
+}
+
+#fondoModalGlobal.ocultar {
+    opacity: 0;
+}
+```
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `mostrarFondo()`
+Incrementa el contador de referencias y muestra el fondo si es necesario.
+
+```javascript
+window.mostrarFondo = function() {
+    // Asegura que el fondo existe
+    // Incrementa contador
+    // Muestra fondo si contador > 0
+};
+```
+
+#### `ocultarFondo()`
+Disminuye el contador de referencias y oculta el fondo si llega a cero.
+
+```javascript
+window.ocultarFondo = function() {
+    // Emite evento 'gloryFondo:click'
+    // Decrementa contador
+    // Oculta fondo si contador <= 0
+};
+```
+
+### Funciones Internas
+
+#### `asegurarExistenciaFondo()`
+Crea el elemento del fondo si no existe, aplicando estilos y eventos.
+
+#### `mostrarFondoSiNecesario() / ocultarFondoSiNecesario()`
+Controlan la visibilidad basado en el contador de referencias.
+
+### Eventos
+
+#### `gloryFondo:click`
+Evento personalizado emitido cuando se hace clic en el fondo.
+
+```javascript
+document.addEventListener('gloryFondo:click', function(event) {
+    // Los componentes deben cerrar sus overlays
+    miModal.cerrar();
+    miMenu.cerrar();
+});
+```
+
+## 🎯 Casos de Uso
+
+### Modales Tradicionales
+```javascript
+function abrirModalConfirmacion() {
+    mostrarFondo();
+
+    // Crear y mostrar modal
+    const modal = crearModalConfirmacion();
+    document.body.appendChild(modal);
+
+    // Configurar cierre
+    document.addEventListener('gloryFondo:click', cerrarModalUnaVez);
+
+    function cerrarModalUnaVez() {
+        modal.remove();
+        ocultarFondo();
+        document.removeEventListener('gloryFondo:click', cerrarModalUnaVez);
+    }
+}
+```
+
+### Menús Desplegables
+```javascript
+class MenuDesplegable {
+    abrir() {
+        mostrarFondo();
+        this.elemento.style.display = 'block';
+    }
+
+    cerrar() {
+        this.elemento.style.display = 'none';
+        ocultarFondo();
+    }
+}
+
+// Inicialización automática
+document.addEventListener('gloryFondo:click', function() {
+    // Cerrar todos los menús abiertos
+    document.querySelectorAll('.menu-abierto').forEach(menu => {
+        menu.classList.remove('menu-abierto');
+    });
+    ocultarFondo();
+});
+```
+
+### Sistema de Notificaciones
+```javascript
+function mostrarNotificacionImportante() {
+    mostrarFondo();
+
+    // Crear notificación modal
+    const notif = document.createElement('div');
+    notif.className = 'notificacion-modal';
+    notif.innerHTML = `
+        <div class="notif-contenido">
+            <h3>¡Atención!</h3>
+            <p>Mensaje importante</p>
+            <button onclick="ocultarFondo()">Entendido</button>
+        </div>
+    `;
+
+    document.body.appendChild(notif);
+}
+```
+
+### Sidebars y Panels
+```javascript
+const sidebar = {
+    toggle() {
+        const isOpen = this.elemento.classList.contains('abierto');
+
+        if (isOpen) {
+            this.cerrar();
+        } else {
+            this.abrir();
+        }
+    },
+
+    abrir() {
+        mostrarFondo();
+        this.elemento.classList.add('abierto');
+    },
+
+    cerrar() {
+        this.elemento.classList.remove('abierto');
+        ocultarFondo();
+    }
+};
+```
+
+## 🔄 Compatibilidad
+
+- ✅ **Compartible**: Múltiples componentes pueden usar el mismo fondo
+- ✅ **Thread-safe**: Sistema de contador evita conflictos de referencias
+- ✅ **Event-driven**: Comunicación desacoplada mediante eventos
+- ✅ **Performance**: Elemento único reutilizado, no crea múltiples fondos
+- ✅ **Responsive**: Funciona en todos los tamaños de pantalla
+- ✅ **Accesibilidad**: Soporte básico para navegación por teclado
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Fondo no aparece**: Verificar que `mostrarFondo()` se llame antes de mostrar el overlay
+2. **Fondo no se oculta**: Asegurar que `ocultarFondo()` se llame por cada `mostrarFondo()`
+3. **Scroll no se bloquea**: Revisar que no haya CSS que sobrescriba `body.noScroll`
+4. **Múltiples fondos**: Solo debe existir un elemento con `id="fondoModalGlobal"`
+
+### Debug
+```javascript
+// Verificar estado del sistema
+console.log('Fondo elemento:', window.fondoElemento);
+console.log('Contador actual:', window.fondoContador);
+console.log('Fondo visible:', window.fondoElemento?.style.display === 'block');
+
+// Reset manual (solo para debug)
+window.fondoContador = 0;
+window.ocultarFondo();
+```
+
+### Verificación de Eventos
+```javascript
+// Monitorear eventos del fondo
+document.addEventListener('gloryFondo:click', function() {
+    console.log('Fondo clickeado - cerrando overlays');
+});
+
+// Verificar creación del elemento
+const checkFondo = () => {
+    const fondo = document.getElementById('fondoModalGlobal');
+    console.log('Fondo existe:', !!fondo);
+    console.log('Fondo visible:', fondo?.style.display === 'block');
+};
+```
+
+### Casos Edge
+```javascript
+// Si el script se recarga múltiples veces
+if (typeof window.mostrarFondo === 'function') {
+    console.log('Sistema de fondo ya inicializado');
+}
+
+// Verificar integridad
+const validarSistema = () => {
+    const fondo = document.getElementById('fondoModalGlobal');
+    const contador = window.fondoContador || 0;
+
+    if (fondo && contador > 0 && fondo.style.display === 'none') {
+        console.warn('Inconsistencia: contador > 0 pero fondo oculto');
+    }
+
+    if (!fondo && contador > 0) {
+        console.error('Error crítico: contador > 0 pero no hay elemento fondo');
+    }
+};
+```

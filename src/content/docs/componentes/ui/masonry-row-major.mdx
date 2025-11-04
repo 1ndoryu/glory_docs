@@ -1,0 +1,560 @@
+---
+title: Layout Masonry Row Major
+description: Sistema de organización automática de elementos en columnas estilo muro de ladrillos con posicionamiento absoluto
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Layout Masonry Row Major (`masonryRowMajor.js`)
+
+El sistema Masonry Row Major proporciona un layout dinámico que organiza automáticamente los elementos en columnas estilo muro de ladrillos, calculando posiciones absolutas para crear un efecto visual de altura variable. Es completamente agnóstico y se adapta automáticamente a cambios de contenido y tamaño de ventana.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Contenedor con elementos a organizar -->
+<div id="mi-masonry-container" style="position: relative;">
+    <div class="seccionComponente">Elemento 1 - altura variable</div>
+    <div class="seccionComponente">Elemento 2 - contenido diferente</div>
+    <div class="seccionComponente">Elemento 3 - más texto aquí</div>
+    <div class="seccionComponente">Elemento 4 - imagen incluida</div>
+</div>
+```
+
+```javascript
+// Inicializar masonry manualmente
+const masonry = Glory.inicializarMasonryRowMajor('#mi-masonry-container', 3);
+
+// Recalcular cuando sea necesario
+Glory.recalcularMasonryRowMajor();
+```
+
+```css
+/* Estilos CSS recomendados */
+#masonry-container {
+    position: relative;
+    width: 100%;
+    /* gap definido en CSS */
+    gap: 16px;
+}
+
+/* Clase aplicada automáticamente */
+.masonry-js .seccionComponente {
+    position: absolute;
+    /* width calculado dinámicamente */
+    /* transform calculado dinámicamente */
+}
+```
+
+## 📋 Funcionalidades
+
+### Layout Automático por Filas
+Organiza elementos en orden de fila mayoritaria, distribuyéndolos en columnas para minimizar la altura total.
+
+```javascript
+// Elementos se colocan en orden:
+// Fila 1: Elemento 1, Elemento 2, Elemento 3
+// Fila 2: Elemento 4, Elemento 5, Elemento 6
+// Cada elemento se posiciona en la columna con menor altura actual
+```
+
+### Detección Automática de Columnas
+Analiza el CSS `grid-template-columns` para determinar el número de columnas automáticamente.
+
+```css
+/* CSS Grid define las columnas */
+.masonry-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 columnas */
+    gap: 20px;
+}
+
+/* JavaScript detecta automáticamente 4 columnas */
+```
+
+### Recálculo Dinámico
+Se adapta automáticamente a cambios en el DOM, redimensionamiento de ventana y carga de imágenes.
+
+```javascript
+// Eventos que activan recálculo automático:
+// - Cambios en el DOM (MutationObserver)
+// - Redimensionamiento de ventana
+// - Carga de imágenes
+// - Evento personalizado 'glory:seccionesActualizadas'
+```
+
+### Gestión de Elementos Ocultos
+Solo considera elementos visibles en el layout, ignorando aquellos con `display: none` o `visibility: hidden`.
+
+```html
+<div class="seccionComponente oculto">Este elemento se ignora</div>
+<div class="seccionComponente" style="display: none;">Este también</div>
+<div class="seccionComponente">Este sí se incluye</div>
+```
+
+## 🎨 Características Visuales
+
+### Algoritmo de Posicionamiento
+- **Row Major**: Elementos se colocan fila por fila
+- **Balanceo**: Cada elemento va a la columna con menor altura actual
+- **Absoluto**: Posicionamiento `absolute` con `transform: translate()`
+
+### Cálculos Automáticos
+- **Ancho de columnas**: `(contenedor - gaps) / número_columnas`
+- **Posición X**: `columna_index * (ancho_columna + gap)`
+- **Posición Y**: `altura_acumulada_columna`
+- **Altura contenedor**: `máxima_altura_columnas`
+
+### Transiciones y Animaciones
+```css
+/* Para animaciones suaves al recargar */
+.masonry-js .seccionComponente {
+    transition: transform 0.3s ease;
+}
+
+/* Evitar durante el cálculo inicial */
+.masonry-js.calculating .seccionComponente {
+    transition: none;
+}
+```
+
+### Estructura HTML Resultante
+
+```html
+<div id="masonry-container" class="masonry-js" style="position: relative; height: 450px;">
+    <div class="seccionComponente"
+         style="position: absolute; width: 200px; transform: translate(0px, 0px);">
+        Contenido 1
+    </div>
+
+    <div class="seccionComponente"
+         style="position: absolute; width: 200px; transform: translate(216px, 50px);">
+        Contenido 2 - más alto
+    </div>
+
+    <div class="seccionComponente"
+         style="position: absolute; width: 200px; transform: translate(432px, 0px);">
+        Contenido 3
+    </div>
+
+    <!-- Más elementos posicionados automáticamente -->
+</div>
+```
+
+## 🔧 Configuración Avanzada
+
+### Inicialización Manual
+
+#### Parámetros de `inicializarMasonryRowMajor`
+```javascript
+const masonry = Glory.inicializarMasonryRowMajor(selector, columnas);
+
+// selector: string - Selector CSS del contenedor
+// columnas: number - Número de columnas (opcional, se detecta automáticamente)
+```
+
+#### Ejemplos de Inicialización
+```javascript
+// Con detección automática de columnas
+const masonry1 = Glory.inicializarMasonryRowMajor('.galeria');
+
+// Con número fijo de columnas
+const masonry2 = Glory.inicializarMasonryRowMajor('#productos', 4);
+
+// Para contenedor específico
+const masonry3 = Glory.inicializarMasonryRowMajor('[data-masonry="true"]', 3);
+```
+
+### Métodos Disponibles
+
+#### `Glory.recalcularMasonryRowMajor()`
+Fuerza un recálculo inmediato del layout.
+
+```javascript
+// Después de añadir elementos dinámicamente
+contenedor.appendChild(nuevoElemento);
+Glory.recalcularMasonryRowMajor();
+
+// Después de cambiar contenido
+elemento.innerHTML = 'Nuevo contenido';
+Glory.recalcularMasonryRowMajor();
+```
+
+#### `desconectar()`
+Desactiva el observer y limpia event listeners.
+
+```javascript
+const masonry = Glory.inicializarMasonryRowMajor('#container');
+// ... uso ...
+masonry.desconectar(); // Limpiar recursos
+```
+
+### Selectores y Clases
+
+#### Selectores de Elementos
+- **Contenedor**: Cualquier selector válido (`#id`, `.clase`, `[atributo]`)
+- **Elementos**: `.seccionComponente` (configurable internamente)
+
+#### Clases CSS Aplicadas
+- **`.masonry-js`**: Aplicada al contenedor durante inicialización
+- **Posicionamiento**: `position: absolute` en cada elemento
+- **Dimensiones**: `width` calculada dinámicamente
+
+### Configuración CSS Recomendada
+
+```css
+.masonry-container {
+    position: relative;
+    width: 100%;
+    /* Definir gap para cálculos */
+    gap: 16px;
+    /* Opcional: definir columnas base */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.masonry-container .seccionComponente {
+    /* Estilos base de elementos */
+    margin-bottom: 0; /* Evitar márgenes que interfieran */
+    box-sizing: border-box;
+}
+
+/* Animaciones opcionales */
+.masonry-js .seccionComponente {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.masonry-js.updating .seccionComponente {
+    opacity: 0.7;
+}
+```
+
+## 📝 API Técnica
+
+### Funciones Internas
+
+#### `detectarColumnasDesdeCSS(elemento)`
+Analiza `grid-template-columns` para determinar número de columnas.
+
+```javascript
+function detectarColumnasDesdeCSS(el) {
+    const gridCols = getComputedStyle(el).getPropertyValue('grid-template-columns');
+    return gridCols.split(' ').length || 2;
+}
+```
+
+#### `esVisible(elemento)`
+Determina si un elemento es visible en el layout.
+
+```javascript
+function esVisible(el) {
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' &&
+           cs.visibility !== 'hidden' &&
+           el.offsetParent !== null;
+}
+```
+
+#### `layout()`
+Función principal que calcula y aplica posiciones.
+
+```javascript
+function layout() {
+    // 1. Obtener elementos visibles
+    // 2. Calcular dimensiones de columnas
+    // 3. Distribuir elementos por altura mínima
+    // 4. Aplicar transformaciones CSS
+    // 5. Ajustar altura del contenedor
+}
+```
+
+### Eventos y Observers
+
+#### MutationObserver
+Monitorea cambios en el DOM para recálculos automáticos.
+
+```javascript
+const observer = new MutationObserver(function() {
+    clearTimeout(container._masonryMutate);
+    container._masonryMutate = setTimeout(layout, 80);
+});
+```
+
+#### Event Listeners
+- **`load`**: Layout inicial cuando la página carga
+- **`resize`**: Recálculo al cambiar tamaño de ventana
+- **`glory:seccionesActualizadas`**: Evento personalizado para actualizaciones
+
+### Optimizaciones de Performance
+
+#### Debouncing
+- **MutationObserver**: 80ms de delay
+- **Resize**: 120ms de delay
+- **Imágenes**: Layout inmediato tras carga
+
+#### Cálculos Eficientes
+- **Un solo loop**: Recorre elementos una vez por layout
+- **Cache de alturas**: Mantiene alturas acumuladas por columna
+- **Transform vs position**: Usa `transform: translate()` para mejor performance
+
+## 🎯 Casos de Uso
+
+### Galería de Imágenes
+```html
+<div id="galeria-masonry" class="galeria-container">
+    <div class="seccionComponente imagen-item">
+        <img src="foto1.jpg" alt="Foto 1">
+        <div class="caption">Descripción de la foto 1</div>
+    </div>
+
+    <div class="seccionComponente imagen-item">
+        <img src="foto2.jpg" alt="Foto 2">
+        <div class="caption">Foto más alta que las demás</div>
+    </div>
+
+    <!-- Más imágenes con alturas variables -->
+</div>
+```
+
+```css
+.galeria-container {
+    position: relative;
+    gap: 15px;
+    padding: 20px;
+}
+
+.imagen-item {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.imagen-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+```
+
+```javascript
+// Inicializar galería
+document.addEventListener('DOMContentLoaded', function() {
+    Glory.inicializarMasonryRowMajor('#galeria-masonry', 3);
+});
+```
+
+### Grid de Tarjetas de Producto
+```html
+<section id="productos-masonry" class="productos-grid">
+    <article class="seccionComponente producto-card">
+        <img src="producto1.jpg" alt="Producto 1">
+        <h3>Producto Básico</h3>
+        <p>Descripción corta</p>
+        <span class="precio">$29.99</span>
+    </article>
+
+    <article class="seccionComponente producto-card">
+        <img src="producto2.jpg" alt="Producto 2">
+        <h3>Producto Premium</h3>
+        <p>Descripción más larga con más detalles sobre las características del producto</p>
+        <span class="precio">$49.99</span>
+    </article>
+
+    <!-- Más productos -->
+</section>
+```
+
+```javascript
+// Con auto-detección de columnas
+const productosMasonry = Glory.inicializarMasonryRowMajor('#productos-masonry');
+
+// Añadir productos dinámicamente
+function añadirProducto(productoHTML) {
+    const contenedor = document.querySelector('#productos-masonry');
+    contenedor.insertAdjacentHTML('beforeend', productoHTML);
+    Glory.recalcularMasonryRowMajor();
+}
+```
+
+### Blog Posts con Contenido Variable
+```html
+<div id="blog-masonry" class="blog-posts">
+    <div class="seccionComponente post-card">
+        <h2>Título Corto</h2>
+        <p>Extracto breve del post...</p>
+    </div>
+
+    <div class="seccionComponente post-card featured">
+        <h2>Título Más Largo Que Requiere Más Espacio</h2>
+        <p>Extracto mucho más largo que incluye más contenido y detalles sobre el tema tratado en el artículo...</p>
+        <img src="featured-image.jpg" alt="Imagen destacada">
+    </div>
+
+    <!-- Más posts -->
+</div>
+```
+
+```javascript
+// Inicialización con columnas responsive
+function initBlogMasonry() {
+    const columnas = window.innerWidth > 1200 ? 4 :
+                    window.innerWidth > 768 ? 3 :
+                    window.innerWidth > 480 ? 2 : 1;
+
+    Glory.inicializarMasonryRowMajor('#blog-masonry', columnas);
+}
+
+// Reinicializar en resize
+let resizeTimeout;
+window.addEventListener('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(initBlogMasonry, 250);
+});
+```
+
+### Portfolio de Proyectos
+```html
+<div id="portfolio-masonry" class="portfolio-grid">
+    <div class="seccionComponente project-item">
+        <div class="project-media">
+            <img src="project1.jpg" alt="Proyecto 1">
+        </div>
+        <div class="project-info">
+            <h3>Proyecto Web</h3>
+            <p>Desarrollo de sitio web responsive</p>
+            <a href="/proyecto1">Ver proyecto</a>
+        </div>
+    </div>
+
+    <div class="seccionComponente project-item video-project">
+        <div class="project-media">
+            <video src="demo1.mp4" poster="poster1.jpg"></video>
+        </div>
+        <div class="project-info">
+            <h3>Aplicación Móvil</h3>
+            <p>Desarrollo de app iOS y Android con contenido multimedia extenso</p>
+            <a href="/proyecto2">Ver proyecto</a>
+        </div>
+    </div>
+</div>
+```
+
+```javascript
+// Portfolio con elementos multimedia
+document.addEventListener('DOMContentLoaded', function() {
+    const portfolio = Glory.inicializarMasonryRowMajor('#portfolio-masonry', 3);
+
+    // Manejar carga de videos
+    document.querySelectorAll('video').forEach(video => {
+        video.addEventListener('loadeddata', Glory.recalcularMasonryRowMajor);
+    });
+});
+```
+
+## 🔄 Compatibilidad
+
+- ✅ **Agnóstico**: No depende de frameworks específicos
+- ✅ **Responsive**: Se adapta automáticamente al tamaño de ventana
+- ✅ **Performance**: Cálculos optimizados y debounced
+- ✅ **CSS Grid**: Detecta automáticamente configuración de columnas
+- ✅ **Imágenes**: Espera carga completa antes de calcular
+- ✅ **Dinámico**: Maneja adición/eliminación de elementos
+- ✅ **Event-driven**: Integración con eventos personalizados
+- ✅ **Limpieza**: Método desconectar para liberar recursos
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Elementos se superponen**: Verificar que el contenedor tenga `position: relative`
+2. **Alturas incorrectas**: Asegurar que imágenes tengan `display: block` o estén cargadas
+3. **No responsive**: Verificar que el CSS permita recálculos en resize
+4. **Performance issues**: Reducir número de columnas o aumentar debouncing
+
+### Debug
+```javascript
+// Verificar inicialización
+console.log('Masonry disponible:', typeof Glory.inicializarMasonryRowMajor);
+console.log('Instancia activa:', Glory._masonryInstance);
+
+// Inspeccionar contenedor
+const container = document.querySelector('.masonry-js');
+console.log('Contenedor encontrado:', !!container);
+console.log('Altura calculada:', container?.style.height);
+console.log('Elementos:', container?.querySelectorAll('.seccionComponente').length);
+
+// Verificar cálculos
+function debugLayout() {
+    const items = container.querySelectorAll('.seccionComponente');
+    const columnas = detectarColumnasDesdeCSS(container);
+    console.log('Columnas detectadas:', columnas);
+    console.log('Elementos a layout:', items.length);
+
+    items.forEach((item, index) => {
+        const rect = item.getBoundingClientRect();
+        console.log(`Elemento ${index}:`, {
+            width: rect.width,
+            height: rect.height,
+            transform: item.style.transform
+        });
+    });
+}
+```
+
+### Troubleshooting de Performance
+```javascript
+// Monitorear recálculos
+let calculos = 0;
+const originalRecalcular = Glory.recalcularMasonryRowMajor;
+Glory.recalcularMasonryRowMajor = function() {
+    calculos++;
+    console.log('Recálculo #', calculos, new Date().toISOString());
+    return originalRecalcular.apply(this, arguments);
+};
+
+// Verificar observers activos
+function verificarObservers() {
+    const containers = document.querySelectorAll('.masonry-js');
+    containers.forEach(container => {
+        console.log('Contenedor:', container.id || container.className);
+        console.log('Observer activo:', !!container._masonryObserver);
+        console.log('Timeouts activos:', {
+            mutate: !!container._masonryMutate,
+            resize: !!container._masonryResize
+        });
+    });
+}
+```
+
+### Reset y Re-inicialización
+```javascript
+// Limpiar completamente
+function resetMasonry() {
+    // Desconectar observers existentes
+    if (Glory._masonryInstance && Glory._masonryInstance.desconectar) {
+        Glory._masonryInstance.desconectar();
+    }
+
+    // Limpiar estilos aplicados
+    document.querySelectorAll('.masonry-js .seccionComponente').forEach(item => {
+        item.style.position = '';
+        item.style.width = '';
+        item.style.transform = '';
+    });
+
+    document.querySelectorAll('.masonry-js').forEach(container => {
+        container.style.height = '';
+        container.classList.remove('masonry-js');
+    });
+
+    // Resetear variables globales
+    delete Glory._masonryInstance;
+}
+
+// Re-inicializar
+function reinicializarMasonry() {
+    resetMasonry();
+    // Re-inicializar según sea necesario
+    Glory.inicializarMasonryRowMajor('#mi-container', 3);
+}
+```

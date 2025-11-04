@@ -1,0 +1,548 @@
+---
+title: Sistema de Acciones de Contenido
+description: Gestor de acciones interactivas sobre elementos de contenido con eliminación, submenús y eventos contextuales
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Acciones de Contenido (`gloryContentActions.js`)
+
+El sistema de acciones de contenido proporciona una interfaz interactiva para gestionar elementos de contenido (posts, custom post types) mediante diferentes tipos de eventos como doble clic, clic derecho o pulsación larga. Permite eliminación, edición y otras acciones contextuales de forma agnóstica.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Contenedor de elementos con acciones habilitadas -->
+<div class="glory-content-list"
+     data-post-type="post"
+     data-content-actions="eliminar"
+     data-submenu-enabled="1"
+     data-accion-evento="dblclick">
+
+    <!-- Elemento de contenido -->
+    <div id="post-123" class="glory-content-item">
+        <h3>Título del Post</h3>
+        <p>Contenido del post...</p>
+    </div>
+
+    <!-- Otro elemento -->
+    <div id="post-456" class="glory-content-item">
+        <h3>Otro Título</h3>
+        <p>Más contenido...</p>
+    </div>
+</div>
+```
+
+```javascript
+// El sistema se inicializa automáticamente
+// No requiere configuración adicional
+```
+
+## 📋 Funcionalidades
+
+### Tipos de Eventos Soportados
+
+#### Doble Clic (`dblclick`)
+Ejecuta acciones directamente sobre el elemento.
+
+```html
+<div class="content-container" data-accion-evento="dblclick">
+    <!-- Doble clic en cualquier elemento hijo ejecutará la acción -->
+</div>
+```
+
+#### Clic Derecho (`contextmenu`)
+Muestra un menú contextual con opciones.
+
+```html
+<div class="content-container"
+     data-submenu-enabled="1"
+     data-accion-evento="contextmenu">
+    <!-- Clic derecho muestra submenú -->
+</div>
+```
+
+#### Pulsación Larga (`longpress`)
+Para dispositivos táctiles - mantiene presionado 500ms.
+
+```html
+<div class="content-container" data-accion-evento="longpress">
+    <!-- Mantener presionado 500ms activa la acción -->
+</div>
+```
+
+### Acciones Disponibles
+
+#### Eliminación (`eliminar`)
+Elimina el elemento vía AJAX y actualiza la interfaz.
+
+```javascript
+// Acción automática al activar evento
+// Envía: { accion: 'eliminar', postId, postType, modo: 'trash' }
+```
+
+#### Submenús Personalizables
+Menús contextuales que aparecen en la posición del cursor.
+
+```html
+<!-- Submenú generado automáticamente -->
+<div id="glory-submenu-123" class="submenu glory-submenu">
+    <button type="button" data-accion="eliminar">Eliminar</button>
+    <button type="button" data-accion="editar">Editar</button>
+    <button type="button" data-accion="duplicar">Duplicar</button>
+</div>
+```
+
+### Gestión Jerárquica
+Soporte para elementos padre/hijo con limpieza automática.
+
+```html
+<!-- Elemento padre -->
+<div id="post-123" class="glory-content-item">
+    <!-- Elemento hijo con referencia al padre -->
+    <div class="child-item" data-parent="123">
+        Contenido hijo
+    </div>
+</div>
+```
+
+## 🎨 Características Visuales
+
+### Estados Interactivos
+- **Hover**: Indicadores visuales de elementos interactivos
+- **Active**: Feedback durante la ejecución de acciones
+- **Loading**: Estados de carga durante operaciones AJAX
+
+### Submenús
+- **Posicionamiento**: Aparecen en la posición del cursor
+- **Overlay**: Usan el sistema de fondos para bloqueo
+- **Animaciones**: Transiciones suaves de entrada/salida
+
+### Feedback Visual
+- **Confirmación**: Mensajes de éxito/error tras acciones
+- **Transiciones**: Elementos se eliminan con animación
+- **Estados**: Loading states durante operaciones asíncronas
+
+### Estructura HTML Generada
+
+```html
+<!-- Contenedor principal -->
+<div class="glory-content-list" data-post-type="post" data-content-actions="eliminar">
+
+    <!-- Elemento de contenido -->
+    <div id="post-123" class="glory-content-item"
+         data-submenu="glory-submenu-123"
+         data-evento="contextmenu">
+
+        <div class="content-header">
+            <h3>Título del Contenido</h3>
+            <div class="content-actions">
+                <button class="action-trigger">⋯</button>
+            </div>
+        </div>
+
+        <div class="content-body">
+            Contenido principal...
+        </div>
+    </div>
+</div>
+
+<!-- Submenú generado dinámicamente -->
+<div id="glory-submenu-123" class="submenu glory-submenu" style="display: none;">
+    <button type="button" data-accion="eliminar">Eliminar</button>
+    <button type="button" data-accion="editar">Editar</button>
+</div>
+```
+
+## 🔧 Configuración Avanzada
+
+### Atributos de Datos del Contenedor
+
+#### `data-post-type`
+Tipo de post para las operaciones AJAX.
+
+```html
+<div data-post-type="producto">
+    <!-- Operaciones se ejecutarán sobre tipo 'producto' -->
+</div>
+```
+
+#### `data-content-actions`
+Lista de acciones disponibles (separadas por coma).
+
+```html
+<div data-content-actions="eliminar,editar,duplicar">
+    <!-- Múltiples acciones disponibles -->
+</div>
+```
+
+#### `data-submenu-enabled`
+Habilita/deshabilita submenús contextuales.
+
+```html
+<div data-submenu-enabled="1">
+    <!-- Submenús activos -->
+</div>
+```
+
+#### `data-accion-evento`
+Tipo de evento que activa las acciones.
+
+```html
+<!-- Opciones: dblclick, click, contextmenu, longpress -->
+<div data-accion-evento="dblclick">
+```
+
+#### `data-item-selector`
+Selector CSS para identificar elementos hijos.
+
+```html
+<div data-item-selector=".mi-elemento-personalizado">
+```
+
+#### `data-publicaciones-por-pagina`
+Número de elementos por página para refresco.
+
+```html
+<div data-publicaciones-por-pagina="20">
+```
+
+#### `data-clase-contenedor`
+Clase CSS del contenedor para operaciones.
+
+```html
+<div data-clase-contenedor="mi-lista-personalizada">
+```
+
+#### `data-clase-item`
+Clase CSS de cada elemento individual.
+
+```html
+<div data-clase-item="mi-item-personalizado">
+```
+
+#### `data-template-callback`
+Función de callback para plantillas personalizadas.
+
+```html
+<div data-template-callback="miPlantillaPersonalizada">
+```
+
+### Identificación de Elementos
+
+#### Por ID
+```html
+<div id="post-123"> <!-- Detectado automáticamente -->
+```
+
+#### Por Clase
+```html
+<div class="post-id-456"> <!-- ID extraído de clase -->
+```
+
+#### Por Atributo
+```html
+<div data-post-id="789"> <!-- ID desde atributo -->
+<div id-post="101"> <!-- ID desde atributo alternativo -->
+```
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `getItemPostId(element)`
+Extrae el ID del post desde diferentes fuentes.
+
+```javascript
+// Busca en: id="post-X", class="post-id-X", data-post-id, id-post
+const postId = getItemPostId(element);
+```
+
+#### `closestItem(element, selector)`
+Encuentra el elemento de contenido más cercano.
+
+```javascript
+const item = closestItem(event.target, '[id^="post-"]');
+```
+
+#### `eliminarItem(postId, postType, modo)`
+Elimina un elemento vía AJAX.
+
+```javascript
+const exito = await eliminarItem(123, 'post', 'trash');
+if (exito) {
+    // Elemento eliminado correctamente
+}
+```
+
+#### `limpiarHijasDelDom(contenedor, postId)`
+Elimina elementos hijos relacionados.
+
+```javascript
+limpiarHijasDelDom(contenedor, parentId);
+// Elimina todos los elementos con data-parent="parentId"
+```
+
+#### `refrescarLista(contenedor)`
+Actualiza la lista completa de elementos.
+
+```javascript
+await refrescarLista(contenedor);
+// Recarga contenido usando reiniciarContenido()
+```
+
+#### `abrirSubmenuParaItem(item, evento)`
+Muestra el submenú contextual para un elemento.
+
+```javascript
+abrirSubmenuParaItem(element, mouseEvent);
+```
+
+### Eventos
+
+#### `reiniciar`
+Reinicializa todos los event listeners.
+
+```javascript
+window.addEventListener('reiniciar', function() {
+    // Sistema se reinicializa automáticamente
+});
+```
+
+### Integración con Otros Sistemas
+
+#### Sistema de Fondos
+```javascript
+// Los submenús usan mostrarFondo/ocultarFondo automáticamente
+```
+
+#### Sistema de Submenús
+```javascript
+// Compatible con submenus.js existente
+if (typeof submenus !== 'undefined') {
+    submenus.iniciar().abrir(trigger, options);
+}
+```
+
+#### Sistema de AJAX
+```javascript
+// Usa gloryAjax si disponible
+const result = await window.gloryAjax('glory_content_action', {
+    accion: 'eliminar',
+    postId: 123,
+    postType: 'post',
+    modo: 'trash'
+});
+```
+
+## 🎯 Casos de Uso
+
+### Lista de Posts Editables
+```html
+<div class="posts-admin-list"
+     data-post-type="post"
+     data-content-actions="eliminar"
+     data-submenu-enabled="1"
+     data-accion-evento="dblclick">
+
+    <?php foreach ($posts as $post): ?>
+        <article id="post-<?php echo $post->ID; ?>" class="post-item">
+            <header>
+                <h2><?php echo $post->post_title; ?></h2>
+                <time><?php echo $post->post_date; ?></time>
+            </header>
+            <div class="post-content">
+                <?php echo wp_trim_words($post->post_content, 50); ?>
+            </div>
+        </article>
+    <?php endforeach; ?>
+</div>
+```
+
+### Galería de Imágenes con Eliminación
+```html
+<div class="galeria-imagenes"
+     data-post-type="attachment"
+     data-content-actions="eliminar"
+     data-accion-evento="contextmenu"
+     data-item-selector=".imagen-item">
+
+    <div class="imagen-item" data-post-id="123">
+        <img src="imagen1.jpg" alt="Imagen 1">
+    </div>
+
+    <div class="imagen-item" data-post-id="456">
+        <img src="imagen2.jpg" alt="Imagen 2">
+    </div>
+</div>
+```
+
+### Tabla de Productos
+```html
+<table class="productos-table"
+       data-post-type="producto"
+       data-content-actions="eliminar,editar"
+       data-submenu-enabled="1"
+       data-accion-evento="longpress">
+
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Stock</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr id="post-123" class="producto-row">
+            <td>Producto A</td>
+            <td>$29.99</td>
+            <td>15</td>
+        </tr>
+        <tr id="post-456" class="producto-row">
+            <td>Producto B</td>
+            <td>$49.99</td>
+            <td>8</td>
+        </tr>
+    </tbody>
+</table>
+```
+
+### Sistema de Comentarios Jerárquico
+```html
+<div class="comentarios-list"
+     data-post-type="comment"
+     data-content-actions="eliminar"
+     data-submenu-enabled="1">
+
+    <!-- Comentario padre -->
+    <div id="post-123" class="comentario-item">
+        <div class="comentario-contenido">Comentario principal</div>
+
+        <!-- Respuesta hija -->
+        <div class="comentario-item comentario-hijo"
+             data-parent="123"
+             data-post-id="456">
+            <div class="comentario-contenido">Respuesta al comentario</div>
+        </div>
+    </div>
+</div>
+```
+
+### Panel de Administración Personalizado
+```html
+<div class="admin-content-panel"
+     data-post-type="custom_type"
+     data-content-actions="eliminar,editar,duplicar"
+     data-submenu-enabled="1"
+     data-accion-evento="contextmenu"
+     data-publicaciones-por-pagina="25"
+     data-clase-contenedor="admin-panel"
+     data-clase-item="admin-item">
+
+    <div class="admin-item" id="post-123">
+        <div class="item-header">
+            <h3>Elemento Admin</h3>
+            <div class="item-actions">
+                <button class="context-menu-trigger">⋯</button>
+            </div>
+        </div>
+        <div class="item-content">
+            Contenido editable...
+        </div>
+    </div>
+</div>
+```
+
+## 🔄 Compatibilidad
+
+- ✅ **Agnóstico**: Funciona con cualquier tipo de contenido
+- ✅ **Responsive**: Compatible con dispositivos táctiles
+- ✅ **Accesibilidad**: Soporte para navegación por teclado
+- ✅ **Event-driven**: Sistema de eventos desacoplado
+- ✅ **AJAX**: Integración completa con gloryAjax
+- ✅ **Jerárquico**: Soporte para estructuras padre/hijo
+- ✅ **Extensible**: Fácil añadir nuevas acciones
+- ✅ **Fallback**: Funciona sin dependencias externas
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Acciones no se ejecutan**: Verificar `data-post-type` y `data-content-actions`
+2. **Elementos no se detectan**: Revisar selectores de ID/clase/atributos
+3. **Submenús no aparecen**: Confirmar `data-submenu-enabled="1"`
+4. **Eventos no responden**: Verificar `data-accion-evento`
+5. **AJAX falla**: Comprobar configuración de `gloryAjax`
+
+### Debug
+```javascript
+// Verificar configuración del contenedor
+const container = document.querySelector('[data-post-type]');
+console.log('Configuración:', {
+    postType: container.dataset.postType,
+    actions: container.dataset.contentActions,
+    submenuEnabled: container.dataset.submenuEnabled,
+    eventType: container.dataset.accionEvento
+});
+
+// Verificar elementos detectados
+const items = container.querySelectorAll('[id^="post-"], [class*="post-id-"], [data-post-id]');
+console.log('Elementos encontrados:', items.length);
+
+// Monitorear eventos
+container.addEventListener('dblclick', function(e) {
+    console.log('Doble clic detectado en:', e.target);
+    const item = e.target.closest('[id^="post-"]');
+    console.log('Elemento identificado:', item?.id);
+});
+```
+
+### Verificación de Funcionalidad
+```javascript
+// Test de eliminación manual
+async function testEliminar() {
+    const postId = 123;
+    const postType = 'post';
+    const result = await eliminarItem(postId, postType, 'trash');
+    console.log('Eliminación exitosa:', result);
+}
+
+// Verificar integración con AJAX
+console.log('gloryAjax disponible:', typeof window.gloryAjax);
+console.log('reiniciarContenido disponible:', typeof window.reiniciarContenido);
+console.log('submenus disponible:', typeof submenus);
+```
+
+### Troubleshooting de Submenús
+```javascript
+// Verificar creación de submenús
+function verificarSubmenus() {
+    const items = document.querySelectorAll('[data-submenu]');
+    console.log('Items con submenú:', items.length);
+
+    items.forEach(item => {
+        const menuId = item.dataset.submenu;
+        const menu = document.getElementById(menuId);
+        console.log('Menú', menuId, 'existe:', !!menu);
+        if (menu) {
+            console.log('Menú visible:', menu.style.display !== 'none');
+        }
+    });
+}
+
+// Reset manual
+function resetSistema() {
+    // Limpiar flags de inicialización
+    document.querySelectorAll('[data-post-type]').forEach(cont => {
+        cont.__gloryActionsBound = false;
+    });
+
+    // Remover submenús existentes
+    document.querySelectorAll('.glory-submenu').forEach(menu => {
+        menu.remove();
+    });
+
+    // Reinicializar
+    init();
+}
+```

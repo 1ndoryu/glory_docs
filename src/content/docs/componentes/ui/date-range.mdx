@@ -1,0 +1,230 @@
+---
+title: Selector de Rangos de Fecha
+description: Componente para selección de rangos de fechas con interfaz intuitiva y validación automática
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Selector de Rangos de Fecha (`gloryDateRange.js`)
+
+El selector de rangos de fecha proporciona una interfaz intuitiva para seleccionar periodos de tiempo, reemplazando campos de fecha tradicionales con un popover elegante que incluye validación automática y integración con formularios AJAX.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Campo básico de rango de fechas -->
+<input type="text" class="gloryDateRangeInput"
+       data-from-name="fecha_desde"
+       data-to-name="fecha_hasta"
+       placeholder="Seleccionar rango de fechas">
+
+<!-- Campos ocultos para almacenar valores -->
+<input type="hidden" name="fecha_desde" value="">
+<input type="hidden" name="fecha_hasta" value="">
+```
+
+```javascript
+// El sistema se inicializa automáticamente
+// No requiere configuración adicional
+```
+
+## 📋 Funcionalidades
+
+### Selección Interactiva
+Popover que aparece al hacer clic o foco en el campo de entrada, mostrando dos selectores de fecha (desde/hasta).
+
+```html
+<!-- Ejemplo completo con pre-selección -->
+<input type="text" class="gloryDateRangeInput"
+       data-from-name="fecha_inicio"
+       data-to-name="fecha_fin"
+       placeholder="Seleccione el período">
+
+<input type="hidden" name="fecha_inicio" value="2024-01-01">
+<input type="hidden" name="fecha_fin" value="2024-12-31">
+```
+
+### Modos de Operación
+
+#### Modo Frontend
+- Aplicación automática al cambiar fechas
+- Cierre automático cuando ambas fechas están seleccionadas
+- Envío automático del formulario padre
+
+#### Modo Admin (wp-admin)
+- Botones "Aplicar" y "Limpiar" para control manual
+- No envío automático del formulario
+
+## 🎨 Características Visuales
+
+### Interfaz del Popover
+- **Header**: "Rango de fechas" con iconografía clara
+- **Body**: Dos campos de fecha etiquetados ("Desde" y "Hasta")
+- **Actions**: Botones contextuales según el entorno
+
+### Estilos y Animaciones
+- Popover posicionado dinámicamente debajo del campo
+- Cierre automático al hacer clic fuera
+- Adaptable a scroll y resize de ventana
+- Un solo popover activo a la vez
+
+### Estructura HTML Generada
+
+```html
+<!-- Popover generado dinámicamente -->
+<div class="gloryDateRangePopover">
+    <div class="gdr-head">Rango de fechas</div>
+    <div class="gdr-body">
+        <label>Desde</label>
+        <input type="date" class="gdr-from">
+        <label>Hasta</label>
+        <input type="date" class="gdr-to">
+    </div>
+    <div class="gdr-actions">
+        <!-- Botones según contexto -->
+        <button class="button gdr-apply">Aplicar</button>
+        <button class="button gdr-clear">Limpiar</button>
+    </div>
+</div>
+```
+
+## 🔧 Configuración Avanzada
+
+### Atributos de Datos
+
+#### `data-from-name`
+Nombre del campo oculto para la fecha de inicio.
+```html
+<input class="gloryDateRangeInput" data-from-name="fecha_desde">
+```
+
+#### `data-to-name`
+Nombre del campo oculto para la fecha de fin.
+```html
+<input class="gloryDateRangeInput" data-to-name="fecha_hasta">
+```
+
+### Variables Globales de Control
+
+```javascript
+// Control de inicialización
+window.__gloryDateRangeInitialized__ = false; // Flag de inicialización
+window.__gloryDateRangeClose__ = null; // Función de cierre actual
+```
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `gloryDateRangeInit()`
+Inicializa el sistema de rangos de fecha y configura los event listeners.
+
+```javascript
+// Inicialización manual (generalmente automática)
+window.gloryDateRangeInit();
+
+// Se ejecuta automáticamente en:
+// - DOMContentLoaded
+// - Evento 'gloryRecarga'
+```
+
+#### `openPopover(input)`
+Abre el popover para un campo específico.
+
+#### `closeAnyPopover()`
+Cierra cualquier popover abierto actualmente.
+
+### Eventos
+
+#### `gloryRecarga`
+Reinicializa el sistema completo.
+
+```javascript
+document.addEventListener('gloryRecarga', function(){
+    window.__gloryDateRangeInitialized__ = false;
+    window.gloryDateRangeInit();
+});
+```
+
+#### Eventos de Formulario
+- **Frontend**: `submit` automático en el formulario padre
+- **Admin**: Sin envío automático (control manual)
+
+## 🎯 Casos de Uso
+
+### Filtros de Contenido
+```html
+<!-- Filtro de posts por fecha -->
+<div class="filtros-contenido">
+    <input type="text" class="gloryDateRangeInput"
+           data-from-name="fecha_desde"
+           data-to-name="fecha_hasta"
+           placeholder="Filtrar por fecha de publicación">
+
+    <input type="hidden" name="fecha_desde">
+    <input type="hidden" name="fecha_hasta">
+</div>
+```
+
+### Reportes y Analytics
+```html
+<!-- Selector de período para reportes -->
+<div class="selector-periodo">
+    <label>Período del reporte:</label>
+    <input type="text" class="gloryDateRangeInput"
+           data-from-name="reporte_desde"
+           data-to-name="reporte_hasta">
+</div>
+```
+
+### Reservas y Calendarios
+```html
+<!-- Sistema de reservas -->
+<div class="reserva-fechas">
+    <input type="text" class="gloryDateRangeInput"
+           data-from-name="checkin"
+           data-to-name="checkout"
+           placeholder="Seleccionar fechas de estadía">
+</div>
+```
+
+## 🔄 Compatibilidad
+
+- ✅ **Auto-inicialización**: Funciona sin configuración manual
+- ✅ **Responsive**: Se adapta a diferentes dispositivos
+- ✅ **Accesibilidad**: Soporte básico para navegación por teclado
+- ✅ **Integración AJAX**: Compatible con `gloryAjax` para envíos automáticos
+- ✅ **Validación**: Campos de fecha nativos del navegador
+- ✅ **Cross-browser**: Compatible con navegadores modernos
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Popover no aparece**: Verificar clase `gloryDateRangeInput` en el campo
+2. **Campos ocultos no se actualizan**: Revisar atributos `data-from-name` y `data-to-name`
+3. **Posicionamiento incorrecto**: Verificar que no haya CSS que interfiera con `position: absolute`
+
+### Debug
+```javascript
+// Verificar inicialización
+console.log('DateRange inicializado:', window.__gloryDateRangeInitialized__);
+
+// Forzar reinicialización
+window.__gloryDateRangeInitialized__ = false;
+window.gloryDateRangeInit();
+
+// Verificar elementos
+const inputs = document.querySelectorAll('.gloryDateRangeInput');
+console.log('Campos encontrados:', inputs.length);
+```
+
+### Verificación de Funcionalidad
+```javascript
+// Test básico
+const testInput = document.querySelector('.gloryDateRangeInput');
+if (testInput) {
+    testInput.focus(); // Debería abrir el popover
+    console.log('Popover debería estar visible');
+}
+```

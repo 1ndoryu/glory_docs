@@ -1,0 +1,695 @@
+---
+title: Sistema de Menús Interactivos
+description: Gestor de menús de navegación con submenús hover, posicionamiento inteligente y soporte para accesibilidad
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Menús Interactivos (`menu.js`)
+
+El sistema de menús interactivos proporciona una experiencia de navegación avanzada con submenús que aparecen al hacer hover, posicionamiento inteligente absoluto, portal DOM para manejo de z-index, y soporte completo para accesibilidad por teclado. Está optimizado para menús de navegación principales con submenús jerárquicos.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Estructura básica del menú -->
+<nav class="siteMenuNav">
+    <ul class="menu">
+        <li>
+            <a href="/">Inicio</a>
+        </li>
+        <li>
+            <a href="/productos">Productos</a>
+            <ul class="sub-menu">
+                <li><a href="/productos/categoria1">Categoría 1</a></li>
+                <li><a href="/productos/categoria2">Categoría 2</a></li>
+                <li>
+                    <a href="/productos/submenu">Con Submenú</a>
+                    <ul class="sub-menu">
+                        <li><a href="/productos/submenu/item1">Item 1</a></li>
+                        <li><a href="/productos/submenu/item2">Item 2</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>
+            <a href="/contacto">Contacto</a>
+        </li>
+    </ul>
+</nav>
+```
+
+```css
+/* Estilos recomendados */
+.siteMenuNav {
+    position: relative;
+    z-index: 1000;
+}
+
+.siteMenuNav .sub-menu {
+    display: none;
+    position: absolute;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 220px;
+}
+
+.siteMenuNav li.is-open > .sub-menu {
+    display: block;
+}
+
+/* Clase aplicada por el sistema */
+.submenu-portal {
+    /* Estilos para submenús movidos al portal */
+}
+```
+
+```javascript
+// El sistema se inicializa automáticamente
+// No requiere configuración adicional
+```
+
+## 📋 Funcionalidades
+
+### Submenús con Hover Inteligente
+Sistema de apertura y cierre automático basado en la posición del mouse con zonas de tolerancia.
+
+```javascript
+// Comportamiento automático:
+// - Hover en item → abrir submenú
+// - Mouse sale del área → cerrar con delay
+// - Hover en submenú → mantener abierto
+// - Un solo submenú abierto a la vez
+```
+
+### Posicionamiento Inteligente
+Cálculo automático de posición óptima dentro del contenedor de navegación.
+
+```javascript
+// Algoritmo de posicionamiento:
+// 1. Centrar horizontalmente en el item padre
+// 2. Posicionar debajo con gap de 20px
+// 3. Clamp dentro de los límites del nav
+// 4. Ajustar automáticamente en scroll/resize
+```
+
+### Portal DOM para Z-Index
+Los submenús se mueven al root del nav para evitar problemas de z-index con elementos padre.
+
+```html
+<!-- Antes (submenú dentro de li) -->
+<li>
+    <a href="#">Productos</a>
+    <ul class="sub-menu">...</ul>
+</li>
+
+<!-- Durante hover (submenú movido al portal) -->
+<nav class="siteMenuNav">
+    <li>...</li>
+    <ul class="sub-menu submenu-portal" style="position: absolute; z-index: 1004;">
+        ...
+    </ul>
+</nav>
+```
+
+### Sistema de Medición No Visible
+Mide dimensiones de submenús sin mostrarlos visualmente para posicionamiento preciso.
+
+```javascript
+// Técnica de medición:
+// 1. display: block + visibility: hidden + pointer-events: none
+// 2. Obtener offsetWidth/offsetHeight
+// 3. Restaurar estilos originales
+// 4. Calcular posición basada en medidas
+```
+
+## 🎨 Características Visuales
+
+### Estados Interactivos
+- **Hover**: Apertura automática con delay inteligente
+- **Active**: Estados visuales durante interacciones
+- **Focus**: Soporte completo para navegación por teclado
+- **Transition**: Animaciones suaves de entrada/salida
+
+### Gestión de Capas
+- **Z-index**: `1004` para submenús portados
+- **Stacking**: Un solo submenú activo a la vez
+- **Overflow**: Contención dentro del área de navegación
+
+### Responsive Design
+- **Desktop**: Submenús con hover (≥1000px width)
+- **Mobile**: Desactivado automáticamente en pantallas pequeñas
+- **Touch**: Comportamiento adaptado para dispositivos táctiles
+
+### Estructura HTML Generada
+
+```html
+<nav class="siteMenuNav">
+    <ul class="menu">
+        <li class="is-open">
+            <a href="/productos">Productos</a>
+            <!-- Submenú movido al portal durante hover -->
+        </li>
+        <li>
+            <a href="/servicios">Servicios</a>
+        </li>
+    </ul>
+
+    <!-- Submenú portado para z-index correcto -->
+    <ul class="sub-menu submenu-portal"
+        style="
+            position: absolute;
+            left: 150px;
+            top: 60px;
+            z-index: 1004;
+            min-width: 220px;
+            display: block;
+        ">
+        <li><a href="/productos/cat1">Categoría 1</a></li>
+        <li><a href="/productos/cat2">Categoría 2</a></li>
+    </ul>
+</nav>
+```
+
+## 🔧 Configuración Avanzada
+
+### Selectores y Estructura
+
+#### Contenedor Principal
+```html
+<!-- Debe tener clase exacta -->
+<nav class="siteMenuNav">
+    <!-- Contenido del menú -->
+</nav>
+```
+
+#### Estructura de Menú
+```html
+<ul class="menu">
+    <li>
+        <a href="#">Item con submenú</a>
+        <ul class="sub-menu">
+            <li><a href="#">Subitem</a></li>
+        </ul>
+    </li>
+</ul>
+```
+
+#### Clases CSS Requeridas
+- **`.siteMenuNav`**: Contenedor raíz del menú
+- **`.menu`**: Lista principal del menú
+- **`.sub-menu`**: Submenús (directos hijos de `li`)
+
+### Variables de Configuración
+
+#### Temporizadores
+```javascript
+// Configuración interna (no modificable externamente)
+const closeDelay = 260; // ms - Delay para cerrar submenú
+const repositionDelay = 240; // ms - Delay para reposicionamiento
+const gap = 20; // px - Separación vertical del submenú
+```
+
+#### Breakpoints
+```javascript
+// Activación solo en desktop
+const desktopBreakpoint = 1000; // px
+if (!window.matchMedia(`(min-width: ${desktopBreakpoint}px)`).matches) return;
+```
+
+### Estilos CSS Recomendados
+
+```css
+/* Estructura base */
+.siteMenuNav {
+    position: relative;
+    z-index: 1000;
+}
+
+.siteMenuNav .menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.siteMenuNav .menu > li {
+    position: relative;
+}
+
+/* Submenús */
+.siteMenuNav .sub-menu {
+    display: none;
+    position: absolute;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    min-width: 220px;
+    padding: 8px 0;
+    margin: 0;
+    list-style: none;
+}
+
+.siteMenuNav .sub-menu .sub-menu {
+    position: absolute;
+    left: 100%;
+    top: 0;
+}
+
+/* Estados */
+.siteMenuNav li.is-open > .sub-menu {
+    display: block;
+}
+
+/* Portal styling */
+.siteMenuNav .submenu-portal {
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Animaciones */
+.siteMenuNav .sub-menu {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.siteMenuNav li.is-open > .sub-menu {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Accesibilidad */
+.siteMenuNav a:focus {
+    outline: 2px solid #007cba;
+    outline-offset: 2px;
+}
+```
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `initHoverSubmenus()`
+Inicializa el sistema completo de submenús con hover.
+
+```javascript
+function initHoverSubmenus() {
+    // Verifica breakpoint desktop
+    // Configura event listeners
+    // Inicializa sistema de portal
+}
+```
+
+#### `moveSubmenuToNavRoot(submenu, li)`
+Mueve el submenú al contenedor raíz para z-index correcto.
+
+```javascript
+function moveSubmenuToNavRoot(submenu, li) {
+    // Almacena referencias originales
+    // Mueve al nav root
+    // Aplica estilos de portal
+}
+```
+
+#### `positionSubmenu(submenu, li)`
+Calcula y aplica la posición óptima del submenú.
+
+```javascript
+function positionSubmenu(submenu, li) {
+    // Mide dimensiones
+    // Calcula posición centrada
+    // Aplica clamping
+    // Establece estilos left/top
+}
+```
+
+#### `measureSubmenu(submenu)`
+Mide dimensiones del submenú sin mostrarlo visualmente.
+
+```javascript
+function measureSubmenu(submenu) {
+    // Oculta temporalmente
+    // Fuerza display: block
+    // Obtiene medidas
+    // Restaura estilos
+    return { width, height };
+}
+```
+
+### Eventos y Estados
+
+#### Estados de Items
+- **`is-open`**: Clase aplicada al `li` cuando su submenú está abierto
+- **`submenu-portal`**: Clase aplicada a submenús movidos al portal
+
+#### Event Listeners
+- **`mouseenter`**: Abrir submenú
+- **`mouseleave`**: Iniciar cierre con delay
+- **`focusin`**: Abrir para accesibilidad
+- **`focusout`**: Cerrar cuando pierde foco
+- **`mousemove`**: Seguimiento global del cursor
+
+### Sistema de Portal DOM
+
+#### Propósito
+Resolver problemas de z-index cuando elementos padre tienen `overflow: hidden` o z-index bajos.
+
+#### Implementación
+```javascript
+// Propiedades del portal
+submenu.__portalOriginalParent = submenu.parentElement;
+submenu.__portalNextSibling = submenu.nextSibling;
+submenu.__portalParent = nav;
+submenu.__portalOwner = li;
+li.__portalSubmenu = submenu;
+```
+
+#### Restauración
+```javascript
+function restoreSubmenu(submenu) {
+    // Mover de vuelta a posición original
+    // Limpiar estilos inline
+    // Eliminar referencias
+}
+```
+
+## 🎯 Casos de Uso
+
+### Menú de Navegación Principal
+```html
+<header class="site-header">
+    <nav class="siteMenuNav">
+        <ul class="menu">
+            <li><a href="/">Inicio</a></li>
+
+            <li>
+                <a href="/productos">Productos</a>
+                <ul class="sub-menu">
+                    <li><a href="/productos/electronica">Electrónica</a></li>
+                    <li><a href="/productos/ropa">Ropa</a></li>
+                    <li><a href="/productos/hogar">Hogar</a></li>
+                </ul>
+            </li>
+
+            <li>
+                <a href="/servicios">Servicios</a>
+                <ul class="sub-menu">
+                    <li><a href="/servicios/desarrollo">Desarrollo Web</a></li>
+                    <li><a href="/servicios/marketing">Marketing Digital</a></li>
+                    <li>
+                        <a href="/servicios/consultoria">Consultoría</a></li>
+                        <ul class="sub-menu">
+                            <li><a href="/servicios/consultoria/estrategica">Estratégica</a></li>
+                            <li><a href="/servicios/consultoria/tecnica">Técnica</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+
+            <li><a href="/contacto">Contacto</a></li>
+        </ul>
+    </nav>
+</header>
+```
+
+### Menú Mega con Categorías
+```html
+<nav class="siteMenuNav">
+    <ul class="menu">
+        <li>
+            <a href="/categorias">Categorías</a>
+            <ul class="sub-menu mega-menu">
+                <li class="mega-column">
+                    <h4>Electrónica</h4>
+                    <ul>
+                        <li><a href="/electronica/telefonos">Teléfonos</a></li>
+                        <li><a href="/electronica/computadoras">Computadoras</a></li>
+                        <li><a href="/electronica/audio">Audio</a></li>
+                    </ul>
+                </li>
+                <li class="mega-column">
+                    <h4>Hogar</h4>
+                    <ul>
+                        <li><a href="/hogar/muebles">Muebles</a></li>
+                        <li><a href="/hogar/decoracion">Decoración</a></li>
+                        <li><a href="/hogar/jardin">Jardín</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</nav>
+```
+
+### Menú Administrativo
+```html
+<div class="admin-menu-container">
+    <nav class="siteMenuNav">
+        <ul class="menu">
+            <li>
+                <a href="/admin">Dashboard</a>
+            </li>
+            <li>
+                <a href="/admin/contenido">Contenido</a>
+                <ul class="sub-menu">
+                    <li><a href="/admin/contenido/paginas">Páginas</a></li>
+                    <li><a href="/admin/contenido/posts">Posts</a></li>
+                    <li><a href="/admin/contenido/medios">Medios</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="/admin/usuarios">Usuarios</a>
+                <ul class="sub-menu">
+                    <li><a href="/admin/usuarios/lista">Lista de Usuarios</a></li>
+                    <li><a href="/admin/usuarios/roles">Roles y Permisos</a></li>
+                    <li><a href="/admin/usuarios/logs">Logs de Actividad</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+</div>
+```
+
+### Menú con Submenús Laterales
+```html
+<nav class="siteMenuNav">
+    <ul class="menu">
+        <li>
+            <a href="/productos">Productos</a>
+            <ul class="sub-menu">
+                <li>
+                    <a href="/productos/electronica">Electrónica</a>
+                    <ul class="sub-menu">
+                        <li><a href="/productos/electronica/telefonos">Teléfonos</a></li>
+                        <li><a href="/productos/electronica/laptops">Laptops</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="/productos/ropa">Ropa</a>
+                    <ul class="sub-menu">
+                        <li><a href="/productos/ropa/camisas">Camisas</a></li>
+                        <li><a href="/productos/ropa/pantalones">Pantalones</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</nav>
+```
+
+```css
+/* Submenús laterales */
+.siteMenuNav .sub-menu .sub-menu {
+    left: 100%;
+    top: 0;
+    margin-left: 1px;
+}
+
+/* Efectos hover mejorados */
+.siteMenuNav .sub-menu .sub-menu {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-10px);
+    transition: all 0.2s ease;
+}
+
+.siteMenuNav li:hover > .sub-menu .sub-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+```
+
+## 🔄 Compatibilidad
+
+- ✅ **Desktop**: Funciona en navegadores modernos con hover
+- ✅ **Mobile**: Desactivado automáticamente en pantallas <1000px
+- ✅ **Touch**: Compatible con dispositivos táctiles (sin activación accidental)
+- ✅ **Accesibilidad**: Soporte completo para teclado y lectores de pantalla
+- ✅ **Z-index**: Sistema de portal resuelve problemas de apilamiento
+- ✅ **Performance**: Event delegation y throttling para optimización
+- ✅ **Responsive**: Adaptable a diferentes tamaños de contenedor
+- ✅ **Cross-browser**: Compatible con navegadores modernos
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Submenús no aparecen**: Verificar clase `.siteMenuNav` exacta
+2. **Posicionamiento incorrecto**: Revisar CSS `position: relative` en nav
+3. **Z-index insuficiente**: Verificar que nav tenga z-index base
+4. **No funciona en móvil**: Correcto, está desactivado en pantallas pequeñas
+5. **Cierres prematuros**: Ajustar delays o zonas de tolerancia del mouse
+
+### Debug Interactivo
+```javascript
+// Verificar inicialización
+console.log('Menú inicializado para:', document.querySelector('.siteMenuNav'));
+
+// Monitorear eventos
+document.addEventListener('mouseenter', function(e) {
+    if (e.target.closest('.siteMenuNav li')) {
+        console.log('Hover en item de menú:', e.target.textContent);
+    }
+}, true);
+
+// Verificar estado de submenús
+function verificarEstadoMenu() {
+    const nav = document.querySelector('.siteMenuNav');
+    const itemsAbiertos = nav.querySelectorAll('li.is-open');
+    const submenusVisibles = nav.querySelectorAll('.sub-menu[style*="display: block"]');
+    const portales = nav.querySelectorAll('.submenu-portal');
+
+    console.log('Estado del menú:', {
+        itemsAbiertos: itemsAbiertos.length,
+        submenusVisibles: submenusVisibles.length,
+        submenusPortados: portales.length,
+        currentItem: nav.__currentItem || null
+    });
+}
+
+// Inspeccionar posicionamiento
+function debugPosicionamiento() {
+    const portales = document.querySelectorAll('.submenu-portal');
+    portales.forEach((portal, index) => {
+        const rect = portal.getBoundingClientRect();
+        console.log(`Portal ${index}:`, {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+            zIndex: portal.style.zIndex
+        });
+    });
+}
+```
+
+### Troubleshooting de Z-Index
+```javascript
+// Verificar jerarquía de z-index
+function verificarZIndex() {
+    const nav = document.querySelector('.siteMenuNav');
+    const navZ = window.getComputedStyle(nav).zIndex;
+
+    const portales = document.querySelectorAll('.submenu-portal');
+    portales.forEach(portal => {
+        const portalZ = portal.style.zIndex;
+        console.log('Z-index - Nav:', navZ, 'Portal:', portalZ);
+    });
+
+    // Verificar elementos que pueden interferir
+    const elementosSuperiores = [];
+    let element = nav;
+    while (element.parentElement) {
+        element = element.parentElement;
+        const z = window.getComputedStyle(element).zIndex;
+        if (z !== 'auto') {
+            elementosSuperiores.push({
+                element: element.tagName + (element.className ? '.' + element.className : ''),
+                zIndex: z
+            });
+        }
+    }
+    console.log('Elementos padre con z-index:', elementosSuperiores);
+}
+```
+
+### Reset Manual
+```javascript
+// Limpiar estado del menú
+function resetMenuSystem() {
+    // Cerrar todos los submenús
+    const itemsAbiertos = document.querySelectorAll('.siteMenuNav li.is-open');
+    itemsAbiertos.forEach(li => {
+        li.classList.remove('is-open');
+    });
+
+    // Restaurar submenús del portal
+    const portales = document.querySelectorAll('.submenu-portal');
+    portales.forEach(portal => {
+        if (portal.__portalOriginalParent) {
+            // Restaurar a posición original
+            if (portal.__portalNextSibling &&
+                portal.__portalNextSibling.parentNode === portal.__portalOriginalParent) {
+                portal.__portalOriginalParent.insertBefore(portal, portal.__portalNextSibling);
+            } else {
+                portal.__portalOriginalParent.appendChild(portal);
+            }
+
+            // Limpiar estilos y referencias
+            portal.classList.remove('submenu-portal');
+            portal.style.cssText = '';
+            delete portal.__portalOriginalParent;
+            delete portal.__portalNextSibling;
+            delete portal.__portalParent;
+            delete portal.__portalOwner;
+        }
+    });
+
+    // Limpiar referencias globales
+    delete document.__menuCurrentItem;
+    delete document.__menuCloseTimer;
+}
+
+// Re-inicializar
+function reinicializarMenu() {
+    resetMenuSystem();
+    // Forzar re-ejecución de initHoverSubmenus
+    const nav = document.querySelector('.siteMenuNav');
+    if (nav) {
+        nav.__menuInitialized = false;
+        initHoverSubmenus();
+    }
+}
+```
+
+### Optimización de Performance
+```javascript
+// Monitorear performance
+function monitorMenuPerformance() {
+    let openCount = 0;
+    let closeCount = 0;
+
+    // Contar aperturas
+    document.addEventListener('mouseenter', function(e) {
+        if (e.target.closest('.siteMenuNav li')) {
+            openCount++;
+        }
+    }, true);
+
+    // Contar cierres
+    const originalClose = window.__menuCloseFunction;
+    window.__menuCloseFunction = function() {
+        closeCount++;
+        if (originalClose) originalClose.apply(this, arguments);
+    };
+
+    // Reporte cada 5 segundos
+    setInterval(() => {
+        console.log(`Menú stats - Opens: ${openCount}, Closes: ${closeCount}`);
+        openCount = 0;
+        closeCount = 0;
+    }, 5000);
+}
+```

@@ -80,13 +80,8 @@ add_action('init', function() {
     $metabox->registerHooks();
 });
 
-// Registrar página gestionada
-PageManager::registerPage([
-    'slug' => 'acerca-de',
-    'handler' => 'render_pagina_acerca_de',
-    'title' => 'Acerca de Nosotros',
-    'managed' => true // Marca como gestionada por Glory
-]);
+// Definir página gestionada
+PageManager::define('acerca-de', 'render_pagina_acerca_de');
 
 // Función handler
 function render_pagina_acerca_de() {
@@ -294,20 +289,10 @@ class PaginaGestionada
     public function setupPages(): void
     {
         // Página de servicios - modo código por defecto
-        PageManager::registerPage([
-            'slug' => 'servicios',
-            'handler' => [$this, 'renderServicios'],
-            'title' => 'Nuestros Servicios',
-            'managed' => true
-        ]);
+        PageManager::define('servicios', [$this, 'renderServicios']);
 
         // Página de contacto - puede ser editada
-        PageManager::registerPage([
-            'slug' => 'contacto',
-            'handler' => [$this, 'renderContactoBase'],
-            'title' => 'Contacto',
-            'managed' => true
-        ]);
+        PageManager::define('contacto', [$this, 'renderContactoBase']);
     }
 
     public function renderServicios(): void
@@ -524,12 +509,8 @@ ContentBackupSystem::init();
 
 ```php
 <?php
-// El metabox solo aparece para páginas marcadas como gestionadas
-PageManager::registerPage([
-    'slug' => 'mi-pagina',
-    'handler' => 'mi_handler_function',
-    'managed' => true  // Esta flag habilita el metabox
-]);
+// El metabox solo aparece para páginas definidas con PageManager
+PageManager::define('mi-pagina', 'mi_handler_function');
 
 // Verificación programática
 function is_page_managed_by_glory(int $postId): bool

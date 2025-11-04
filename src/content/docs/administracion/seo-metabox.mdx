@@ -69,25 +69,26 @@ add_action('init', function() {
     $seoMetabox->registerHooks();
 });
 
-// Configurar valores por defecto para páginas específicas
-PageManager::registerPage([
-    'slug' => 'contacto',
-    'title' => 'Contacto - Mi Sitio Web',
-    'desc' => 'Ponte en contacto con nosotros. Información de contacto, formulario y ubicación.',
-    'canonical' => 'https://misitio.com/contacto/',
-    'faq' => [
-        [
-            'q' => '¿Cómo puedo contactarlos?',
-            'a' => 'Puedes contactarnos a través del formulario de esta página, por teléfono o email.'
+// Configurar valores SEO por defecto para páginas específicas
+PageManager::setDefaultSeoMap([
+    'contacto' => [
+        'title' => 'Contacto - Mi Sitio Web',
+        'desc' => 'Ponte en contacto con nosotros. Información de contacto, formulario y ubicación.',
+        'canonical' => 'https://misitio.com/contacto/',
+        'faq' => [
+            [
+                'q' => '¿Cómo puedo contactarlos?',
+                'a' => 'Puedes contactarnos a través del formulario de esta página, por teléfono o email.'
+            ],
+            [
+                'q' => '¿Cuál es su horario de atención?',
+                'a' => 'Nuestro horario de atención es de lunes a viernes de 9:00 a 18:00.'
+            ]
         ],
-        [
-            'q' => '¿Cuál es su horario de atención?',
-            'a' => 'Nuestro horario de atención es de lunes a viernes de 9:00 a 18:00.'
+        'breadcrumb' => [
+            ['name' => 'Inicio', 'url' => 'https://misitio.com/'],
+            ['name' => 'Contacto', 'url' => 'https://misitio.com/contacto/']
         ]
-    ],
-    'breadcrumb' => [
-        ['name' => 'Inicio', 'url' => 'https://misitio.com/'],
-        ['name' => 'Contacto', 'url' => 'https://misitio.com/contacto/']
     ]
 ]);
 ?>
@@ -277,9 +278,8 @@ document.addEventListener('click', function(e){
 ```php
 <?php
 // Configuración SEO para página de servicios
-PageManager::registerPage([
-    'slug' => 'servicios',
-    'seo' => [
+PageManager::setDefaultSeoMap([
+    'servicios' => [
         'title' => 'Servicios Profesionales - Empresa XYZ',
         'desc' => 'Descubre nuestros servicios profesionales. Consultoría, desarrollo y soporte técnico especializado.',
         'canonical' => 'https://empresa.com/servicios/',
@@ -483,24 +483,25 @@ new SeoManager();
 ```php
 <?php
 // El SeoMetabox automáticamente busca valores por defecto en PageManager
-PageManager::registerPage([
-    'slug' => 'productos',
-    'title' => 'Nuestros Productos - Tienda Online',
-    'desc' => 'Descubre nuestra amplia gama de productos de calidad. Envío gratuito en pedidos superiores a $50.',
-    'canonical' => 'https://tienda.com/productos/',
-    'faq' => [
-        [
-            'q' => '¿Hacen envíos internacionales?',
-            'a' => 'Sí, realizamos envíos a nivel internacional con diferentes opciones de envío.'
+PageManager::setDefaultSeoMap([
+    'productos' => [
+        'title' => 'Nuestros Productos - Tienda Online',
+        'desc' => 'Descubre nuestra amplia gama de productos de calidad. Envío gratuito en pedidos superiores a $50.',
+        'canonical' => 'https://tienda.com/productos/',
+        'faq' => [
+            [
+                'q' => '¿Hacen envíos internacionales?',
+                'a' => 'Sí, realizamos envíos a nivel internacional con diferentes opciones de envío.'
+            ],
+            [
+                'q' => '¿Cuál es la política de devoluciones?',
+                'a' => 'Aceptamos devoluciones dentro de 30 días con el producto en perfectas condiciones.'
+            ]
         ],
-        [
-            'q' => '¿Cuál es la política de devoluciones?',
-            'a' => 'Aceptamos devoluciones dentro de 30 días con el producto en perfectas condiciones.'
+        'breadcrumb' => [
+            ['name' => 'Inicio', 'url' => 'https://tienda.com/'],
+            ['name' => 'Productos', 'url' => 'https://tienda.com/productos/']
         ]
-    ],
-    'breadcrumb' => [
-        ['name' => 'Inicio', 'url' => 'https://tienda.com/'],
-        ['name' => 'Productos', 'url' => 'https://tienda.com/productos/']
     ]
 ]);
 

@@ -21,22 +21,22 @@ tu-tema/
 **Uso mínimo** - Página básica:
 ```php
 <?php
-use Glory\Managers\PageManager;
+use Glory\Manager\PageManager;
 
-// Crea página simple
-PageManager::create('mi-pagina', [
-    'title' => 'Inicio',
-    'callback' => function() {
-        echo '<h1>¡Glory funcionando!</h1>';
-    }
-]);
+// Define función de renderizado
+function renderMiPagina() {
+    echo '<h1>¡Glory funcionando!</h1>';
+}
+
+// Define página simple
+PageManager::define('mi-pagina', 'renderMiPagina');
 ```
 
 **Uso avanzado** - Con assets y opciones:
 ```php
 <?php
-use Glory\Managers\AssetManager;
-use Glory\Managers\OpcionManager;
+use Glory\Manager\AssetManager;
+use Glory\Manager\OpcionManager;
 
 // Define assets automáticamente
 AssetManager::defineFolder('assets/');
@@ -48,13 +48,13 @@ OpcionManager::register('color_primario', [
     'etiqueta' => 'Color Principal'
 ]);
 
-// Crea página con opción
-PageManager::create('inicio', [
-    'title' => 'Mi Sitio',
-    'callback' => function() {
-        $color = OpcionManager::get('color_primario');
-        echo "<h1 style='color:$color'>¡Bienvenido!</h1>";
-    }
-]);
+// Define función de renderizado
+function renderInicio() {
+    $color = OpcionManager::get('color_primario');
+    echo "<h1 style='color:$color'>¡Bienvenido!</h1>";
+}
+
+// Define página con opción
+PageManager::define('inicio', 'renderInicio');
 ```
 

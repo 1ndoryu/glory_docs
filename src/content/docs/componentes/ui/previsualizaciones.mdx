@@ -1,0 +1,291 @@
+---
+title: Sistema de Previsualizaciones
+description: Gestión interactiva de archivos con drag & drop, selección por clic y previsualización en tiempo real
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Previsualizaciones (`gestionarPreviews.js`)
+
+Sistema avanzado para la gestión interactiva de archivos que proporciona previsualización en tiempo real, soporte para drag & drop y selección por clic.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Estructura HTML básica -->
+<div class="previewContenedor">
+    <input type="file" name="mi_archivo" style="display: none;">
+    <div class="previewImagen oculto">
+        <span class="image-preview-placeholder">Haz clic para subir una imagen</span>
+    </div>
+    <button type="button" class="botonPreviewImagen">Seleccionar Imagen</button>
+</div>
+```
+
+```javascript
+// El sistema se inicializa automáticamente en gloryRecarga
+// No requiere configuración manual adicional
+```
+
+## 📋 Funcionalidades
+
+### Tipos de Archivo Soportados
+- **Imágenes** (`.previewImagen`, `.preview`): JPG, PNG, GIF, WebP, SVG
+- **Audio** (`.previewAudio`): MP3, WAV, OGG, M4A
+- **Archivos genéricos** (`.previewFile`): Cualquier tipo de archivo
+
+### Métodos de Interacción
+- **Clic en botones**: `.botonPreviewImagen`, `.botonPreviewAudio`, `.botonPreviewFile`
+- **Clic en áreas de preview**: Zonas interactivas que abren el selector
+- **Drag & Drop**: Arrastrar archivos directamente sobre las zonas
+- **Contenedor completo**: `data-uploadclick="true"` para clics en cualquier parte
+
+## 🎨 Estructura HTML Requerida
+
+### Contenedor Principal
+```html
+<div class="previewContenedor">
+    <!-- Input oculto -->
+    <input type="file" name="archivo" accept="image/*" style="display: none;">
+
+    <!-- Área de preview para imágenes -->
+    <div class="previewImagen oculto">
+        <span class="image-preview-placeholder">Haz clic para subir una imagen</span>
+    </div>
+
+    <!-- Botón disparador -->
+    <button type="button" class="botonPreviewImagen">Seleccionar Imagen</button>
+</div>
+```
+
+### Variantes por Tipo de Archivo
+
+#### Para Imágenes
+```html
+<div class="previewContenedor">
+    <input type="file" name="imagen" accept="image/*" style="display: none;">
+    <div class="previewImagen oculto">
+        <span class="image-preview-placeholder">Arrastra o haz clic para subir imagen</span>
+    </div>
+    <button class="botonPreviewImagen">Seleccionar Imagen</button>
+</div>
+```
+
+#### Para Audio
+```html
+<div class="previewContenedor">
+    <input type="file" name="audio" accept="audio/*" style="display: none;">
+    <div class="previewAudio oculto"></div>
+    <button class="botonPreviewAudio">Seleccionar Audio</button>
+</div>
+```
+
+#### Para Archivos Genéricos
+```html
+<div class="previewContenedor">
+    <input type="file" name="documento" style="display: none;">
+    <div class="previewFile oculto"></div>
+    <button class="botonPreviewFile">Seleccionar Archivo</button>
+</div>
+```
+
+## 🔧 Atributos de Configuración
+
+### data-uploadclick
+Permite que cualquier clic en el contenedor abra el selector de archivos.
+
+```html
+<div class="previewContenedor" data-uploadclick="true">
+    <!-- Contenido del contenedor -->
+</div>
+```
+
+### data-preview-id y data-preview-for
+Vincula manualmente inputs y previews cuando no están en la misma jerarquía.
+
+```html
+<!-- Input en un lugar -->
+<input type="file" data-preview-for="mi-preview">
+
+<!-- Preview en otro lugar -->
+<div data-preview-id="mi-preview" class="previewImagen oculto"></div>
+```
+
+### data-extrapreview
+Muestra elementos adicionales durante operaciones de drag & drop o clic.
+
+```html
+<div class="previewContenedor" data-extrapreview=".elemento-extra">
+    <div class="elemento-extra oculto">Suelta el archivo aquí</div>
+    <!-- Contenido normal -->
+</div>
+```
+
+### data-extrapreview-on
+Controla cuándo mostrar el preview extra: `"click"`, `"drag"`, `"drop"`, `"always"`.
+
+```html
+<div class="previewContenedor"
+     data-extrapreview=".zona-drop"
+     data-extrapreview-on="drag">
+    <!-- Contenido -->
+</div>
+```
+
+### data-activapreview
+Permite activar un contenedor oculto desde elementos externos durante drag.
+
+```html
+<!-- Elemento externo que activa preview -->
+<div data-activapreview=".mi-contenedor-oculto">Zona de drop externa</div>
+
+<!-- Contenedor que se activa -->
+<div class="previewContenedor mi-contenedor-oculto oculto">
+    <!-- Contenido -->
+</div>
+```
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `gestionarPreviews()`
+Inicializa todo el sistema de previsualizaciones.
+
+```javascript
+// Se ejecuta automáticamente en gloryRecarga
+// Puede llamarse manualmente si es necesario
+gestionarPreviews();
+```
+
+#### `mostrarImagenDesdeUrl(imageUrl, elementoPreview, imageId)`
+Muestra una imagen desde una URL (útil para imágenes existentes).
+
+```javascript
+const previewElement = document.querySelector('.previewImagen');
+mostrarImagenDesdeUrl('https://example.com/image.jpg', previewElement, 123);
+```
+
+### Eventos Personalizados
+
+#### `gloryImageUploader:showExistingImage`
+Muestra una imagen existente en un uploader.
+
+```javascript
+document.dispatchEvent(new CustomEvent('gloryImageUploader:showExistingImage', {
+    detail: {
+        imageUrl: 'https://example.com/image.jpg',
+        imageId: 123,
+        uploaderContainer: document.querySelector('.previewContenedor')
+    }
+}));
+```
+
+## 🎯 Estados Visuales
+
+### Clases CSS Automáticas
+- `.oculto`: Elementos inicialmente ocultos
+- `.arrastrando`: Durante operaciones de drag & drop
+- `.activo`: Elementos extra mostrados
+- `.previewRemover`: Botón de eliminar imagen (se crea automáticamente)
+
+### Campos Ocultos Automáticos
+El sistema gestiona automáticamente campos hidden para WordPress:
+- `.glory-image-id`: ID de la imagen en WordPress
+- `.glory-image-url`: URL de la imagen
+- `input[name$="_delete"]`: Indicador de eliminación
+
+## 🔄 Flujo de Funcionamiento
+
+### 1. Inicialización
+- Se vinculan todos los event listeners
+- Se previene duplicación en recargas (`gloryRecarga`)
+
+### 2. Interacción del Usuario
+- **Clic**: Abre selector de archivos con filtros apropiados
+- **Drag**: Muestra indicadores visuales y activa zonas de drop
+- **Drop**: Procesa el archivo soltado
+
+### 3. Procesamiento
+- Valida tipo de archivo
+- Muestra preview apropiada
+- Actualiza campos ocultos
+- Gestiona estados visuales
+
+### 4. Eliminación
+- Botón X automático para imágenes
+- Restaura placeholders
+- Limpia campos ocultos
+
+## 🎨 Personalización CSS
+
+### Clases Principales
+```css
+.previewContenedor { /* Contenedor principal */ }
+.previewImagen { /* Área de preview de imagen */ }
+.previewAudio { /* Área de preview de audio */ }
+.previewFile { /* Área de preview de archivo */ }
+.botonPreviewImagen { /* Botón disparador */ }
+.arrastrando { /* Estado durante drag */ }
+.oculto { /* Elementos ocultos */ }
+.activo { /* Elementos extra activos */ }
+```
+
+### Estilos de Drag & Drop
+```css
+.previewContenedor.arrastrando {
+    border: 2px dashed #007cba;
+    background-color: rgba(0, 124, 186, 0.1);
+}
+```
+
+## 🔧 Integración con WordPress
+
+### Campos Esperados
+```php
+// El sistema espera estos campos para integración completa
+<input type="hidden" name="image_id" class="glory-image-id">
+<input type="hidden" name="image_url" class="glory-image-url">
+<input type="hidden" name="image_delete" value="">
+```
+
+### Eventos de Integración
+```javascript
+// Para mostrar imágenes existentes
+document.dispatchEvent(new CustomEvent('gloryImageUploader:showExistingImage', {
+    detail: { imageUrl, imageId, uploaderContainer }
+}));
+```
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Preview no aparece**: Verificar estructura HTML correcta y clases
+2. **Drag & drop no funciona**: Revisar que no haya elementos superpuestos
+3. **Filtros de archivo ignorados**: Verificar atributo `accept` en input
+4. **Imágenes no se eliminan**: Revisar campos hidden y placeholders
+
+### Debug
+```javascript
+// Habilitar logs detallados
+window.gloryDebug = true;
+
+// Verificar inicialización
+console.log('Previews handlers bound:', window.__gloryPreviewsHandlersBound);
+```
+
+## 📊 Rendimiento
+
+- **Lazy Loading**: Los handlers se vinculan solo una vez
+- **Prevención de Duplicados**: Sistema de flags para evitar listeners múltiples
+- **Optimización**: FileReader solo para archivos válidos
+- **Memory Management**: Limpieza automática de elementos y listeners
+
+## 🔄 Compatibilidad
+
+- ✅ **Modern Browsers**: ES6+, File API, Drag & Drop API
+- ✅ **Mobile**: Touch events y responsive design
+- ✅ **WordPress**: Integración completa con media library
+- ✅ **Accesibilidad**: Soporte básico para navegación por teclado
+- ✅ **Progressive Enhancement**: Funciona sin JavaScript habilitado (solo input básico)

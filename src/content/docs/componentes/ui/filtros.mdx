@@ -1,0 +1,511 @@
+---
+title: Sistema de Filtros AJAX
+description: Sistema de filtrado dinámico con AJAX, ordenamiento, paginación y acciones masivas para data grids
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Filtros AJAX (`gloryFilters.js`)
+
+Sistema avanzado de filtrado dinámico que proporciona filtrado en tiempo real, ordenamiento por columnas, paginación AJAX y acciones masivas para tablas de datos, todo sin recargar la página.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Formulario de filtros -->
+<form data-glory-filters="ajax" data-ajax-action="filtrar_datos">
+    <input type="text" name="busqueda" placeholder="Buscar...">
+    <select name="categoria">
+        <option value="">Todas las categorías</option>
+        <option value="1">Categoría 1</option>
+        <option value="2">Categoría 2</option>
+    </select>
+    <input type="date" name="fecha_desde">
+    <input type="date" name="fecha_hasta">
+    <button type="submit">Filtrar</button>
+</form>
+
+<!-- Contenedor de resultados -->
+<div class="gloryDataGridContenedor">
+    <!-- Tabla generada dinámicamente -->
+</div>
+```
+
+```javascript
+// Inicialización automática
+// No requiere configuración manual adicional
+```
+
+## 📋 Funcionalidades
+
+### Tipos de Interacción
+- **Filtrado en tiempo real**: Campos de texto con debounce
+- **Filtrado inmediato**: Selects, checkboxes, dates sin delay
+- **Ordenamiento por columna**: Click en headers ordenables
+- **Paginación AJAX**: Navegación sin recarga de página
+- **Acciones masivas**: Operaciones en múltiples elementos seleccionados
+- **Selección completa**: Checkbox "Seleccionar todo"
+
+### Características Avanzadas
+- **Debounce inteligente**: 400ms para texto, inmediato para otros campos
+- **Manejo de estado**: Preserva filtros entre navegaciones
+- **Fragments dinámicos**: Actualización selectiva de elementos
+- **Integración WordPress**: Compatible con admin-ajax.php
+- **Fallback jQuery**: Soporte para entornos legacy
+
+## 🎨 Estructura HTML Requerida
+
+### Formulario de Filtros
+```html
+<form data-glory-filters="ajax" data-ajax-action="mi_accion_ajax">
+    <!-- Campos de filtro -->
+    <input type="search" name="s" placeholder="Buscar...">
+    <select name="categoria_id">
+        <option value="">Todas</option>
+    </select>
+    <input type="date" name="fecha_desde">
+    <input type="date" name="fecha_hasta">
+    <input type="checkbox" name="solo_activos" value="1"> Solo activos
+
+    <button type="submit">Aplicar Filtros</button>
+</form>
+```
+
+### Contenedor de Resultados
+```html
+<div class="gloryDataGridContenedor">
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <input type="checkbox" class="gloryGridSelectAll">
+                </th>
+                <th class="columnaOrdenable">
+                    <a href="?orderby=nombre&order=asc">Nombre</a>
+                </th>
+                <th class="columnaOrdenable">
+                    <a href="?orderby=fecha&order=desc">Fecha</a>
+                </th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Filas de datos -->
+        </tbody>
+    </table>
+
+    <!-- Paginación -->
+    <div class="gloryPaginacion">
+        <a href="?paged=1" data-page="1">1</a>
+        <a href="?paged=2" data-page="2">2</a>
+    </div>
+
+    <!-- Acciones masivas -->
+    <div class="gloryDataGridAccionesMasivas">
+        <select class="gloryGridBulkSelect">
+            <option value="">Acciones masivas</option>
+            <option value="delete" data-ajax-action="bulk_delete" data-confirm="¿Eliminar elementos seleccionados?">
+                Eliminar seleccionados
+            </option>
+        </select>
+        <button class="gloryGridBulkApply">Aplicar</button>
+    </div>
+</div>
+```
+
+## 🔧 Atributos de Configuración
+
+### Formulario Principal
+
+#### `data-glory-filters="ajax"`
+Identifica el formulario como filtro AJAX.
+
+```html
+<form data-glory-filters="ajax" data-ajax-action="filtrar_posts">
+    <!-- Campos del formulario -->
+</form>
+```
+
+#### `data-ajax-action`
+Acción AJAX que procesará los filtros (requerido).
+
+```html
+<form data-glory-filters="ajax" data-ajax-action="mi_plugin_filtrar">
+    <!-- Campos -->
+</form>
+```
+
+#### `data-target`
+Selector del contenedor donde actualizar resultados (opcional).
+
+```html
+<form data-glory-filters="ajax"
+      data-ajax-action="filtrar"
+      data-target="#resultados-personalizados">
+    <!-- Campos -->
+</form>
+```
+
+### Columnas Ordenables
+
+#### `.columnaOrdenable`
+Clase para headers que permiten ordenamiento.
+
+```html
+<th class="columnaOrdenable">
+    <a href="?orderby=titulo&order=asc">Título</a>
+</th>
+```
+
+### Paginación
+
+#### `.gloryPaginacion a[data-page]`
+Enlaces de paginación con atributo data-page.
+
+```html
+<div class="gloryPaginacion">
+    <a href="?paged=1" data-page="1">1</a>
+    <a href="?paged=2" data-page="2">2</a>
+</div>
+```
+
+### Acciones Masivas
+
+#### `.gloryGridBulkSelect`
+Select con acciones masivas disponibles.
+
+```html
+<select class="gloryGridBulkSelect">
+    <option value="delete"
+            data-ajax-action="bulk_delete"
+            data-confirm="¿Confirmar eliminación?">
+        Eliminar seleccionados
+    </option>
+</select>
+```
+
+#### `.gloryGridBulkApply`
+Botón para ejecutar la acción masiva seleccionada.
+
+```html
+<button class="gloryGridBulkApply">Aplicar</button>
+```
+
+### Selección de Elementos
+
+#### `.gloryGridSelect`
+Checkboxes individuales para selección.
+
+```html
+<input type="checkbox" class="gloryGridSelect" value="123">
+```
+
+#### `.gloryGridSelectAll`
+Checkbox para seleccionar/deseleccionar todos.
+
+```html
+<input type="checkbox" class="gloryGridSelectAll">
+```
+
+## 📝 API Técnica
+
+### Inicialización
+
+#### `gloryFiltersInit()`
+Inicializa el sistema de filtros (se llama automáticamente).
+
+```javascript
+// Inicialización automática en DOMContentLoaded
+// Puede llamarse manualmente si es necesario
+window.gloryFiltersInit();
+```
+
+### Funciones Internas
+
+#### `triggerAjaxForForm(form, overrides)`
+Dispara petición AJAX para un formulario específico.
+
+```javascript
+// Uso interno - normalmente automático
+triggerAjaxForForm(formulario, { customParam: 'value' });
+```
+
+#### `serializeForm(form)`
+Serializa todos los campos del formulario.
+
+```javascript
+const data = serializeForm(document.querySelector('form[data-glory-filters="ajax"]'));
+```
+
+## 🎯 Comportamiento por Tipo de Campo
+
+### Campos con Debounce (400ms)
+- `input[type="text"]`
+- `input[type="search"]`
+
+### Campos Inmediatos
+- `select`
+- `input[type="date"]`
+- `input[type="checkbox"]`
+- `input[type="radio"]`
+
+### Eventos Especiales
+- **Enter en campos**: Dispara filtrado inmediato
+- **Submit del form**: Previene envío normal, usa AJAX
+
+## 🔄 Formato de Respuesta AJAX
+
+### Estructura Esperada
+```php
+// Respuesta del servidor
+{
+    "success": true,
+    "data": {
+        "html": "<div class='gloryDataGridContenedor'>...nuevo contenido...</div>",
+        "fragments": {
+            ".contador-resultados": "<span>150 resultados</span>",
+            ".info-filtros": "<div>Filtros aplicados: ...</div>"
+        }
+    }
+}
+```
+
+### Respuesta Mínima
+```php
+{
+    "success": true,
+    "data": {
+        "html": "<div class='gloryDataGridContenedor'>...contenido...</div>"
+    }
+}
+```
+
+## 🎨 Sistema de Fragments
+
+### Actualización Selectiva
+Los fragments permiten actualizar elementos específicos sin tocar toda la página.
+
+```javascript
+// En la respuesta AJAX
+"fragments": {
+    ".total-registros": "<span>Total: 150</span>",
+    ".ultima-actualizacion": "<time>2024-01-15 10:30</time>",
+    "#estado-filtros": "<div>Filtros activos: 3</div>"
+}
+```
+
+### Uso en PHP (WordPress)
+```php
+function procesar_filtros_ajax() {
+    // Procesar filtros...
+    $html = generar_html_resultados($filtros);
+
+    wp_send_json_success([
+        'html' => $html,
+        'fragments' => [
+            '.contador' => "<span>{$total} resultados</span>",
+            '.filtros-activos' => "<div>" . implode(', ', $filtros_activos) . "</div>"
+        ]
+    ]);
+}
+```
+
+## 🔄 Eventos
+
+### Eventos Automáticos
+- **`gloryRecarga`**: Se dispara después de cada filtrado exitoso
+- Permite reinicializar componentes dependientes
+
+```javascript
+document.addEventListener('gloryRecarga', function() {
+    // Reinicializar tooltips, popovers, etc.
+    initTooltips();
+    initPopovers();
+});
+```
+
+### Eventos de Formulario
+- **`submit`**: Interceptado para usar AJAX
+- **`input`**: Para campos con debounce
+- **`change`**: Para selects, checkboxes, dates
+- **`keydown`**: Para tecla Enter
+
+### Eventos de Click
+- **Ordenamiento**: Links en headers `.columnaOrdenable a`
+- **Paginación**: Links con `data-page`
+- **Acciones masivas**: Botón `.gloryGridBulkApply`
+- **Seleccionar todo**: Checkbox `.gloryGridSelectAll`
+
+## 🎯 Integración WordPress
+
+### Función AJAX Handler
+```php
+add_action('wp_ajax_filtrar_datos', 'manejar_filtros_ajax');
+
+function manejar_filtros_ajax() {
+    // Verificar permisos
+    if (!current_user_can('manage_options')) {
+        wp_die();
+    }
+
+    // Obtener parámetros
+    $busqueda = sanitize_text_field($_POST['s'] ?? '');
+    $categoria = intval($_POST['categoria_id'] ?? 0);
+    $fecha_desde = sanitize_text_field($_POST['fecha_desde'] ?? '');
+    $paged = intval($_POST['paged'] ?? 1);
+    $orderby = sanitize_text_field($_POST['orderby'] ?? 'date');
+    $order = sanitize_text_field($_POST['order'] ?? 'DESC');
+
+    // Procesar filtros y generar HTML
+    $args = [
+        's' => $busqueda,
+        'cat' => $categoria,
+        'paged' => $paged,
+        'orderby' => $orderby,
+        'order' => $order,
+        // ... otros filtros
+    ];
+
+    $query = new WP_Query($args);
+
+    ob_start();
+    // Generar HTML de resultados
+    include 'templates/resultado-filtros.php';
+    $html = ob_get_clean();
+
+    // Contar total
+    $total = $query->found_posts;
+
+    wp_send_json_success([
+        'html' => $html,
+        'fragments' => [
+            '.contador-resultados' => "<span>{$total} resultados</span>",
+            '.info-filtros' => generar_info_filtros_activos($args)
+        ]
+    ]);
+}
+```
+
+### Template de Resultados
+```php
+<!-- templates/resultado-filtros.php -->
+<div class="gloryDataGridContenedor">
+    <table>
+        <thead>
+            <tr>
+                <th><input type="checkbox" class="gloryGridSelectAll"></th>
+                <th class="columnaOrdenable">
+                    <a href="?orderby=title&order=asc">Título</a>
+                </th>
+                <th class="columnaOrdenable">
+                    <a href="?orderby=date&order=desc">Fecha</a>
+                </th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php while ($query->have_posts()) : $query->the_post(); ?>
+                <tr>
+                    <td>
+                        <input type="checkbox" class="gloryGridSelect" value="<?php the_ID(); ?>">
+                    </td>
+                    <td><?php the_title(); ?></td>
+                    <td><?php echo get_the_date(); ?></td>
+                    <td>
+                        <a href="<?php echo get_edit_post_link(); ?>">Editar</a>
+                    </td>
+                </tr>
+            <?php endwhile; ?>
+        </tbody>
+    </table>
+
+    <!-- Paginación -->
+    <div class="gloryPaginacion">
+        <?php
+        echo paginate_links([
+            'total' => $query->max_num_pages,
+            'current' => $paged,
+            'format' => '?paged=%#%',
+            'add_args' => ['orderby' => $orderby, 'order' => $order],
+            'before_page_number' => '<a href="#" data-page="',
+            'after_page_number' => '">'
+        ]);
+        ?>
+    </div>
+
+    <!-- Acciones masivas -->
+    <div class="gloryDataGridAccionesMasivas">
+        <select class="gloryGridBulkSelect">
+            <option value="">Acciones masivas</option>
+            <option value="delete"
+                    data-ajax-action="bulk_delete_posts"
+                    data-confirm="¿Eliminar los posts seleccionados?">
+                Eliminar seleccionados
+            </option>
+            <option value="draft"
+                    data-ajax-action="bulk_draft_posts">
+                Cambiar a borrador
+            </option>
+        </select>
+        <button class="gloryGridBulkApply">Aplicar</button>
+    </div>
+</div>
+```
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Filtros no funcionan**: Verificar `data-glory-filters="ajax"` y `data-ajax-action`
+2. **Ordenamiento no responde**: Revisar clase `.columnaOrdenable` y estructura de URLs
+3. **Paginación falla**: Verificar atributo `data-page` en enlaces
+4. **Acciones masivas no aparecen**: Revisar clases `.gloryGridBulkSelect` y `.gloryGridBulkApply`
+
+### Debug
+```javascript
+// Verificar inicialización
+console.log('Filtros inicializados:', window.__gloryFiltersHandlersAttached);
+
+// Verificar formularios encontrados
+console.log('Formularios AJAX:', document.querySelectorAll('form[data-glory-filters="ajax"]').length);
+
+// Verificar contenedores
+console.log('Data grids:', document.querySelectorAll('.gloryDataGridContenedor').length);
+
+// Debug de serialización
+const form = document.querySelector('form[data-glory-filters="ajax"]');
+if (form) {
+    console.log('Datos del formulario:', serializeForm(form));
+}
+```
+
+### Verificación de Handler AJAX
+```php
+// Añadir logging al handler
+function manejar_filtros_ajax() {
+    error_log('Filtros AJAX - Datos recibidos: ' . print_r($_POST, true));
+
+    // Procesar...
+
+    error_log('Filtros AJAX - Enviando respuesta: ' . print_r($response, true));
+    wp_send_json_success($response);
+}
+```
+
+## 📊 Rendimiento
+
+- **Debounce**: Previene requests excesivos en escritura
+- **Fragments**: Actualización selectiva, no de toda la página
+- **Cache**: Respuestas AJAX pueden cachearse
+- **Lazy loading**: Compatible con carga diferida de imágenes
+- **Memory management**: Limpieza automática de timeouts
+
+## 🔄 Compatibilidad
+
+- ✅ **WordPress**: Integración completa con admin-ajax.php
+- ✅ **jQuery**: Fallback para entornos legacy
+- ✅ **Fetch API**: Modern browsers sin jQuery
+- ✅ **Promises**: Manejo asíncrono consistente
+- ✅ **Fragments**: Actualización selectiva de DOM
+- ✅ **Event delegation**: Un solo listener global
+- ✅ **Progressive enhancement**: Funciona sin JavaScript (form normal)

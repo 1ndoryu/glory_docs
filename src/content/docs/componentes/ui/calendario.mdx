@@ -1,0 +1,477 @@
+---
+title: Componente Calendario
+description: Calendario interactivo con navegación mensual, selección de fechas y gestión de contexto
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Componente Calendario (`gloryCalendario.js`)
+
+Calendario interactivo agnóstico que proporciona selección de fechas con navegación mensual, marcado de fechas especiales y gestión contextual de selección.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Disparador básico -->
+<button class="gloryCalendario" data-target="#fecha-display" data-target-input="#fecha-input">
+    Seleccionar Fecha
+</button>
+
+<!-- Elementos destino -->
+<span id="fecha-display">-</span>
+<input type="hidden" id="fecha-input" name="fecha_seleccionada">
+```
+
+```javascript
+// Auto-inicialización automática
+// O inicialización manual
+gloryCalendario.init({
+    triggerSelector: '.mi-calendario',
+    onSelect: function(fechaISO, contexto) {
+        console.log('Fecha seleccionada:', fechaISO);
+    }
+});
+```
+
+## 📋 Funcionalidades
+
+### Características Principales
+- **Navegación mensual**: Botones anterior/siguiente mes
+- **Selección visual**: Clic en días para seleccionar fechas
+- **Marcado automático**: Día actual y fecha seleccionada destacados
+- **Posicionamiento dinámico**: Aparece junto al elemento disparador
+- **Cierre automático**: Click fuera para cerrar
+- **Manejo contextual**: Soporte para diferentes tipos de fecha
+
+### Elementos de Interfaz
+- **Navegación**: Mes/Año actual con botones prev/next
+- **Días de semana**: Cabecera con nombres de días
+- **Días del mes**: Celdas interactivas con números
+- **Acciones**: Botones "Hoy" y "Borrar"
+- **Input oculto**: Para compatibilidad con formularios
+
+## 🎨 Estructura HTML Generada
+
+### Contenedor Principal
+```html
+<div id="calCont" class="calCont" style="display: none; position: absolute; z-index: 1001;">
+    <!-- Navegación -->
+    <div class="calNav">
+        <button id="calPrev" class="calNavBtn">‹</button>
+        <span id="calMesAnio" class="calMesAnio">Enero 2024</span>
+        <button id="calNext" class="calNavBtn">›</button>
+    </div>
+
+    <!-- Tabla del calendario -->
+    <table class="calTabla">
+        <thead>
+            <tr id="calDiasSemana">
+                <th>L</th><th>M</th><th>M</th><th>J</th><th>V</th><th>S</th><th>D</th>
+            </tr>
+        </thead>
+        <tbody id="calBody" class="calBody">
+            <!-- Filas de días generadas dinámicamente -->
+        </tbody>
+    </table>
+
+    <!-- Acciones -->
+    <div class="calAcciones">
+        <button id="calHoyBtn" class="calBtnAccion">Hoy</button>
+        <button id="calBorrarBtn" class="calBtnAccion">Borrar</button>
+    </div>
+
+    <!-- Input auxiliar -->
+    <input type="date" id="inputFechaLimite" style="display: none;">
+</div>
+```
+
+## 🔧 Configuración y Atributos
+
+### Disparadores Automáticos
+```html
+<!-- Clase por defecto -->
+<button class="gloryCalendario">Seleccionar Fecha</button>
+
+<!-- Selector personalizado -->
+<button class="mi-calendario">Fecha Límite</button>
+```
+
+### Atributos de Configuración
+
+#### data-target
+Elemento donde mostrar la fecha seleccionada (texto visible).
+
+```html
+<button class="gloryCalendario" data-target="#fecha-display">
+    Seleccionar
+</button>
+<span id="fecha-display">-</span>
+```
+
+#### data-target-input
+Campo input donde guardar la fecha (valor del formulario).
+
+```html
+<button class="gloryCalendario" data-target-input="#fecha-input">
+    Seleccionar
+</button>
+<input type="hidden" id="fecha-input" name="fecha">
+```
+
+#### data-fechalimite
+Fecha inicial para mostrar en el calendario.
+
+```html
+<button class="gloryCalendario" data-fechalimite="2024-03-15">
+    Cambiar Fecha
+</button>
+```
+
+#### data-tipofecha
+Tipo de fecha (para contextos específicos).
+
+```html
+<button class="gloryCalendario" data-tipofecha="limite">
+    Fecha Límite
+</button>
+```
+
+## 📝 API Técnica
+
+### Inicialización
+
+#### `gloryCalendario.init(options)`
+Inicializa el calendario con opciones personalizadas.
+
+```javascript
+gloryCalendario.init({
+    triggerSelector: '.mi-calendario',     // Selector de disparadores
+    tipoFecha: 'limite',                   // Tipo de fecha por defecto
+    fechaLimiteValor: '2024-01-01',        // Fecha inicial
+    onSelect: function(fechaISO, contexto) {
+        // Callback al seleccionar fecha
+        console.log('Seleccionada:', fechaISO);
+    }
+});
+```
+
+### Métodos Públicos
+
+#### `gloryCalendario.mostrar(elementoRef, fechaActualISO)`
+Muestra el calendario junto a un elemento específico.
+
+```javascript
+const boton = document.querySelector('#mi-boton');
+gloryCalendario.mostrar(boton, '2024-06-15');
+```
+
+#### `gloryCalendario.ocultar()`
+Oculta el calendario.
+
+```javascript
+gloryCalendario.ocultar();
+```
+
+#### `gloryCalendario.render()`
+Re-renderiza el calendario actual.
+
+```javascript
+gloryCalendario.render();
+```
+
+## 🎯 Estados y Clases CSS
+
+### Clases del Calendario
+- **`.calCont`**: Contenedor principal
+- **`.calNav`**: Barra de navegación mes/año
+- **`.calNavBtn`**: Botones anterior/siguiente
+- **`.calMesAnio`**: Display de mes y año actual
+- **`.calTabla`**: Tabla del calendario
+- **`.calBody`**: Cuerpo con los días
+- **`.calAcciones`**: Contenedor de botones de acción
+- **`.calBtnAccion`**: Botones Hoy/Borrar
+
+### Clases de Días
+- **`.calDia`**: Celda individual de día
+- **`.calDiaNum`**: Número del día
+- **`.calDiaHoy`**: Día actual (hoy)
+- **`.calDiaSel`**: Día seleccionado
+- **`.calDiaFuera`**: Días fuera del mes actual
+
+## 🔄 Callback de Selección
+
+### Función onSelect
+Se ejecuta cuando se selecciona una fecha.
+
+```javascript
+function onSelect(fechaISO, contexto) {
+    // fechaISO: '2024-03-15' o null (si se borra)
+    // contexto: objeto con información contextual
+
+    if (fechaISO) {
+        console.log('Fecha seleccionada:', fechaISO);
+    } else {
+        console.log('Fecha borrada');
+    }
+}
+```
+
+### Contexto Disponible
+```javascript
+{
+    elementoDisparador: HTMLElement,    // Elemento que abrió el calendario
+    tipoFecha: 'limite',               // Tipo de fecha
+    fechaLimiteValor: string,          // Valor actual
+    esParaTareaEspecifica: boolean,    // Para usos específicos
+    // ... otros campos según contexto
+}
+```
+
+## 🎨 Personalización CSS
+
+### Estilos Básicos
+```css
+.calCont {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-family: Arial, sans-serif;
+    min-width: 280px;
+}
+
+.calNav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.calNavBtn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.calNavBtn:hover {
+    background: #f5f5f5;
+}
+
+.calTabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.calDia {
+    width: 36px;
+    height: 36px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calDia:hover {
+    background: #f0f0f0;
+}
+
+.calDiaHoy {
+    background: #e3f2fd;
+    font-weight: bold;
+}
+
+.calDiaSel {
+    background: #2196f3;
+    color: white;
+}
+
+.calDiaFuera {
+    color: #ccc;
+    cursor: default;
+}
+
+.calAcciones {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-top: 1px solid #eee;
+}
+
+.calBtnAccion {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.calBtnAccion:hover {
+    background: #f5f5f5;
+}
+```
+
+### Tema Oscuro
+```css
+/* Tema oscuro */
+.calCont.dark {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+.calCont.dark .calDia:hover {
+    background: #4a5568;
+}
+
+.calCont.dark .calDiaHoy {
+    background: #2b6cb0;
+}
+
+.calCont.dark .calDiaSel {
+    background: #3182ce;
+}
+```
+
+## 🎯 Casos de Uso
+
+### Formulario Básico
+```html
+<form>
+    <label>Fecha de nacimiento:</label>
+    <button class="gloryCalendario"
+            data-target="#fecha-nacimiento-display"
+            data-target-input="#fecha-nacimiento">
+        Seleccionar Fecha
+    </button>
+    <span id="fecha-nacimiento-display">-</span>
+    <input type="hidden" id="fecha-nacimiento" name="fecha_nacimiento">
+</form>
+```
+
+### Calendario con Fecha Inicial
+```html
+<div class="form-group">
+    <label>Fecha límite:</label>
+    <button class="gloryCalendario"
+            data-fechalimite="2024-12-31"
+            data-target="#limite-display"
+            data-target-input="#limite-input">
+        Cambiar Límite
+    </button>
+    <span id="limite-display">2024-12-31</span>
+    <input type="hidden" id="limite-input" name="fecha_limite" value="2024-12-31">
+</div>
+```
+
+### Con Callback Personalizado
+```javascript
+gloryCalendario.init({
+    triggerSelector: '.fecha-picker',
+    onSelect: function(fechaISO, contexto) {
+        const trigger = contexto.elementoDisparador;
+
+        // Actualizar display
+        const displayEl = document.querySelector(trigger.dataset.target);
+        if (displayEl) {
+            displayEl.textContent = fechaISO ?
+                new Date(fechaISO).toLocaleDateString('es-ES') : '-';
+        }
+
+        // Actualizar input
+        const inputEl = document.querySelector(trigger.dataset.targetInput);
+        if (inputEl) {
+            inputEl.value = fechaISO || '';
+        }
+
+        // Validación adicional
+        if (fechaISO) {
+            const fecha = new Date(fechaISO);
+            const hoy = new Date();
+            if (fecha < hoy) {
+                alert('La fecha no puede ser anterior a hoy');
+                return false;
+            }
+        }
+
+        // Disparar evento personalizado
+        trigger.dispatchEvent(new CustomEvent('fechaCambiada', {
+            detail: { fecha: fechaISO, contexto: contexto }
+        }));
+    }
+});
+```
+
+### Integración con Sistema de Tareas
+```javascript
+// Para contextos específicos (ej: tareas)
+contextoCalendario.esParaTareaEspecifica = true;
+contextoCalendario.idTarea = 'tarea-123';
+contextoCalendario.elementoLiTarea = elementoTarea;
+
+// El calendario puede manejar diferentes tipos de fecha por tarea
+contextoCalendario.tipoFecha = 'proxima'; // o 'limite'
+```
+
+## 🔄 Eventos
+
+### Eventos del DOM
+- **Click en disparador**: Abre/cierra calendario
+- **Click fuera**: Cierra calendario
+- **Click en día**: Selecciona fecha y cierra
+- **Click en navegación**: Cambia mes
+- **Click en "Hoy"**: Selecciona fecha actual
+- **Click en "Borrar"**: Limpia selección
+
+### Integración con Eventos Personalizados
+```javascript
+// El calendario se reinicializa en gloryRecarga
+document.addEventListener('gloryRecarga', function() {
+    // Los handlers se mantienen automáticamente
+});
+```
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Calendario no aparece**: Verificar que el elemento disparador tenga la clase correcta
+2. **Fechas no se guardan**: Revisar atributos `data-target` y `data-target-input`
+3. **Posicionamiento incorrecto**: Verificar que el contenedor padre tenga `position: relative`
+4. **Callback no funciona**: Revisar sintaxis de la función `onSelect`
+
+### Debug
+```javascript
+// Verificar inicialización
+console.log('Calendario disponible:', typeof window.gloryCalendario);
+
+// Verificar elementos
+console.log('Disparadores encontrados:', document.querySelectorAll('.gloryCalendario').length);
+console.log('Contenedor calendario:', document.getElementById('calCont'));
+
+// Forzar renderizado
+if (window.gloryCalendario) {
+    window.gloryCalendario.render();
+}
+```
+
+## 📊 Rendimiento
+
+- **Inicialización lazy**: Solo crea estructura cuando es necesario
+- **Reutilización de DOM**: Mantiene elementos entre aperturas
+- **Event delegation**: Un solo listener global para clicks
+- **Memory safe**: Limpieza automática de referencias
+
+## 🔄 Compatibilidad
+
+- ✅ **Modern Browsers**: ES6+, Date API, DOM manipulation
+- ✅ **Legacy**: Funciona con polyfills para métodos modernos
+- ✅ **Mobile**: Responsive y touch-friendly
+- ✅ **WordPress**: Integración completa con themes
+- ✅ **Frameworks**: Agnóstico, funciona con cualquier estructura
+- ✅ **Accessibility**: Soporte básico para navegación por teclado
+- ✅ **Internationalization**: Nombres de meses en español (configurable)

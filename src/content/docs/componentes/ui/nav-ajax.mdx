@@ -1,0 +1,393 @@
+---
+title: Sistema de Navegación AJAX
+description: Navegación asíncrona con prefetching inteligente, cache avanzado y gestión de assets
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Navegación AJAX (`gloryAjaxNav.js`)
+
+Sistema avanzado de navegación AJAX que proporciona transiciones de página fluidas, prefetching inteligente, cache avanzado y gestión automática de assets, manteniendo el framework completamente agnóstico.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Estructura HTML requerida -->
+<div id="content">
+    <!-- Contenido principal de la página -->
+</div>
+
+<div id="loadingBar" style="position: fixed; top: 0; left: 0; height: 3px; background: #007cba; width: 0%; z-index: 9999;"></div>
+```
+
+```javascript
+// Configuración opcional (antes de cargar el script)
+window.gloryNavConfig = {
+    contentSelector: '#content',
+    prefetchOnHover: true,
+    cacheEnabled: true
+};
+```
+
+```html
+<!-- El script se inicializa automáticamente -->
+<script src="Glory/assets/js/genericAjax/gloryAjaxNav.js"></script>
+```
+
+## 📋 Funcionalidades
+
+### Navegación AJAX Inteligente
+- **Detección automática**: Convierte enlaces internos en navegación AJAX
+- **Fallback completo**: Navegación normal si AJAX falla
+- **Manejo de errores**: Timeout y recuperación automática
+- **Historia del navegador**: Soporte completo para back/forward
+
+### Sistema de Cache Avanzado
+- **Cache inteligente**: Basado en URL y parámetros de consulta
+- **Persistencia de sesión**: Cache válido durante la sesión del navegador
+- **Reutilización de nodos**: Evita re-renderizado innecesario
+- **Scripts del head**: Cache de scripts críticos de configuración
+
+### Prefetching Inteligente
+- **Hover prefetching**: Carga anticipada al pasar el mouse
+- **Viewport prefetching**: Carga cuando los enlaces entran en vista
+- **Control de concurrencia**: Límite de peticiones simultáneas
+- **Deduplicación**: Evita prefetch duplicado
+
+### Gestión de Assets
+- **Carga automática**: Scripts y estilos externos de páginas nuevas
+- **Ejecución secuencial**: Mantiene dependencias y orden
+- **Detección de duplicados**: Evita cargar assets ya presentes
+- **Scripts críticos**: Extracción y ejecución de configuración
+
+## 🔧 Configuración
+
+### Configuración por Defecto
+```javascript
+const defaults = {
+    enabled: true,                    // Habilitar/deshabilitar AJAX
+    contentSelector: '#content',      // Selector del contenido principal
+    mainScrollSelector: '#main',      // Elemento para hacer scroll al top
+    loadingBarSelector: '#loadingBar', // Barra de progreso
+    cacheEnabled: true,              // Habilitar cache
+    prefetchOnHover: true,           // Prefetch en hover/mousedown
+    prefetchDelayMs: 50,             // Retraso para prefetch
+    prefetchInViewport: false,       // Prefetch por visibilidad
+    prefetchMaxEntries: 24,          // Límite de entradas prefetch
+    requestTimeoutMs: 10000,         // Timeout para requests
+    optimizeImages: true,            // Lazy loading en imágenes
+    allowAsyncExternalScripts: true, // Permitir carga async de scripts
+    ignoreUrlPatterns: [...],        // Patrones de URL a ignorar
+    ignoreUrlParams: ['s', 'nocache'], // Parámetros que evitan cache
+    noAjaxClass: 'noAjax',           // Clase para deshabilitar AJAX
+    criticalScriptKeywords: [],      // Keywords para scripts críticos
+    syncHeadSeo: false,              // Sincronizar meta tags SEO
+    headSeoConfig: {...},            // Config SEO
+    skipInlineScriptTypes: [...],    // Tipos de scripts a saltar
+    skipInlineScriptSelectors: [],   // Selectores de scripts a saltar
+    shouldSkipAjax: null,            // Hook personalizado para skip
+    shouldAbortInit: null            // Hook para abortar inicialización
+};
+```
+
+### Configuración Personalizada
+```javascript
+// Configuración global
+window.gloryNavConfig = {
+    contentSelector: '.main-content',
+    loadingBarSelector: '.progress-bar',
+    prefetchOnHover: false,
+    prefetchInViewport: true,
+    criticalScriptKeywords: ['appConfig', 'siteVars'],
+    ignoreUrlPatterns: [
+        '/wp-admin',
+        '/api/',
+        '\\.(pdf|jpg|png)$'
+    ]
+};
+
+// O configuración local
+window.dataGlobal = { /* misma estructura */ };
+```
+
+## 🎨 Funcionalidades Detalladas
+
+### Detección de URLs a Procesar
+
+#### URLs que se procesan con AJAX
+```javascript
+// ✅ Se procesan automáticamente:
+// - Enlaces internos del mismo dominio
+// - URLs relativas
+// - Páginas HTML válidas
+```
+
+#### URLs que se ignoran
+```javascript
+// ❌ Navegación normal del navegador:
+// - Enlaces externos (diferente dominio)
+// - target="_blank"
+// - download attribute
+// - Modifiers keys (Ctrl, Shift, Alt)
+// - Patrones configurados (wp-admin, archivos, etc.)
+```
+
+### Sistema de Cache
+
+#### Cache Automático
+```javascript
+// El cache se activa automáticamente para URLs válidas
+// Se guarda: contenido HTML, scripts del head, nodos DOM
+const pageCache = {
+    'https://example.com/page': {
+        content: '<div>Contenido...</div>',
+        headScripts: ['script crítico...'],
+        nodeChildren: [/* nodos DOM */]
+    }
+};
+```
+
+#### Parámetros que Evitan Cache
+```javascript
+// URLs con estos parámetros no se cachean:
+ignoreUrlParams: ['s', 'nocache', 'preview', 'debug']
+// Ejemplo: /page?s=searchterm (no se cachea)
+```
+
+### Prefetching Avanzado
+
+#### Hover Prefetching
+```javascript
+// Se activa en eventos:
+// - mouseover
+// - mousedown
+// - focusin
+// Con retraso configurable (50ms por defecto)
+```
+
+#### Viewport Prefetching
+```javascript
+// Usa IntersectionObserver para detectar enlaces visibles
+// Margen de 200px para prefetch anticipado
+// Límite máximo configurable (24 enlaces por defecto)
+```
+
+### Gestión de Scripts
+
+#### Scripts Inline
+```javascript
+// Se ejecutan automáticamente del contenido nuevo
+// Se salta JSON-LD y tipos configurados
+executeInlineScriptsFromElement(contentElement);
+```
+
+#### Scripts Externos
+```javascript
+// Carga secuencial por defecto
+// Soporte para async si está marcado
+// Detección de duplicados automática
+```
+
+#### Scripts Críticos del Head
+```javascript
+// Extracción basada en keywords
+criticalScriptKeywords: ['appConfig', 'fusionAppConfig']
+
+// Se ejecutan antes de otros assets
+// Se cachean para reutilización
+```
+
+## 🔄 Eventos y Estados
+
+### Evento `gloryRecarga`
+```javascript
+// Se dispara después de cada carga AJAX
+// Permite reinicializar componentes dinámicos
+document.addEventListener('gloryRecarga', () => {
+    // Reinicializar galerías, formularios, etc.
+    initGalleries();
+    initForms();
+});
+```
+
+### Estados de Carga
+```javascript
+// Estados visuales durante la carga:
+// 1. Opacidad del contenido: 0.5
+// 2. Barra de progreso: 0% → 70% → 100%
+// 3. Fade out de la barra después de completar
+```
+
+### Manejo del Historial
+```javascript
+// PushState para nuevas páginas
+history.pushState({url: newUrl}, '', newUrl);
+
+// PopState para navegación back/forward
+window.addEventListener('popstate', handlePopState);
+```
+
+## 🎯 Características Avanzadas
+
+### Optimización de Imágenes
+```javascript
+// Automáticamente añade loading="lazy" a imágenes
+if (config.optimizeImages) {
+    contentElement.querySelectorAll('img:not([loading])')
+        .forEach(img => img.setAttribute('loading', 'lazy'));
+}
+```
+
+### Sincronización SEO
+```javascript
+// Opcional: sincroniza meta tags del head
+syncHeadSeo: true,
+headSeoConfig: {
+    canonicalSelector: 'link[rel="canonical"]',
+    metaSelectors: ['meta[name="description"]'],
+    jsonLdSelectors: ['script[type="application/ld+json"]']
+}
+```
+
+### Anclas Internas
+```javascript
+// Manejo especial para enlaces con hash
+// Scroll suave a elementos internos
+// Actualización de URL sin nueva entrada de historial
+```
+
+### Manejo de Errores
+```javascript
+// Fallback automático a navegación normal en:
+// - Errores de red
+// - Timeout
+// - Contenido no HTML
+// - Selectores no encontrados
+```
+
+## 🔧 Configuración Avanzada
+
+### Hooks Personalizados
+```javascript
+// Hook para decidir si saltar AJAX
+shouldSkipAjax: function(url, linkElement) {
+    // Lógica personalizada
+    return url.includes('/admin/');
+}
+
+// Hook para abortar inicialización
+shouldAbortInit: function() {
+    // Condiciones de abort
+    return window.isMobile && !config.enableMobileAjax;
+}
+```
+
+### Selectores Personalizados
+```javascript
+// Para temas con estructura diferente
+contentSelector: '.main-content-area',
+mainScrollSelector: '.scroll-container',
+loadingBarSelector: '.ajax-progress'
+```
+
+### Configuración de Assets
+```javascript
+// Control de carga de scripts externos
+allowAsyncExternalScripts: true, // Permitir async marcado
+// Scripts con data-glory-async o async="" se cargan en paralelo
+```
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **AJAX no se activa**: Verificar selectores y configuración
+2. **Cache no funciona**: Revisar parámetros de URL ignorados
+3. **Assets no cargan**: Verificar dependencias y orden
+4. **Scripts no ejecutan**: Revisar tipos saltados y keywords críticos
+
+### Debug
+```javascript
+// Habilitar logging detallado
+window.gloryDebug = true;
+
+// Verificar inicialización
+console.log('AJAX Nav initialized:', window.gloryAjaxNavInitialized);
+
+// Verificar cache
+console.log('Cache entries:', Object.keys(pageCache).length);
+
+// Verificar configuración
+console.log('Current config:', config);
+```
+
+### Verificación de Selectores
+```javascript
+// Verificar elementos requeridos existen
+const content = document.querySelector('#content');
+const loadingBar = document.querySelector('#loadingBar');
+
+if (!content) {
+    console.error('Content selector not found');
+}
+```
+
+## 📊 Performance
+
+- **Cache inteligente**: Reduce requests repetidas
+- **Prefetching**: Carga anticipada reduce latencia percibida
+- **Lazy loading**: Imágenes se cargan según necesidad
+- **Debouncing**: Eventos de scroll/throttle optimizados
+- **Memory management**: Limpieza automática de referencias
+
+## 🔄 Compatibilidad
+
+- ✅ **Modern Browsers**: Fetch API, History API, IntersectionObserver
+- ✅ **Legacy**: Fallback a navegación normal
+- ✅ **Mobile**: Touch events y responsive
+- ✅ **WordPress**: Integración completa con themes
+- ✅ **Frameworks**: Agnóstico, funciona con cualquier estructura
+- ✅ **SEO**: Preserva meta tags y estructura
+
+## 🎯 Casos de Uso
+
+### Tema WordPress Estándar
+```php
+// functions.php - configuración
+wp_enqueue_script('glory-ajax-nav', get_template_directory_uri() . '/Glory/assets/js/genericAjax/gloryAjaxNav.js', [], '1.0', true);
+
+wp_localize_script('glory-ajax-nav', 'gloryNavConfig', array(
+    'contentSelector' => '#content',
+    'prefetchOnHover' => true,
+    'criticalScriptKeywords' => array('appConfig', 'themeConfig')
+));
+```
+
+### SPA-like con WordPress
+```javascript
+// Configuración avanzada
+window.gloryNavConfig = {
+    contentSelector: '.main-content',
+    prefetchInViewport: true,
+    syncHeadSeo: true,
+    headSeoConfig: {
+        canonicalSelector: 'link[rel="canonical"]',
+        metaSelectors: ['meta[name="description"]', 'meta[property="og:title"]']
+    },
+    shouldSkipAjax: function(url) {
+        return url.includes('/wp-admin/') || url.includes('/wp-login.php');
+    }
+};
+```
+
+### Optimización para E-commerce
+```javascript
+// Configuración para tienda online
+window.gloryNavConfig = {
+    prefetchMaxEntries: 50, // Más prefetch para navegación de producto
+    ignoreUrlParams: ['utm_source', 'utm_medium', 'session_id'],
+    criticalScriptKeywords: ['cartConfig', 'productData'],
+    optimizeImages: true,
+    allowAsyncExternalScripts: true
+};
+```

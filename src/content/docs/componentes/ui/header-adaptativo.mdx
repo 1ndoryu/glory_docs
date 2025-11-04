@@ -1,0 +1,470 @@
+---
+title: Header Adaptativo
+description: Sistema inteligente de adaptación de headers con contraste automático y menú móvil responsive
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Header Adaptativo (`adaptiveHeader.js`)
+
+Sistema avanzado que adapta automáticamente el contraste del header basado en el contenido detrás de él, además de proporcionar funcionalidad completa de menú móvil con animaciones GSAP.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Estructura HTML requerida -->
+<header class="siteMenuW">
+    <div class="siteMenuLogo">
+        <a href="/">
+            <img src="logo.png" alt="Logo">
+        </a>
+    </div>
+    <nav class="siteMenuNav">
+        <div class="navTitle">Menú</div>
+        <ul class="menu">
+            <li><a href="/">Inicio</a></li>
+            <li class="menu-item-has-children">
+                <a href="#">Servicios</a>
+                <ul class="sub-menu">
+                    <li><a href="/servicio1">Servicio 1</a></li>
+                    <li><a href="/servicio2">Servicio 2</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+    <button class="burger">☰</button>
+</header>
+
+<div class="background"></div>
+```
+
+```javascript
+// Se inicializa automáticamente en DOMContentLoaded y gloryRecarga
+// No requiere configuración manual adicional
+```
+
+## 📋 Funcionalidades
+
+### Sistema de Contraste Automático
+- **Análisis de luminancia**: Mide el brillo del contenido detrás del header
+- **Adaptación inteligente**: Cambia colores según umbral de contraste
+- **Elementos afectados**: Logo, texto de navegación, íconos
+- **Performance optimizada**: Usa `requestAnimationFrame` para suavidad
+
+### Menú Móvil Completo
+- **Animaciones GSAP**: Transiciones suaves y profesionales
+- **Toggle de submenús**: Expansión/colapso con tap
+- **Escape handling**: Cierre con tecla Escape
+- **Background overlay**: Fondo oscuro durante menú abierto
+- **Responsive**: Solo activo en pantallas < 1000px
+
+## 🎨 Estructura HTML Detallada
+
+### Header Principal
+```html
+<header class="siteMenuW">
+    <!-- Logo adaptable -->
+    <div class="siteMenuLogo">
+        <a href="/">
+            <img src="logo.png" alt="Logo">
+            <!-- O texto si no hay imagen -->
+            <!-- <span>Mi Sitio</span> -->
+        </a>
+    </div>
+
+    <!-- Navegación principal -->
+    <nav class="siteMenuNav">
+        <div class="navTitle">Menú Principal</div>
+        <ul class="menu">
+            <li><a href="/">Inicio</a></li>
+            <li><a href="/about">Nosotros</a></li>
+            <li class="menu-item-has-children">
+                <a href="#">Servicios</a>
+                <ul class="sub-menu">
+                    <li><a href="/servicio1">Servicio 1</a></li>
+                    <li><a href="/servicio2">Servicio 2</a></li>
+                </ul>
+            </li>
+            <li><a href="/contacto">Contacto</a></li>
+        </ul>
+    </nav>
+
+    <!-- Botón hamburguesa -->
+    <button class="burger" aria-label="Abrir menú">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+</header>
+```
+
+### Elementos de Overlay
+```html
+<!-- Fondo oscuro para menú móvil -->
+<div class="background"></div>
+```
+
+## 🔧 Configuración y Selectores
+
+### Selectores Principales
+```javascript
+const headerSelector = '.siteMenuW';          // Contenedor principal
+const classToToggle = 'has-dark-background';  // Clase para contraste oscuro
+const LUMINANCE_THRESHOLD = 140;             // Umbral de luminancia (0-255)
+```
+
+### Elementos Analizados
+- **Texto de navegación**: `.siteMenuNav a`
+- **Logo**: `.siteMenuLogo a`
+- **Imágenes del logo**: `.siteMenuLogo img`
+- **SVGs del logo**: `.siteMenuLogo svg`
+
+## 📝 API Técnica
+
+### Funciones Principales
+
+#### `gloryAdaptiveHeader()`
+Inicializa el sistema de adaptación del header.
+
+```javascript
+// Se ejecuta automáticamente
+// Verificación de inicialización múltiple
+if (header.dataset.adaptiveHeaderInitialized) return;
+```
+
+#### `gloryMenu()`
+Inicializa la funcionalidad del menú móvil.
+
+```javascript
+// Se ejecuta automáticamente en DOMContentLoaded y load
+// Previene múltiples inicializaciones
+if (header.dataset.menuInitialized) return;
+```
+
+### Sistema de Luminancia
+
+#### `getLuminance(r, g, b)`
+Calcula la luminancia percibida de un color RGB.
+
+```javascript
+// Fórmula estándar de luminancia
+// (r * 299 + g * 587 + b * 114) / 1000
+function getLuminance(r, g, b) {
+    return (r * 299 + g * 587 + b * 114) / 1000;
+}
+```
+
+#### `getBackgroundColorAtPoint(x, y)`
+Obtiene el color de fondo en una coordenada específica.
+
+```javascript
+// Usa elementFromPoint para análisis preciso
+// Ignora el header mismo para análisis correcto
+function getBackgroundColorAtPoint(x, y) {
+    // Implementación que evita interferencias del header
+}
+```
+
+## 🎯 Lógica de Adaptación
+
+### Umbral de Contraste
+```javascript
+const LUMINANCE_THRESHOLD = 140; // Ajustable según necesidades
+
+// Si luminancia promedio < 140 → fondo oscuro detectado
+// Se activa clase 'has-dark-background' y filtros de inversión
+```
+
+### Adaptaciones Aplicadas
+
+#### Para Fondos Oscuros
+```css
+/* Clase añadida automáticamente */
+.has-dark-background {
+    /* Estilos para header sobre fondo oscuro */
+}
+
+/* Filtros aplicados a elementos del logo */
+.siteMenuLogo img {
+    filter: brightness(0) invert(1); /* Blanco */
+}
+
+.siteMenuLogo svg {
+    filter: invert(1); /* Inversión de colores */
+}
+
+.siteMenuLogo a {
+    color: #FFFFFF; /* Texto blanco si es texto */
+}
+```
+
+#### Para Fondos Claros
+```css
+/* Filtros removidos automáticamente */
+.siteMenuLogo img {
+    filter: none;
+}
+
+.siteMenuLogo svg {
+    filter: none;
+}
+
+.siteMenuLogo a {
+    color: ''; /* Color original */
+}
+```
+
+## 📱 Funcionalidad Móvil
+
+### Animaciones GSAP
+- **Entrada**: `yPercent: 0, autoAlpha: 1` con `expo.inOut`
+- **Salida**: `yPercent: -100, autoAlpha: 0` con `expo.inOut`
+- **Stagger**: Elementos aparecen con delay progresivo
+
+### Estados del Menú
+```javascript
+let isMenuOpen = false; // Estado global
+
+// Clases aplicadas:
+// - .open en header
+// - .menu-open en body
+```
+
+### Comportamiento de Submenús
+```javascript
+// En móvil: tap en item padre togglea submenú
+// Evita navegación a la URL del padre
+// Solo un submenú abierto a la vez
+```
+
+## 🔄 Eventos y Disparadores
+
+### Eventos de Inicialización
+```javascript
+// Múltiples puntos de entrada para compatibilidad
+document.addEventListener('DOMContentLoaded', init);
+window.addEventListener('load', init);
+document.addEventListener('gloryRecarga', init);
+```
+
+### Eventos de Interacción
+```javascript
+// Click en burger
+burger.addEventListener('click', toggleMenu);
+
+// Click en background
+background.addEventListener('click', closeMenu);
+
+// Tecla Escape
+window.addEventListener('keyup', (e) => {
+    if (e.key === 'Escape') closeMenu();
+});
+```
+
+### Eventos de Adaptación
+```javascript
+// Scroll y resize con throttling
+window.addEventListener('scroll', onScrollOrResize, {passive: true});
+window.addEventListener('resize', onScrollOrResize, {passive: true});
+
+// MutationObserver para cambios en contenido
+observer.observe(mainContent, {childList: true, subtree: true});
+```
+
+## 🎨 Personalización CSS
+
+### Estilos Base del Header
+```css
+.siteMenuW {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+/* Estado normal */
+.siteMenuW:not(.has-dark-background) {
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+}
+
+/* Estado sobre fondo oscuro */
+.siteMenuW.has-dark-background {
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    backdrop-filter: blur(10px);
+}
+```
+
+### Estilos del Menú Móvil
+```css
+/* Burger button */
+.burger {
+    display: none; /* Mostrar solo en móvil */
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+@media (max-width: 999px) {
+    .burger {
+        display: block;
+    }
+
+    .siteMenuNav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(20px);
+    }
+}
+
+/* Background overlay */
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.background.active {
+    opacity: 1;
+    visibility: visible;
+}
+```
+
+### Animaciones Personalizadas
+```css
+/* Submenús móviles */
+.menu-item-has-children.open > .sub-menu {
+    max-height: 500px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.menu-item-has-children > .sub-menu {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+}
+```
+
+## 🔧 Configuración Avanzada
+
+### Ajuste del Umbral
+```javascript
+// Modificar el umbral según el diseño
+const LUMINANCE_THRESHOLD = 160; // Más sensible a fondos claros
+// o
+const LUMINANCE_THRESHOLD = 120; // Más sensible a fondos oscuros
+```
+
+### Selectores Personalizados
+```javascript
+// Para temas personalizados
+const headerSelector = '.mi-header-personalizado';
+const textElementsSelector = '.mi-nav a, .mi-logo';
+```
+
+### Performance Tuning
+```javascript
+// Ajustar frecuencia de análisis
+const ANALYSIS_INTERVAL = 100; // ms entre análisis
+
+// Modo debug
+const DEBUG_MODE = true; // Log detallado de análisis
+```
+
+## 🎯 Casos de Uso
+
+### Header Transparente
+```html
+<header class="siteMenuW transparent">
+    <!-- Logo e navegación -->
+</header>
+
+<section class="hero-dark">
+    <!-- Contenido oscuro - header se adaptará -->
+</section>
+
+<section class="hero-light">
+    <!-- Contenido claro - header se adaptará -->
+</section>
+```
+
+### Menú Multi-nivel Complejo
+```html
+<nav class="siteMenuNav">
+    <ul class="menu">
+        <li><a href="/">Inicio</a></li>
+        <li class="menu-item-has-children">
+            <a href="#">Productos</a>
+            <ul class="sub-menu">
+                <li><a href="/productos/categoria1">Categoría 1</a></li>
+                <li class="menu-item-has-children">
+                    <a href="/productos/categoria2">Categoría 2</a>
+                    <ul class="sub-menu">
+                        <li><a href="/productos/subcat1">Subcategoría 1</a></li>
+                        <li><a href="/productos/subcat2">Subcategoría 2</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</nav>
+```
+
+## 🐛 Solución de Problemas
+
+### Problemas de Contraste
+
+1. **Adaptación no funciona**: Verificar elementos con clase correcta `.siteMenuW`
+2. **Análisis incorrecto**: Revisar que elementos de texto tengan las clases esperadas
+3. **Performance lento**: Reducir frecuencia de análisis o simplificar selectores
+
+### Problemas de Menú Móvil
+
+1. **Animaciones no funcionan**: Verificar que GSAP esté cargado
+2. **Submenús no togglean**: Revisar estructura HTML correcta con `.menu-item-has-children`
+3. **Burger no aparece**: Verificar media query `@media (max-width: 999px)`
+
+### Debug
+```javascript
+// Habilitar análisis detallado
+window.gloryDebug = true;
+
+// Verificar inicialización
+console.log('Header adaptativo:', document.querySelector('.siteMenuW').dataset.adaptiveHeaderInitialized);
+console.log('Menú móvil:', document.querySelector('.siteMenuW').dataset.menuInitialized);
+
+// Forzar análisis manual
+gloryAdaptiveHeader();
+```
+
+## 📊 Performance
+
+- **Throttling**: `requestAnimationFrame` para análisis de contraste
+- **Lazy initialization**: Solo se ejecuta si existen elementos requeridos
+- **MutationObserver**: Monitoreo eficiente de cambios en DOM
+- **Event delegation**: Mínimos event listeners
+- **Memory safe**: Prevención de inicializaciones múltiples
+
+## 🔄 Compatibilidad
+
+- ✅ **Modern Browsers**: ES6+, getComputedStyle, MutationObserver
+- ✅ **GSAP**: Requiere GreenSock Animation Platform
+- ✅ **Mobile**: Touch events y responsive design
+- ✅ **WordPress**: Integración completa con themes
+- ✅ **Progressive Enhancement**: Funciona sin JavaScript (menú básico)
+- ✅ **Accessibility**: Soporte básico para navegación por teclado

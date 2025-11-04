@@ -1,0 +1,474 @@
+---
+title: Sistema de Submenús
+description: Menús contextuales con activación múltiple, posicionamiento inteligente y soporte táctil
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Submenús (`submenus.js`)
+
+Sistema avanzado de menús contextuales que proporciona múltiples formas de activación, posicionamiento inteligente y soporte completo para dispositivos táctiles.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Botón disparador -->
+<button data-submenu="mi-menu">Abrir Menú</button>
+
+<!-- Menú contextual -->
+<div id="mi-menu" class="glory-submenu">
+    <div class="submenu-item" onclick="accion1()">Acción 1</div>
+    <div class="submenu-item" onclick="accion2()">Acción 2</div>
+    <div class="submenu-separator"></div>
+    <div class="submenu-item" onclick="accion3()">Acción 3</div>
+</div>
+```
+
+```javascript
+// El sistema se inicializa automáticamente
+// No requiere configuración manual adicional
+```
+
+## 📋 Funcionalidades
+
+### Métodos de Activación
+- **Clic**: Activación estándar con `data-submenu`
+- **Click derecho**: Menús contextuales nativos
+- **Long press**: Pulsación larga en dispositivos táctiles
+- **Programático**: Activación desde JavaScript
+
+### Características Avanzadas
+- **Posicionamiento Inteligente**: Se ajusta automáticamente para no salirse de pantalla
+- **Singleton Pattern**: Solo un menú activo a la vez
+- **Integración Modal**: Compatible con sistema de fondos modales
+- **Soporte Táctil**: Gestos específicos para móviles
+- **Accesibilidad**: Navegación por teclado y escape
+
+## 🎨 Estructura HTML
+
+### Disparador Básico
+```html
+<!-- Cualquier elemento puede ser disparador -->
+<button data-submenu="menu-principal">Menú</button>
+<a href="#" data-submenu="menu-opciones">Opciones</a>
+<div data-submenu="menu-contextual">Elemento</div>
+```
+
+### Menú Contextual
+```html
+<div id="menu-principal" class="glory-submenu">
+    <div class="submenu-item" onclick="editar()">Editar</div>
+    <div class="submenu-item" onclick="duplicar()">Duplicar</div>
+    <div class="submenu-separator"></div>
+    <div class="submenu-item danger" onclick="eliminar()">Eliminar</div>
+</div>
+```
+
+### Estructura Completa
+```html
+<!-- Disparador con configuración -->
+<button data-submenu="menu-usuario"
+        data-posicion="abajo"
+        data-evento="click">
+    Usuario
+</button>
+
+<!-- Menú con elementos -->
+<div id="menu-usuario" class="glory-submenu">
+    <div class="submenu-header">Juan Pérez</div>
+    <div class="submenu-item" onclick="verPerfil()">
+        <i class="icon-user"></i> Ver Perfil
+    </div>
+    <div class="submenu-item" onclick="configuracion()">
+        <i class="icon-settings"></i> Configuración
+    </div>
+    <div class="submenu-separator"></div>
+    <div class="submenu-item danger" onclick="cerrarSesion()">
+        <i class="icon-logout"></i> Cerrar Sesión
+    </div>
+</div>
+```
+
+## 🔧 Atributos de Configuración
+
+### data-submenu
+ID del menú a mostrar (requerido).
+
+```html
+<button data-submenu="mi-menu-id">Abrir</button>
+<div id="mi-menu-id"><!-- menú --></div>
+```
+
+### data-posicion
+Posición del menú respecto al disparador.
+
+```html
+<!-- Opciones: abajo (default), arriba, izquierda, derecha, centro -->
+<button data-submenu="menu" data-posicion="derecha">Menú</button>
+```
+
+### data-evento
+Tipo de evento que activa el menú.
+
+```html
+<!-- Opciones: click (default), contextmenu, longpress -->
+<button data-submenu="menu" data-evento="contextmenu">Click derecho</button>
+```
+
+## 📝 API Técnica
+
+### Clase Principal
+
+#### `submenus` (Singleton)
+Gestiona todos los menús contextuales de la página.
+
+```javascript
+// Acceso a la instancia (se crea automáticamente)
+const gestorMenus = submenus.iniciar();
+
+// Métodos disponibles
+gestorMenus.abrir(disparador, opciones);
+gestorMenus.cerrar();
+```
+
+### Métodos Públicos
+
+#### `abrir(disparador, opciones)`
+Abre un menú específico programáticamente.
+
+```javascript
+const gestor = submenus.iniciar();
+const boton = document.querySelector('[data-submenu="mi-menu"]');
+gestor.abrir(boton, { cursor: { x: 100, y: 200 } });
+```
+
+#### `cerrar()`
+Cierra el menú actualmente activo.
+
+```javascript
+const gestor = submenus.iniciar();
+gestor.cerrar();
+```
+
+### Función Global
+
+#### `gloryCerrarSubmenus()`
+Función global para cerrar submenús desde otros componentes.
+
+```javascript
+// Útil para integración con modales
+gloryCerrarSubmenus();
+```
+
+## 🎯 Posicionamiento Inteligente
+
+### Posiciones Disponibles
+
+#### `abajo` (predeterminado)
+```javascript
+// Se posiciona debajo del disparador, centrado horizontalmente
+data-posicion="abajo"
+```
+
+#### `arriba`
+```javascript
+// Se posiciona encima del disparador
+data-posicion="arriba"
+```
+
+#### `izquierda`
+```javascript
+// Se posiciona a la izquierda del disparador
+data-posicion="izquierda"
+```
+
+#### `derecha`
+```javascript
+// Se posiciona a la derecha del disparador
+data-posicion="derecha"
+```
+
+#### `centro`
+```javascript
+// Se centra en la pantalla (útil para móviles)
+data-posicion="centro"
+```
+
+### Ajustes Automáticos
+- **Límites de pantalla**: Se reposiciona si se sale de la vista
+- **Responsive**: En móviles (< 640px) usa centrado por defecto
+- **Coordenadas exactas**: Para menús contextuales con cursor
+
+## 🔄 Eventos y Estados
+
+### Eventos de Integración
+
+#### `gloryModal:open`
+Cierra automáticamente submenús cuando se abre un modal.
+
+```javascript
+document.addEventListener('gloryModal:open', () => {
+    // Los submenús se cierran automáticamente
+});
+```
+
+#### `gloryFondo:click`
+Cierra submenús al hacer clic en el fondo modal.
+
+```javascript
+document.addEventListener('gloryFondo:click', () => {
+    // Los submenús se cierran automáticamente
+});
+```
+
+### Estados Visuales
+
+#### `.activo`
+Clase aplicada al menú cuando está visible.
+
+```css
+.glory-submenu.activo {
+    display: flex;
+    /* otros estilos */
+}
+```
+
+#### `.glory-submenu`
+Clase base para estilos del menú.
+
+```css
+.glory-submenu {
+    position: fixed;
+    display: none;
+    flex-direction: column;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+```
+
+## 🎨 Estilos CSS Recomendados
+
+### Estilos Básicos
+```css
+.glory-submenu {
+    position: fixed;
+    display: none;
+    flex-direction: column;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 160px;
+}
+
+.glory-submenu.activo {
+    display: flex;
+}
+
+.submenu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.submenu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.submenu-item.danger {
+    color: #dc3545;
+}
+
+.submenu-item.danger:hover {
+    background-color: #ffebee;
+}
+
+.submenu-separator {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 4px 0;
+}
+
+.submenu-header {
+    padding: 12px 16px 8px;
+    font-weight: bold;
+    border-bottom: 1px solid #e0e0e0;
+    color: #666;
+}
+```
+
+### Tema Oscuro
+```css
+/* Tema oscuro */
+.glory-submenu.dark {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: white;
+}
+
+.glory-submenu.dark .submenu-item:hover {
+    background-color: #4a5568;
+}
+
+.glory-submenu.dark .submenu-separator {
+    background-color: #4a5568;
+}
+
+.glory-submenu.dark .submenu-header {
+    border-bottom-color: #4a5568;
+    color: #a0aec0;
+}
+```
+
+## 📱 Soporte Táctil
+
+### Long Press en Móviles
+```html
+<!-- Activación por pulsación larga -->
+<button data-submenu="menu-tactil" data-evento="longpress">
+    Mantén pulsado
+</button>
+```
+
+### Configuración del Long Press
+- **Duración**: 500ms por defecto
+- **Feedback**: Vibración automática (si soportada)
+- **Cancelación**: Movimiento del dedo cancela la acción
+
+### Eventos Táctiles
+```javascript
+// El sistema maneja automáticamente:
+// - pointerdown: Inicia temporizador
+// - pointerup: Ejecuta si fue long press
+// - pointermove: Cancela si se mueve el dedo
+```
+
+## 🎯 Casos de Uso
+
+### Menú Contextual de Usuario
+```html
+<button data-submenu="user-menu" data-posicion="abajo">
+    <img src="avatar.jpg" alt="Usuario">
+</button>
+
+<div id="user-menu" class="glory-submenu">
+    <div class="submenu-header">Juan Pérez</div>
+    <div class="submenu-item" onclick="verPerfil()">
+        👤 Ver Perfil
+    </div>
+    <div class="submenu-item" onclick="configuracion()">
+        ⚙️ Configuración
+    </div>
+    <div class="submenu-separator"></div>
+    <div class="submenu-item danger" onclick="cerrarSesion()">
+        🚪 Cerrar Sesión
+    </div>
+</div>
+```
+
+### Menú de Acciones en Tabla
+```html
+<tr data-id="123">
+    <td>Dato 1</td>
+    <td>Dato 2</td>
+    <td>
+        <button data-submenu="acciones-fila-123" data-evento="click">
+            ⋮
+        </button>
+    </td>
+</tr>
+
+<div id="acciones-fila-123" class="glory-submenu">
+    <div class="submenu-item" onclick="editar(123)">Editar</div>
+    <div class="submenu-item" onclick="duplicar(123)">Duplicar</div>
+    <div class="submenu-item danger" onclick="eliminar(123)">Eliminar</div>
+</div>
+```
+
+### Menú Contextual de Escritorio
+```html
+<div class="archivo" data-submenu="menu-archivo" data-evento="contextmenu">
+    <img src="documento.png">
+    <span>Mi Documento.txt</span>
+</div>
+
+<div id="menu-archivo" class="glory-submenu">
+    <div class="submenu-item" onclick="abrir()">Abrir</div>
+    <div class="submenu-item" onclick="renombrar()">Renombrar</div>
+    <div class="submenu-item" onclick="compartir()">Compartir</div>
+    <div class="submenu-separator"></div>
+    <div class="submenu-item danger" onclick="eliminar()">Eliminar</div>
+</div>
+```
+
+## 🔧 Integración Avanzada
+
+### Con Sistema de Fondos
+```javascript
+// Los submenús se integran automáticamente con mostrarFondo/ocultarFondo
+// También pueden controlarse manualmente
+if (typeof window.mostrarFondo === 'function') {
+    window.mostrarFondo();
+}
+```
+
+### Con Modales
+```javascript
+// Cerrar submenús antes de abrir modales
+document.addEventListener('gloryModal:beforeOpen', () => {
+    gloryCerrarSubmenus();
+});
+```
+
+### Programático
+```javascript
+// Abrir menú desde código
+const gestor = submenus.iniciar();
+const disparador = document.querySelector('[data-submenu="mi-menu"]');
+gestor.abrir(disparador, {
+    cursor: { x: event.clientX, y: event.clientY }
+});
+```
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Menú no aparece**: Verificar ID correcto en `data-submenu`
+2. **Posicionamiento incorrecto**: Revisar `data-posicion` y espacio disponible
+3. **Eventos no funcionan**: Verificar que no haya elementos superpuestos
+4. **Móviles no responden**: Revisar configuración de `data-evento`
+
+### Debug
+```javascript
+// Verificar inicialización
+console.log('Submenus instancia:', submenus.instancia);
+
+// Debug de eventos
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-submenu]')) {
+        console.log('Disparador clickeado:', e.target);
+    }
+});
+```
+
+## 📊 Rendimiento
+
+- **Singleton Pattern**: Una sola instancia gestiona todos los menús
+- **Event Delegation**: Mínimos event listeners globales
+- **Lazy Positioning**: Cálculo de dimensiones solo cuando es necesario
+- **Memory Management**: Limpieza automática de referencias
+
+## 🔄 Compatibilidad
+
+- ✅ **Modern Browsers**: ES6+, Pointer Events, Position Fixed
+- ✅ **Mobile**: Touch events y responsive positioning
+- ✅ **Legacy**: Funciona con polyfills para Pointer Events
+- ✅ **WordPress**: Integración completa con admin UI
+- ✅ **Accessibility**: Soporte para navegación por teclado
+- ✅ **Cross-browser**: Compatible con todos los navegadores modernos

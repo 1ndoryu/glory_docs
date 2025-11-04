@@ -59,6 +59,11 @@ export default defineConfig({
                             label: 'UI',
                             items: [
                                 'componentes/ui/alertas',
+                                'componentes/ui/previsualizaciones',
+                                'componentes/ui/pestanas',
+                                'componentes/ui/submenus',
+                                'componentes/ui/header-adaptativo',
+                                'componentes/ui/nav-ajax',
                                 'componentes/ui/badge-list',
                                 'componentes/ui/button',
                                 'componentes/ui/formulario-fluente',

@@ -1,0 +1,350 @@
+---
+title: Sistema de Pestañas
+description: Componente de navegación por pestañas con persistencia de estado y accesibilidad ARIA
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Sistema de Pestañas (`pestanas.js`)
+
+Sistema de navegación por pestañas que proporciona una interfaz de usuario intuitiva con persistencia automática del estado activo entre sesiones y recargas de página.
+
+## 🚀 Inicio Rápido
+
+```html
+<!-- Estructura HTML básica -->
+<div class="gloryTabs" id="mi-tabs">
+    <!-- Contenedor de pestañas (se genera automáticamente) -->
+    <div class="pestanas"></div>
+
+    <!-- Contenido de las pestañas -->
+    <div class="pestanaContenido" data-pestana="General">Contenido de General</div>
+    <div class="pestanaContenido" data-pestana="Avanzado">Contenido de Avanzado</div>
+    <div class="pestanaContenido" data-pestana="Ayuda">Contenido de Ayuda</div>
+</div>
+```
+
+```javascript
+// El sistema se inicializa automáticamente en gloryRecarga
+// No requiere configuración manual adicional
+```
+
+## 📋 Funcionalidades
+
+### Características Principales
+- **Persistencia Automática**: Recuerda la pestaña activa entre sesiones usando localStorage
+- **Accesibilidad ARIA**: Soporte completo para lectores de pantalla
+- **Generación Dinámica**: Crea los botones de pestañas automáticamente
+- **Múltiples Instancias**: Soporta varios grupos de pestañas en la misma página
+- **Fallback Inteligente**: Sistema de prioridades para determinar pestaña inicial
+
+### Sistema de Prioridades para Pestaña Inicial
+
+1. **localStorage**: Estado guardado en sesiones anteriores
+2. **data-active-index**: Atributo en el contenedor
+3. **Clase .activa**: Pestaña con clase activa en HTML
+4. **Primera pestaña**: Fallback por defecto
+
+## 🎨 Estructura HTML
+
+### Contenedor Principal
+```html
+<div class="gloryTabs" id="configuracion-tabs">
+    <!-- Los botones se generan aquí automáticamente -->
+    <div class="pestanas"></div>
+
+    <!-- Paneles de contenido -->
+    <div class="pestanaContenido" data-pestana="General">
+        <h3>Configuración General</h3>
+        <p>Contenido de la pestaña general...</p>
+    </div>
+
+    <div class="pestanaContenido" data-pestana="Avanzado">
+        <h3>Configuración Avanzada</h3>
+        <p>Contenido avanzado...</p>
+    </div>
+</div>
+```
+
+### Atributos de Configuración
+
+#### data-tabs-id
+Identificador único para persistencia de estado. Si no se especifica, usa el ID del elemento o un índice automático.
+
+```html
+<div class="gloryTabs" data-tabs-id="configuracion-principal">
+    <!-- Contenido -->
+</div>
+```
+
+#### data-active-index
+Fuerza una pestaña inicial específica (0-indexed).
+
+```html
+<div class="gloryTabs" data-active-index="2">
+    <!-- La tercera pestaña será activa inicialmente -->
+</div>
+```
+
+#### data-pestana
+Nombre personalizado para cada pestaña. Si no se especifica, usa "Pestaña N".
+
+```html
+<div class="pestanaContenido" data-pestana="Configuración de Usuario">
+    <!-- Nombre personalizado -->
+</div>
+```
+
+## 🔧 Configuración Avanzada
+
+### Claves de localStorage
+El sistema genera claves únicas para cada grupo de pestañas:
+
+```
+gloryTabs:/ruta/pagina:id-del-contenedor
+gloryTabs:/ruta/pagina:idx-0  // Para contenedores sin ID
+```
+
+### Persistencia del Estado
+- **Guardado**: Automático al cambiar de pestaña
+- **Restauración**: Al inicializar el componente
+- **Alcance**: Por página y contenedor específico
+
+## 📝 API Técnica
+
+### Función Principal
+
+#### `pestanas()`
+Inicializa todos los sistemas de pestañas en la página.
+
+```javascript
+// Se ejecuta automáticamente en gloryRecarga
+// Puede llamarse manualmente para reinicializar
+pestanas();
+```
+
+### Eventos
+
+#### `gloryRecarga`
+Reinicializa todas las pestañas cuando ocurre este evento.
+
+```javascript
+document.addEventListener('gloryRecarga', pestanas);
+```
+
+## 🎨 Estados y Clases CSS
+
+### Clases Automáticas
+- `.activa`: Pestaña o panel actualmente activo
+- `.pestanas`: Contenedor generado para los botones
+- `.pestanaContenido`: Paneles de contenido (requerido)
+
+### Estructura Generada
+```html
+<div class="gloryTabs">
+    <!-- Botones generados automáticamente -->
+    <div class="pestanas">
+        <button role="tab" aria-controls="pestanaID-0-0" aria-selected="true" class="activa">
+            General
+        </button>
+        <button role="tab" aria-controls="pestanaID-0-1" aria-selected="false">
+            Avanzado
+        </button>
+    </div>
+
+    <!-- Contenido original con IDs asignados -->
+    <div id="pestanaID-0-0" class="pestanaContenido activa">...</div>
+    <div id="pestanaID-0-1" class="pestanaContenido">...</div>
+</div>
+```
+
+## 🔧 Atributos ARIA
+
+### Soporte de Accesibilidad
+- `role="tab"`: Rol ARIA para botones de pestaña
+- `role="tabpanel"`: Rol implícito para paneles de contenido
+- `aria-controls`: Vincula botón con su panel correspondiente
+- `aria-selected`: Indica estado de selección (true/false)
+
+### Navegación por Teclado
+- **Tab**: Navega entre pestañas
+- **Enter/Space**: Activa la pestaña enfocada
+- **Flechas**: Navegación entre pestañas (puede implementarse adicionalmente)
+
+## 🎯 Casos de Uso
+
+### Configuración por Secciones
+```html
+<div class="gloryTabs" data-tabs-id="config-plugin">
+    <div class="pestanas"></div>
+
+    <div class="pestanaContenido" data-pestana="General">
+        <h4>Configuración General</h4>
+        <form>...</form>
+    </div>
+
+    <div class="pestanaContenido" data-pestana="API">
+        <h4>Configuración de API</h4>
+        <form>...</form>
+    </div>
+
+    <div class="pestanaContenido" data-pestana="Avanzado">
+        <h4>Opciones Avanzadas</h4>
+        <form>...</form>
+    </div>
+</div>
+```
+
+### Paneles de Administración
+```html
+<div class="gloryTabs" id="admin-paneles">
+    <div class="pestanas"></div>
+
+    <div class="pestanaContenido" data-pestana="Usuarios">
+        <!-- Gestión de usuarios -->
+    </div>
+
+    <div class="pestanaContenido" data-pestana="Contenido">
+        <!-- Gestión de contenido -->
+    </div>
+
+    <div class="pestanaContenido" data-pestana="Sistema">
+        <!-- Configuración del sistema -->
+    </div>
+</div>
+```
+
+### Formularios Multi-paso
+```html
+<div class="gloryTabs" data-tabs-id="formulario-wizard">
+    <div class="pestanas"></div>
+
+    <div class="pestanaContenido" data-pestana="Paso 1">
+        <h3>Información Personal</h3>
+        <!-- Campos del paso 1 -->
+    </div>
+
+    <div class="pestanaContenido" data-pestana="Paso 2">
+        <h3>Preferencias</h3>
+        <!-- Campos del paso 2 -->
+    </div>
+
+    <div class="pestanaContenido" data-pestana="Revisar">
+        <h3>Revisar y Enviar</h3>
+        <!-- Resumen final -->
+    </div>
+</div>
+```
+
+## 🔄 Gestión del Estado
+
+### Persistencia Automática
+```javascript
+// El estado se guarda automáticamente
+// Para acceder manualmente:
+const estadoGuardado = localStorage.getItem('gloryTabs:/current/path:mi-tabs');
+```
+
+### Programático
+```javascript
+// Cambiar pestaña programáticamente
+const contenedor = document.querySelector('.gloryTabs');
+const botones = contenedor.querySelectorAll('.pestanas button');
+botones[1].click(); // Activa la segunda pestaña
+```
+
+### Reset del Estado
+```javascript
+// Limpiar estado guardado
+localStorage.removeItem('gloryTabs:/current/path:mi-tabs');
+location.reload(); // Recargar para aplicar cambios
+```
+
+## 🎨 Personalización CSS
+
+### Estilos Básicos
+```css
+.gloryTabs {
+    /* Estilos del contenedor principal */
+}
+
+.pestanas {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+}
+
+.pestanas button {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.pestanas button.activa {
+    border-bottom-color: #007cba;
+    font-weight: bold;
+}
+
+.pestanaContenido {
+    display: none;
+    padding: 20px;
+}
+
+.pestanaContenido.activa {
+    display: block;
+}
+```
+
+### Tema Oscuro
+```css
+/* Tema oscuro */
+.gloryTabs.dark .pestanas {
+    border-bottom-color: #333;
+}
+
+.gloryTabs.dark .pestanas button.activa {
+    border-bottom-color: #61dafb;
+}
+```
+
+## 🔧 Integración con Frameworks
+
+### WordPress Admin
+Compatible con el sistema de administración de WordPress, manteniendo la persistencia entre cambios de página.
+
+### React/Vue Integration
+Puede usarse como base para componentes más complejos en frameworks modernos.
+
+## 🐛 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Pestañas no cambian**: Verificar estructura HTML correcta
+2. **Estado no persiste**: Revisar localStorage disponible y permisos
+3. **IDs duplicados**: Asegurar IDs únicos en la página
+4. **ARIA no funciona**: Verificar que el HTML se genera correctamente
+
+### Debug
+```javascript
+// Verificar inicialización
+document.addEventListener('gloryRecarga', () => {
+    console.log('Pestañas inicializadas');
+    console.log('Contenedores encontrados:', document.querySelectorAll('.gloryTabs').length);
+});
+```
+
+## 📊 Rendimiento
+
+- **Inicialización Eficiente**: Solo procesa elementos con clase `.gloryTabs`
+- **Event Delegation**: Un solo event listener por contenedor
+- **Lazy Evaluation**: Solo calcula dimensiones cuando es necesario
+- **Memory Safe**: No mantiene referencias globales persistentes
+
+## 🔄 Compatibilidad
+
+- ✅ **Modern Browsers**: ES6+, localStorage, querySelector
+- ✅ **Legacy Support**: Funciona en navegadores antiguos con polyfills
+- ✅ **WordPress**: Integración completa con admin y frontend
+- ✅ **Mobile**: Responsive y touch-friendly
+- ✅ **Accessibility**: Soporte ARIA completo

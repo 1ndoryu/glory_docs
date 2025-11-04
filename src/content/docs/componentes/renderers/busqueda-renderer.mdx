@@ -157,7 +157,528 @@ echo $html;
 <div class="resultadoItemNoEncontrado">No se encontraron resultados.</div>
 ```
 
-## Integración Completa
+## Integración en Tema WordPress
+
+Para que el script de búsqueda funcione correctamente, necesitas colocar el HTML específico en tus templates de WordPress. A continuación se explica la estructura completa necesaria.
+
+### Estructura HTML Básica
+
+#### Input de Búsqueda
+
+Coloca este input en cualquier lugar donde quieras mostrar el campo de búsqueda (header, sidebar, página dedicada):
+
+```html
+<!-- En header.php o donde corresponda -->
+<div class="busqueda-contenedor">
+    <input type="text"
+           id="busqueda-input"
+           class="busqueda-input"
+           placeholder="Buscar en el sitio..."
+           data-ajax-url="<?php echo admin_url('admin-ajax.php'); ?>"
+           data-action="busqueda_ajax"
+           autocomplete="off">
+
+    <div id="resultados-busqueda" class="resultados-busqueda" style="display: none;"></div>
+</div>
+```
+
+#### Atributos Data Requeridos
+
+| Atributo | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `data-ajax-url` | URL del endpoint AJAX de WordPress | `<?php echo admin_url('admin-ajax.php'); ?>` |
+| `data-action` | Nombre de la acción AJAX registrada | `busqueda_ajax` |
+| `autocomplete="off"` | Desactiva autocompletado del navegador | `off` |
+
+### Templates WordPress Completos
+
+#### 1. Header con Búsqueda Integrada
+
+```php
+<!-- header.php -->
+<!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+
+<header class="site-header">
+    <div class="header-container">
+        <div class="logo">
+            <a href="<?php echo home_url(); ?>">
+                <?php bloginfo('name'); ?>
+            </a>
+        </div>
+
+        <!-- BÚSQUEDA INTEGRADA -->
+        <div class="busqueda-header">
+            <form class="busqueda-form" role="search" method="get" action="<?php echo home_url('/'); ?>">
+                <div class="busqueda-contenedor">
+                    <input type="text"
+                           id="busqueda-input-header"
+                           name="s"
+                           class="busqueda-input"
+                           placeholder="Buscar..."
+                           value="<?php echo get_search_query(); ?>"
+                           data-ajax-url="<?php echo admin_url('admin-ajax.php'); ?>"
+                           data-action="busqueda_ajax"
+                           autocomplete="off">
+
+                    <button type="submit" class="busqueda-submit">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                    </button>
+
+                    <!-- CONTENEDOR DE RESULTADOS AJAX -->
+                    <div id="resultados-busqueda-header"
+                         class="resultados-busqueda ajax-results"
+                         style="display: none;">
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <nav class="main-navigation">
+            <!-- Tu navegación aquí -->
+        </nav>
+    </div>
+</header>
+```
+
+#### 2. Página de Búsqueda Dedicada (search.php)
+
+```php
+<!-- search.php -->
+<?php get_header(); ?>
+
+<main class="main-content">
+    <div class="container">
+
+        <!-- ENCABEZADO DE RESULTADOS -->
+        <header class="page-header">
+            <h1 class="page-title">
+                <?php printf(
+                    esc_html__('Resultados de búsqueda para: %s', 'tu-tema'),
+                    '<span class="search-query">' . get_search_query() . '</span>'
+                ); ?>
+            </h1>
+
+            <!-- BÚSQUEDA EN RESULTADOS -->
+            <div class="busqueda-resultados">
+                <form class="busqueda-form" role="search" method="get" action="<?php echo home_url('/'); ?>">
+                    <div class="busqueda-contenedor">
+                        <input type="text"
+                               id="busqueda-input-resultados"
+                               name="s"
+                               class="busqueda-input"
+                               placeholder="Refinar búsqueda..."
+                               value="<?php echo get_search_query(); ?>"
+                               data-ajax-url="<?php echo admin_url('admin-ajax.php'); ?>"
+                               data-action="busqueda_ajax"
+                               autocomplete="off">
+
+                        <button type="submit" class="busqueda-submit">Buscar</button>
+
+                        <div id="resultados-busqueda-resultados"
+                             class="resultados-busqueda"
+                             style="display: none;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </header>
+
+        <!-- RESULTADOS USANDO BUSQUEDARENDERER -->
+        <div class="search-results">
+            <?php if (have_posts()) : ?>
+                <div class="resultados-wordpress">
+                    <?php
+                    // Preparar datos para BusquedaRenderer
+                    $resultados = [];
+
+                    while (have_posts()) {
+                        the_post();
+
+                        $tipo = get_post_type();
+                        $tipoLabel = $tipo === 'post' ? 'Post' : ($tipo === 'page' ? 'Página' : ucfirst($tipo));
+
+                        $resultados[$tipo . 's'][] = [
+                            'titulo' => get_the_title(),
+                            'url' => get_permalink(),
+                            'tipo' => $tipoLabel,
+                            'imagen' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail')
+                        ];
+                    }
+
+                    // Renderizar con BusquedaRenderer
+                    use Glory\Components\BusquedaRenderer;
+                    echo BusquedaRenderer::renderizarResultados($resultados);
+                    ?>
+                </div>
+
+                <!-- PAGINACIÓN -->
+                <div class="pagination">
+                    <?php
+                    the_posts_pagination(array(
+                        'mid_size' => 2,
+                        'prev_text' => __('« Anterior', 'tu-tema'),
+                        'next_text' => __('Siguiente »', 'tu-tema'),
+                    ));
+                    ?>
+                </div>
+
+            <?php else : ?>
+                <div class="no-results">
+                    <h2><?php esc_html_e('No se encontraron resultados', 'tu-tema'); ?></h2>
+                    <p><?php esc_html_e('Intenta con otros términos de búsqueda.', 'tu-tema'); ?></p>
+
+                    <!-- SUGERENCIAS DE BÚSQUEDA -->
+                    <div class="search-suggestions">
+                        <h3><?php esc_html_e('Sugerencias:', 'tu-tema'); ?></h3>
+                        <ul>
+                            <li><?php esc_html_e('Revisa la ortografía', 'tu-tema'); ?></li>
+                            <li><?php esc_html_e('Usa palabras más generales', 'tu-tema'); ?></li>
+                            <li><?php esc_html_e('Prueba sinónimos', 'tu-tema'); ?></li>
+                        </ul>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+```
+
+#### 3. Sidebar con Búsqueda
+
+```php
+<!-- sidebar.php -->
+<aside class="sidebar">
+    <div class="widget widget-search">
+        <h3 class="widget-title"><?php esc_html_e('Buscar', 'tu-tema'); ?></h3>
+
+        <div class="busqueda-widget">
+            <div class="busqueda-contenedor">
+                <input type="text"
+                       id="busqueda-input-sidebar"
+                       class="busqueda-input"
+                       placeholder="Buscar..."
+                       data-ajax-url="<?php echo admin_url('admin-ajax.php'); ?>"
+                       data-action="busqueda_ajax"
+                       autocomplete="off">
+
+                <div id="resultados-busqueda-sidebar"
+                     class="resultados-busqueda sidebar-results"
+                     style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Otros widgets -->
+</aside>
+```
+
+### JavaScript de Integración
+
+#### Archivo: assets/js/busqueda.js
+
+```javascript
+/**
+ * Script de búsqueda AJAX para Glory Framework
+ */
+class BusquedaAjax {
+    constructor() {
+        this.inputs = document.querySelectorAll('.busqueda-input[data-ajax-url]');
+        this.debounceTimer = null;
+        this.minQueryLength = 2;
+        this.debounceDelay = 300;
+
+        this.init();
+    }
+
+    init() {
+        this.inputs.forEach(input => {
+            input.addEventListener('input', (e) => this.onInput(e));
+            input.addEventListener('focus', (e) => this.onFocus(e));
+            input.addEventListener('blur', (e) => this.onBlur(e));
+        });
+
+        // Cerrar resultados al hacer click fuera
+        document.addEventListener('click', (e) => this.onDocumentClick(e));
+    }
+
+    onInput(e) {
+        const input = e.target;
+        const query = input.value.trim();
+
+        clearTimeout(this.debounceTimer);
+
+        if (query.length >= this.minQueryLength) {
+            this.debounceTimer = setTimeout(() => {
+                this.buscar(query, input);
+            }, this.debounceDelay);
+        } else {
+            this.ocultarResultados(input);
+        }
+    }
+
+    onFocus(e) {
+        const input = e.target;
+        const resultsContainer = this.getResultsContainer(input);
+
+        if (resultsContainer && resultsContainer.innerHTML.trim()) {
+            resultsContainer.style.display = 'block';
+        }
+    }
+
+    onBlur(e) {
+        // Delay para permitir clicks en resultados
+        setTimeout(() => {
+            const input = e.target;
+            const resultsContainer = this.getResultsContainer(input);
+
+            if (resultsContainer && !resultsContainer.matches(':hover')) {
+                resultsContainer.style.display = 'none';
+            }
+        }, 150);
+    }
+
+    onDocumentClick(e) {
+        if (!e.target.closest('.busqueda-contenedor')) {
+            document.querySelectorAll('.resultados-busqueda').forEach(container => {
+                container.style.display = 'none';
+            });
+        }
+    }
+
+    async buscar(query, input) {
+        const ajaxUrl = input.dataset.ajaxUrl;
+        const action = input.dataset.action;
+        const resultsContainer = this.getResultsContainer(input);
+
+        if (!ajaxUrl || !action || !resultsContainer) {
+            console.error('Configuración AJAX incompleta para búsqueda');
+            return;
+        }
+
+        try {
+            // Mostrar loading
+            resultsContainer.innerHTML = '<div class="busqueda-loading">Buscando...</div>';
+            resultsContainer.style.display = 'block';
+
+            const response = await fetch(ajaxUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    action: action,
+                    query: query,
+                    security: gloryAjax?.nonce || ''
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                resultsContainer.innerHTML = data.data.html;
+
+                // Mostrar resultados
+                if (data.data.html.trim()) {
+                    resultsContainer.style.display = 'block';
+                } else {
+                    this.ocultarResultados(input);
+                }
+            } else {
+                throw new Error(data.data || 'Error en búsqueda');
+            }
+
+        } catch (error) {
+            console.error('Error en búsqueda AJAX:', error);
+            resultsContainer.innerHTML = '<div class="busqueda-error">Error al buscar. Intenta nuevamente.</div>';
+        }
+    }
+
+    ocultarResultados(input) {
+        const resultsContainer = this.getResultsContainer(input);
+        if (resultsContainer) {
+            resultsContainer.style.display = 'none';
+            resultsContainer.innerHTML = '';
+        }
+    }
+
+    getResultsContainer(input) {
+        const container = input.closest('.busqueda-contenedor');
+        return container ? container.querySelector('.resultados-busqueda') : null;
+    }
+}
+
+// Inicializar cuando DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    new BusquedaAjax();
+});
+
+// También inicializar cuando GloryAjax esté disponible
+if (typeof gloryAjax !== 'undefined') {
+    gloryAjax.ready(() => {
+        new BusquedaAjax();
+    });
+}
+```
+
+### Handler AJAX en PHP
+
+#### Archivo: includes/ajax-handlers.php
+
+```php
+<?php
+/**
+ * Handlers AJAX para búsqueda en Glory Framework
+ */
+
+class AjaxSearchHandler {
+    public static function init() {
+        add_action('wp_ajax_busqueda_ajax', [__CLASS__, 'handleAjaxSearch']);
+        add_action('wp_ajax_nopriv_busqueda_ajax', [__CLASS__, 'handleAjaxSearch']);
+    }
+
+    public static function handleAjaxSearch() {
+        try {
+            // Verificar nonce si está disponible
+            if (isset($_POST['security']) && !wp_verify_nonce($_POST['security'], 'glory_ajax_nonce')) {
+                wp_send_json_error('Security check failed');
+                return;
+            }
+
+            $query = sanitize_text_field($_POST['query'] ?? '');
+
+            if (empty($query) || strlen($query) < 2) {
+                wp_send_json_error('Query too short');
+                return;
+            }
+
+            // Realizar búsqueda
+            $resultados = self::performSearch($query);
+
+            // Renderizar con BusquedaRenderer
+            use Glory\Components\BusquedaRenderer;
+            $html = BusquedaRenderer::renderizarResultados($resultados);
+
+            wp_send_json_success([
+                'html' => $html,
+                'total' => array_sum(array_map('count', $resultados)),
+                'query' => $query
+            ]);
+
+        } catch (Exception $e) {
+            wp_send_json_error('Search failed: ' . $e->getMessage());
+        }
+    }
+
+    private static function performSearch(string $query): array {
+        $resultados = [];
+
+        // Buscar posts
+        $posts = get_posts([
+            's' => $query,
+            'post_type' => 'post',
+            'posts_per_page' => 5,
+            'post_status' => 'publish'
+        ]);
+
+        foreach ($posts as $post) {
+            $resultados['posts'][] = [
+                'titulo' => get_the_title($post),
+                'url' => get_permalink($post),
+                'tipo' => 'Post',
+                'imagen' => get_the_post_thumbnail_url($post, 'thumbnail')
+            ];
+        }
+
+        // Buscar páginas
+        $pages = get_posts([
+            's' => $query,
+            'post_type' => 'page',
+            'posts_per_page' => 3,
+            'post_status' => 'publish'
+        ]);
+
+        foreach ($pages as $page) {
+            $resultados['pages'][] = [
+                'titulo' => get_the_title($page),
+                'url' => get_permalink($page),
+                'tipo' => 'Página',
+                'imagen' => get_the_post_thumbnail_url($page, 'thumbnail')
+            ];
+        }
+
+        return $resultados;
+    }
+}
+
+// Inicializar
+AjaxSearchHandler::init();
+```
+
+### Configuración en functions.php
+
+```php
+<?php
+// functions.php
+
+// Encolar scripts y estilos
+function theme_enqueue_search_assets() {
+    // Encolar BusquedaRenderer si existe
+    if (class_exists('Glory\Components\BusquedaRenderer')) {
+        // El sistema AssetManager debería manejar esto
+    }
+
+    // Encolar script de búsqueda personalizado
+    wp_enqueue_script(
+        'theme-search',
+        get_template_directory_uri() . '/assets/js/busqueda.js',
+        ['jquery'],
+        '1.0.0',
+        true
+    );
+
+    // Localizar script con datos necesarios
+    wp_localize_script('theme-search', 'themeSearch', [
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'action' => 'busqueda_ajax',
+        'min_length' => 2,
+        'debounce' => 300
+    ]);
+}
+add_action('wp_enqueue_scripts', 'theme_enqueue_search_assets');
+
+// Incluir handlers AJAX
+require_once get_template_directory() . '/includes/ajax-handlers.php';
+
+// Hook para búsqueda adicional en tipos de contenido personalizados
+add_filter('theme_search_post_types', function($types) {
+    return array_merge($types, ['producto', 'evento']); // Añadir tipos personalizados
+});
+```
+
+<Aside type="tip">
+**¡Importante!** Esta sección de "Integración en Tema WordPress" es fundamental para que el script de búsqueda funcione. Sin colocar correctamente el HTML con los atributos `data-ajax-url` y `data-action`, y el contenedor `.resultados-busqueda`, el JavaScript no podrá conectar con el backend.
+
+**Puntos clave para recordar:**
+- El input debe tener `data-ajax-url` apuntando a `admin_url('admin-ajax.php')`
+- Debe tener `data-action` con el nombre de la acción AJAX registrada
+- El contenedor de resultados debe estar dentro del mismo `.busqueda-contenedor`
+- El JavaScript se inicializa automáticamente cuando encuentra inputs con `[data-ajax-url]`
+</Aside>
+
+## Estilización CSS
 
 ### Con Sistema de Búsqueda Personalizado
 

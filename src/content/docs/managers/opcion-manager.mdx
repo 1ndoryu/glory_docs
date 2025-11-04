@@ -3,112 +3,39 @@ title: OpcionManager
 description: Registro, resolución y sincronización de opciones del tema con OpcionManager
 ---
 
-`OpcionManager` gestiona el ciclo completo de opciones del tema: registro desde código,
-resolución de valores (con reglas de precedencia), helpers por tipo y sincronización con la BD.
-Esta página documenta su API, las keys de configuración aceptadas, el comportamiento en modo dev/producción
-y ejemplos prácticos.
+## ¿Qué es OpcionManager?
 
-## API principal
+OpcionManager gestiona opciones del tema con validación, sanitización y UI automática. Permite registrar opciones desde código y acceder a sus valores.
 
-- `OpcionManager::register(string $key, array $config)` — declara una opción y su metadatos.
-- `OpcionManager::get(string $key, $valorPorDefecto = null)` — obtiene el valor resuelto de la opción.
-- `OpcionManager::clearCache()` — limpia la cache interna (útil tras cambios desde panel).
-- Helpers rápidos: `texto`, `richText`, `imagen`, `menu` — wrappers que llaman internamente a `get`.
+## Uso básico
 
-## Keys aceptadas en `register()`
-
-Las keys más importantes que puedes pasar en el array de configuración:
-
-- `valorDefault` (mixed): valor por defecto si no existe en BD.
-- `tipo` (string): `text`, `checkbox`, `select`, `imagen`, `textarea`, etc. Afecta comportamiento/escape.
-- `etiqueta`, `descripcion`: texto para mostrar en panel.
-- `seccion`, `subSeccion`, `etiquetaSeccion`: agrupación en el panel.
-- `opciones` (array): para selects, mapa `value => label`.
-- `comportamientoEscape` (bool): si debe escaparse el valor (true por defecto para textos).
-- `forzarDefaultAlRegistrar` (bool): fuerza en BD el valor por defecto al registrar si no existe o difiere.
-- `hideInProd` (bool): ocultar la opción en el panel cuando NO es modo dev.
-- `lockInProd` (bool): si es true en producción se devuelve un valor seguro inmediato (pensado para toggles críticos).
-- `featureKey` (string): si la opción está ligada a una feature, `OpcionManager::get` respeta el override de `GloryFeatures`.
-- `hashVersionCodigo` (string): hash o versión del default en código para detectar cambios y forzar sincronización.
-
-> Nota: `OpcionManager::register()` delega en `OpcionRegistry::define()`; registra la definición pero no escribe en BD.
-
-## Resolución de valores (orden de prioridad)
-
-1. Si en producción y la opción tiene `lockInProd = true` → devolver un valor seguro inmediato.
-2. Si la opción está ligada a una `featureKey`, y estamos en modo dev, el override por código (`GloryFeatures::isEnabled`) tiene prioridad.
-3. Obtener el valor desde la BD via `OpcionRepository::get($key)`.
-4. Si no existe en BD, usar `defaultDesdeCodigo` (si existe; en producción el override actúa como default) → `valorPorDefecto` pasado al `get()` → `valorDefault` de la definición.
-
-Además, cuando NO estamos en modo dev, `OpcionManager` cachea en memoria los valores resueltos para evitar lecturas repetidas.
-
-## Modo desarrollo vs producción
-
-- `isDevMode()` combina `AssetManager::isGlobalDevMode()` (si existe) y `WP_DEBUG`.
-- En **dev**:
-  - Los overrides por código (via `GloryFeatures::enable/disable`) tienen prioridad para opciones vinculadas a features.
-  - No se cachean los valores globalmente para permitir cambios inmediatos.
-- En **producción**:
-  - El valor desde el panel (BD) tiene prioridad; los overrides por código se usan solo como `default`.
-  - La cache en memoria se activa para mejorar rendimiento.
-  - `lockInProd` permite proteger toggles críticos devolviendo un valor seguro.
-
-## Sincronización y reglas automáticas
-
-`OpcionManager::sincronizarTodasLasOpciones()` recorre las definiciones y ejecuta `sincronizarOpcionIndividual()`.
-La función `decidirAccionSincronizacion()` aplica reglas claras:
-
-- `forzarDefaultAlRegistrar`: obliga a que la BD tenga el `valorDefault` definido en código.
-- Si el valor del panel tiene un `hashPanel` inválido o nulo → se revierte a default (protección).
-- Si el `hashVersionCodigo` cambió respecto al `hashPanel` guardado → se considera obsoleto y se revierte a default.
-- Si la opción no existe en BD → se establece a default automáticamente.
-
-Estas reglas protegen integridad cuando el código del tema actualiza la definición de opciones.
-
-## Ejemplos prácticos
-
-### Registrar una opción básica
-
+**Uso mínimo** - Registrar y usar opción:
 ```php
 use Glory\Manager\OpcionManager;
 
-OpcionManager::register('glory_color_primario', [
+// Registrar opción
+OpcionManager::register('color_primario', [
     'valorDefault' => '#0073aa',
     'tipo' => 'text',
-    'etiqueta' => 'Color primario',
-    'descripcion' => 'Color principal del tema',
-    'seccion' => 'diseno',
+    'etiqueta' => 'Color Primario'
 ]);
+
+// Obtener valor
+$color = OpcionManager::get('color_primario');
 ```
 
-### Usar la opción en plantilla
-
+**Uso avanzado** - Opción ligada a feature:
 ```php
-$color = OpcionManager::texto('glory_color_primario');
-echo '<style> :root { --color-primario: ' . $color . '; } </style>';
-```
-
-### Registrar opción ligada a feature
-
-```php
-OpcionManager::register('glory_componente_integrations_manager_activado', [
+OpcionManager::register('mi_feature_activada', [
     'valorDefault' => false,
     'tipo' => 'checkbox',
-    'etiqueta' => 'Activar Integrations Manager',
-    'featureKey' => 'integrationsManager',
-    'seccion' => 'integrations',
+    'etiqueta' => 'Activar Mi Feature',
+    'featureKey' => 'miFeature',
+    'seccion' => 'avanzado'
 ]);
 ```
 
-Si `integrationsManager` se activa/desactiva por código en dev, `get()` lo respetará; en prod el valor del panel domina.
-
-## Buenas prácticas
-
-- Registra todas las opciones en `App/Config/opcionesTema.php`.
-- Proporciona `hashVersionCodigo` cuando el valor por defecto provenga de datos que puedan cambiar (ej. assets listados) para detectar obsolescencia.
-- Usa `forzarDefaultAlRegistrar` solo cuando estés seguro de querer sobrescribir valores en BD al desplegar nueva versión.
-- Marca `lockInProd` en toggles críticos cuya alteración en producción podría romper el sitio.
-- Llama a `OpcionManager::clearCache()` después de actualizar valores desde scripts de deploy o APIs administrativas.
+¡OpcionManager simplifica la gestión de opciones en WordPress!
 
 ---
 

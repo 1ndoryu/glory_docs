@@ -167,3 +167,4 @@ find docs/ -name "*.mdx" -exec sh -c 'head -5 "$1" | grep -q "^---$" || echo "$1
 **Versión:** 1.0
 **Responsable:** Equipo de documentación Glory
 
+

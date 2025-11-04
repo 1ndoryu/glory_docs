@@ -38,87 +38,43 @@ Glory es un framework moderno y ligero diseñado para acelerar el desarrollo de 
 - WordPress (versión según tu entorno de desarrollo).
 - PHP 7.4+ (o la versión requerida por tu proyecto).
 
-## Primeros pasos rápidos
+## Primeros pasos
 
-### Instalación básica
+Después de la instalación, puedes crear rápidamente una página personalizada:
 
-1. **Clona el tema base** en `wp-content/themes`:
-```bash
-git clone https://github.com/1ndoryu/glorytemplate.git mi-tema-glory
-```
-
-2. **Instala dependencias** de Composer:
-```bash
-cd mi-tema-glory
-composer install
-```
-
-3. **Clona el framework Glory** dentro del tema:
-```bash
-git clone https://github.com/1ndoryu/glory.git Glory
-```
-
-4. **Activa el tema** desde WordPress Admin → `Apariencia → Temas`
-
-### Verificación de instalación
-
-Una vez instalado, verifica que todo funcione creando un archivo de prueba en `App/Config/control.php`:
-
-```php
-<?php
-// App/Config/control.php
-use Glory\Managers\AssetManager;
-
-AssetManager::define('script', 'mi-script-prueba', 'assets/js/prueba.js', [
-    'deps' => ['jquery'],
-    'in_footer' => true,
-    'area' => 'frontend'
-]);
-```
-
-## Ejemplo práctico: Crear tu primera página
-
-Después de la instalación, puedes crear rápidamente una página personalizada. Aquí tienes un ejemplo completo:
-
-### 1. Define la página en `App/Config/control.php`
+**Uso mínimo** - Página básica con Glory:
 ```php
 <?php
 use Glory\Managers\PageManager;
-use Glory\Managers\AssetManager;
 
-// Define assets necesarios
-AssetManager::defineFolder('assets/');
-
-// Crea una página personalizada
-PageManager::create('mi-pagina-demo', [
-    'title' => 'Demo Glory',
-    'menu_title' => 'Demo',
-    'capability' => 'manage_options',
-    'callback' => 'renderDemoPage'
+// Crea página simple
+PageManager::create('mi-pagina', [
+    'title' => 'Mi Página',
+    'callback' => function() {
+        echo '<h1>¡Glory funcionando!</h1>';
+    }
 ]);
 ```
 
-### 2. Crea el template en `App/Pages/demo.php`
+**Uso avanzado** - Con assets y componentes:
 ```php
 <?php
-function renderDemoPage() {
-    echo '<div class="wrap">';
-    echo '<h1>¡Glory funcionando!</h1>';
-    echo '<p>Esta es tu primera página creada con Glory Framework.</p>';
+use Glory\Managers\AssetManager;
+use Glory\Components\Modal;
 
-    // Usa un componente de Glory
-    $modal = new Glory\Components\Modal('mi-modal-demo');
-    $modal->setTitle('Modal de ejemplo');
-    $modal->setContent('<p>Este modal fue creado con un componente de Glory.</p>');
-    $modal->render();
+// Define assets automáticamente
+AssetManager::defineFolder('assets/');
 
-    echo '<button type="button" class="button button-primary" onclick="jQuery(\'#mi-modal-demo\').show()">Abrir Modal</button>';
-    echo '</div>';
-}
+// Crea página con modal
+PageManager::create('demo-avanzada', [
+    'title' => 'Demo Avanzada',
+    'callback' => function() {
+        $modal = new Modal('demo-modal');
+        $modal->setTitle('Hola Glory')->render();
+        echo '<button onclick="jQuery(\'#demo-modal\').show()">Abrir</button>';
+    }
+]);
 ```
-
-### 3. Resultado
-¡Listo! Tendrás una página funcional en el admin de WordPress con un modal interactivo, todo con código minimalista y reutilizable.
 
 ## Estructura relevante (rápida)
 

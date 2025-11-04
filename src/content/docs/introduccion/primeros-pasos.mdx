@@ -3,443 +3,58 @@ title: Primeros Pasos
 description: Guía básica para empezar a usar Glory Framework en tus proyectos WordPress
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+# Primeros Pasos con Glory
 
-# 🎯 Primeros Pasos con Glory
-
-¡Felicidades! Has instalado Glory Framework. Esta guía te ayudará a dar los primeros pasos y crear tu primera funcionalidad básica con el framework.
-
-## 📁 Estructura del Proyecto
-
-Antes de empezar, familiarízate con la estructura de archivos:
-
+## Estructura básica
 ```
 tu-tema/
-├── Glory/              # Framework (no tocar)
-├── App/                # Tu código específico
-│   ├── Config/         # Configuraciones
-│   └── Functions/      # Funciones personalizadas
-├── assets/             # CSS, JS, imágenes
-├── templates/          # Plantillas PHP
-│   └── Pages/          # Funciones de renderizado de páginas
-└── functions.php       # Archivo principal del tema
+├── Glory/          # Framework (agnóstico)
+├── App/            # Tu código específico
+│   ├── Config/     # Configuraciones
+│   └── Functions/  # Funciones personalizadas
+├── assets/         # CSS, JS, imágenes
+└── functions.php   # Archivo principal
 ```
 
-## ⚙️ Configuración Básica
+## Configuración inicial
 
-### 1. Configurar Información del Tema
-
-Edita `App/Config/config.php`:
-
+**Uso mínimo** - Página básica:
 ```php
 <?php
-// Configuración básica del tema
-return [
-    'theme' => [
-        'name' => 'Mi Tema con Glory',
-        'version' => '1.0.0',
-        'text_domain' => 'mi-tema'
-    ],
+use Glory\Managers\PageManager;
 
-    // Configuración de páginas (veremos esto después)
-    'pages' => [
-        // Aquí definiremos páginas
-    ]
-];
+// Crea página simple
+PageManager::create('mi-pagina', [
+    'title' => 'Inicio',
+    'callback' => function() {
+        echo '<h1>¡Glory funcionando!</h1>';
+    }
+]);
 ```
 
-### 2. Registrar Assets Básicos
-
-Edita `App/Config/assets.php`:
-
+**Uso avanzado** - Con assets y opciones:
 ```php
 <?php
-use Glory\Manager\AssetManager;
+use Glory\Managers\AssetManager;
+use Glory\Managers\OpcionManager;
 
-// CSS principal del tema
-AssetManager::define(
-    'style',
-    'mi-tema-principal',
-    '/assets/css/main.css',
-    ['area' => 'frontend']
-);
+// Define assets automáticamente
+AssetManager::defineFolder('assets/');
 
-// JavaScript principal
-AssetManager::define(
-    'script',
-    'mi-tema-js',
-    '/assets/js/main.js',
-    [
-        'deps' => ['jquery'],
-        'in_footer' => true,
-        'area' => 'frontend'
-    ]
-);
-```
-
-## 📄 Crear tu Primera Página
-
-Glory usa un sistema de páginas basado en funciones. Vamos a crear una página de inicio simple.
-
-### Paso 1: Definir la Página
-
-En `App/Config/config.php`, añade:
-
-```php
-<?php
-use Glory\Manager\PageManager;
-
-// Definir página de inicio
-PageManager::define('home', 'renderHome');
-```
-
-### Paso 2: Crear la Función de Renderizado
-
-Crea el archivo `templates/Pages/Home.php`:
-
-```php
-<?php
-/**
- * Función para renderizar la página de inicio
- */
-function renderHome() {
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php bloginfo('name'); ?> - Inicio</title>
-        <?php wp_head(); ?>
-    </head>
-    <body>
-        <header class="site-header">
-            <div class="container">
-                <h1><?php bloginfo('name'); ?></h1>
-                <p><?php bloginfo('description'); ?></p>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <div class="container">
-                <section class="hero">
-                    <h2>¡Bienvenido a mi sitio con Glory!</h2>
-                    <p>Esta es mi primera página creada con Glory Framework.</p>
-                </section>
-
-                <section class="posts-recientes">
-                    <h3>Posts Recientes</h3>
-                    <?php
-                    // Mostrar posts recientes usando un componente de Glory
-                    use Glory\Components\ContentRender;
-                    ContentRender::print('post', [
-                        'publicacionesPorPagina' => 3,
-                        'paginacion' => false
-                    ]);
-                    ?>
-                </section>
-            </div>
-        </main>
-
-        <footer class="site-footer">
-            <div class="container">
-                <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?></p>
-            </div>
-        </footer>
-
-        <?php wp_footer(); ?>
-    </body>
-    </html>
-    <?php
-}
-```
-
-### Paso 3: Crear CSS Básico
-
-Crea `assets/css/main.css`:
-
-```css
-/* Reset básico */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Arial', sans-serif;
-    line-height: 1.6;
-    color: #333;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-/* Header */
-.site-header {
-    background: #2c3e50;
-    color: white;
-    padding: 2rem 0;
-    text-align: center;
-}
-
-.site-header h1 {
-    margin-bottom: 0.5rem;
-}
-
-/* Main Content */
-.main-content {
-    padding: 2rem 0;
-}
-
-.hero {
-    text-align: center;
-    margin-bottom: 3rem;
-    padding: 3rem 0;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.hero h2 {
-    margin-bottom: 1rem;
-    color: #2c3e50;
-}
-
-/* Posts Recientes */
-.posts-recientes {
-    margin-top: 3rem;
-}
-
-.posts-recientes h3 {
-    margin-bottom: 1.5rem;
-    color: #2c3e50;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 0.5rem;
-}
-
-/* Footer */
-.site-footer {
-    background: #34495e;
-    color: white;
-    text-align: center;
-    padding: 1rem 0;
-    margin-top: 3rem;
-}
-
-.site-footer p {
-    margin: 0;
-}
-```
-
-## 🎨 Añadir Opciones del Tema
-
-Vamos a crear opciones básicas que el administrador pueda configurar.
-
-### Paso 1: Registrar Opciones
-
-Edita `App/Config/opcionesTema.php`:
-
-```php
-<?php
-use Glory\Manager\OpcionManager;
-
-// Sección de Apariencia
+// Registra opción
 OpcionManager::register('color_primario', [
     'valorDefault' => '#3498db',
     'tipo' => 'color',
-    'etiqueta' => 'Color Primario',
-    'descripcion' => 'Color principal del tema',
-    'seccion' => 'apariencia',
-    'etiquetaSeccion' => 'Apariencia'
+    'etiqueta' => 'Color Principal'
 ]);
 
-OpcionManager::register('color_secundario', [
-    'valorDefault' => '#2c3e50',
-    'tipo' => 'color',
-    'etiqueta' => 'Color Secundario',
-    'descripcion' => 'Color secundario del tema',
-    'seccion' => 'apariencia'
-]);
-
-// Sección de Contenido
-OpcionManager::register('titulo_hero', [
-    'valorDefault' => '¡Bienvenido a mi sitio!',
-    'tipo' => 'text',
-    'etiqueta' => 'Título del Hero',
-    'descripcion' => 'Texto principal de la sección hero',
-    'seccion' => 'contenido',
-    'etiquetaSeccion' => 'Contenido'
-]);
-
-OpcionManager::register('descripcion_hero', [
-    'valorDefault' => 'Este sitio está construido con Glory Framework',
-    'tipo' => 'textarea',
-    'etiqueta' => 'Descripción del Hero',
-    'descripcion' => 'Texto descriptivo de la sección hero',
-    'seccion' => 'contenido'
-]);
-```
-
-### Paso 2: Usar las Opciones en el Tema
-
-Actualiza `templates/Pages/Home.php` para usar las opciones:
-
-```php
-<?php
-function renderHome() {
-    // Obtener opciones del tema
-    $colorPrimario = OpcionManager::get('color_primario');
-    $tituloHero = OpcionManager::get('titulo_hero');
-    $descripcionHero = OpcionManager::get('descripcion_hero');
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php bloginfo('name'); ?> - Inicio</title>
-        <?php wp_head(); ?>
-        <style>
-            :root {
-                --color-primario: <?php echo esc_attr($colorPrimario); ?>;
-            }
-            .hero h2 { color: var(--color-primario); }
-            .posts-recientes h3 { border-color: var(--color-primario); }
-        </style>
-    </head>
-    <body>
-        <!-- ... header igual ... -->
-
-        <main class="main-content">
-            <div class="container">
-                <section class="hero">
-                    <h2><?php echo esc_html($tituloHero); ?></h2>
-                    <p><?php echo esc_html($descripcionHero); ?></p>
-                </section>
-
-                <!-- ... resto igual ... -->
-            </div>
-        </main>
-
-        <!-- ... footer igual ... -->
-    </body>
-    </html>
-    <?php
-}
-```
-
-## 📝 Crear un Formulario Simple
-
-Vamos a añadir un formulario de contacto básico usando los componentes de formulario de Glory.
-
-### Paso 1: Añadir Formulario a la Página
-
-Actualiza la página de inicio para incluir un formulario:
-
-```php
-<section class="contacto">
-    <h3>Contacto</h3>
-    <?php
-    use Glory\Components\FormBuilder;
-
-    echo FormBuilder::inicio([
-        'atributos' => ['id' => 'form-contacto']
-    ]);
-
-    echo FormBuilder::campoTexto([
-        'nombre' => 'nombre',
-        'label' => 'Tu Nombre',
-        'requerido' => true
-    ]);
-
-    echo FormBuilder::campoEmail([
-        'nombre' => 'email',
-        'label' => 'Tu Email',
-        'requerido' => true
-    ]);
-
-    echo FormBuilder::campoTextarea([
-        'nombre' => 'mensaje',
-        'label' => 'Mensaje',
-        'requerido' => true
-    ]);
-
-    echo FormBuilder::botonEnviar([
-        'accion' => 'procesarContacto',
-        'texto' => 'Enviar Mensaje'
-    ]);
-
-    echo FormBuilder::fin();
-    ?>
-</section>
-```
-
-### Paso 2: Crear el Handler del Formulario
-
-Crea `App/Handlers/ProcesarContactoHandler.php`:
-
-```php
-<?php
-use Glory\Handler\Form\FormHandler;
-
-class ProcesarContactoHandler extends FormHandler {
-
-    public function procesar() {
-        // Validar datos
-        $nombre = sanitize_text_field($_POST['nombre']);
-        $email = sanitize_email($_POST['email']);
-        $mensaje = sanitize_textarea_field($_POST['mensaje']);
-
-        // Enviar email (usando utilidad de Glory)
-        use Glory\Utility\EmailUtility;
-
-        $asunto = "Nuevo mensaje de contacto de {$nombre}";
-        $contenido = "
-            Nombre: {$nombre}\n
-            Email: {$email}\n
-            Mensaje: {$mensaje}
-        ";
-
-        EmailUtility::sendToAdmins($asunto, $contenido);
-
-        // Respuesta de éxito
-        return [
-            'success' => true,
-            'message' => '¡Mensaje enviado correctamente!'
-        ];
+// Crea página con opción
+PageManager::create('inicio', [
+    'title' => 'Mi Sitio',
+    'callback' => function() {
+        $color = OpcionManager::get('color_primario');
+        echo "<h1 style='color:$color'>¡Bienvenido!</h1>";
     }
-}
+]);
 ```
 
-## 🚀 Probar tu Primera Creación
-
-1. **Accede al panel de administración** de WordPress
-2. **Ve a Apariencia → Personalizar** o busca "Glory" en el menú
-3. **Configura las opciones** que creaste
-4. **Visita la página principal** de tu sitio
-5. **Prueba el formulario** de contacto
-
-## 🎯 ¿Qué Hemos Aprendido?
-
-En estos primeros pasos has:
-
-- ✅ Configurado la estructura básica del tema
-- ✅ Registrado assets (CSS y JS)
-- ✅ Creado una página funcional con Glory
-- ✅ Añadido opciones personalizables
-- ✅ Implementado un formulario básico
-- ✅ Usado componentes y utilidades de Glory
-
-## 📚 Próximos Pasos
-
-Ahora que tienes lo básico funcionando, puedes:
-
-- [Crear más páginas](/introduccion/como-crear-paginas) con Glory
-- [Usar componentes avanzados](/componentes/) como ContentRender y TermRender
-- [Configurar tipos de contenido personalizados](/managers/post-type-manager)
-- [Añadir funcionalidades AJAX](/ajax-formularios/glory-ajax)
-
-¡Sigue explorando la documentación para descubrir todo lo que Glory puede hacer por ti!

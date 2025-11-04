@@ -3,76 +3,36 @@ title: Features disponibles
 description: Lista y agrupación de las features que puede controlar Glory actualmente
 ---
 
-Esta página lista las *features* que el framework Glory expone actualmente para ser habilitadas
-o deshabilitadas desde código (ej. `App/Config/control.php`) usando `GloryFeatures::enable()` / `disable()`
-o bien desde el panel cuando exista la opción asociada.
+## Features disponibles en Glory
 
-Por convención estas se agrupan por responsabilidad (Managers, UI, Services, Renderers, Theme options).
+Lista de funcionalidades que puedes activar/desactivar:
 
-## Cómo controlar una feature
+## Control básico
 
 ```php
 use Glory\Core\GloryFeatures;
 
-// Habilitar
-GloryFeatures::enable('nombreFeature');
+// Activar feature
+GloryFeatures::enable('miFeature');
 
-// Deshabilitar
-GloryFeatures::disable('nombreFeature');
+// Desactivar feature
+GloryFeatures::disable('miFeature');
+
+// Verificar si está activa
+if (GloryFeatures::isActive('miFeature')) {
+    // Código aquí
+}
 ```
 
-También puedes usar `GloryFeatures::isActive('nombreFeature')` para condicionar registro de assets o hooks.
+## Features principales
 
-## Features actuales
+- **Managers**: menu, assetManager, pageManager, postTypeManager, etc.
+- **UI**: modales, alertas, pestanas, scheduler, etc.
+- **Services**: cssCritico, gloryAjax, gloryRealtime, etc.
+- **Renderers**: contentRender, termRender, logoRenderer
+- **Theme**: titleTag, postThumbnails
 
-- **Managers**
-  - `menu`
-  - `assetManager`
-  - `opcionManagerSync`
-  - `syncManager`
-  - `gloryLogger`
-  - `pageManager`
-  - `postTypeManager`
-  - `taxonomyMetaManager`
-  - `scheduleManager`
-  - `defaultContentManager`
-  - `licenseManager`
-  - `creditosManager`
-
-- **UI Components**
-  - `modales`
-  - `submenus`
-  - `pestanas`
-  - `scheduler`
-  - `headerAdaptativo`
-  - `alertas`
-  - `gestionarPreviews`
-  - `paginacion`
-  - `gloryFilters`
-
-- **Services**
-  - `cssCritico`
-  - `navegacionAjax`
-  - `gloryAjax`
-  - `gloryForm`
-  - `gloryBusqueda`
-  - `gloryRealtime`
-
-- **Renderers**
-  - `logoRenderer`
-  - `contentRender`
-  - `termRender`
-
-- **Theme options / capacidades**
-  - `titleTag`
-  - `postThumbnails`
-
-## Notas
-
-- La lista anterior se obtuvo de `App/Config/control.php`. Mantén este archivo sincronizado con la lista de features
-  en la documentación cuando añadas o elimines features.
-- Para features que requieran assets, recuerda usar la clave `feature` al definir assets en `AssetManager` para
-  que el propio manager respete el estado de la feature automáticamente.
+Usa `GloryFeatures::isActive()` para controlar assets y funcionalidades.
 
 ---
 

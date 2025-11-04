@@ -3,203 +3,40 @@ title: Instalación
 description: Guía completa para instalar y configurar Glory Framework en tu proyecto WordPress
 ---
 
-# 🚀 Instalación de Glory Framework
+# Instalación de Glory Framework
 
-Esta guía te llevará paso a paso a través del proceso de instalación y configuración inicial de Glory Framework en tu entorno de desarrollo WordPress.
+## Requisitos
+- WordPress 5.0+
+- PHP 7.4+
+- Composer
+- Git
 
-## 📋 Requisitos Previos
+## Pasos de instalación
 
-Antes de comenzar, asegúrate de tener:
-
-- **WordPress** instalado (versión recomendada: 5.0 o superior)
-- **PHP** 7.4 o superior
-- **Composer** para gestión de dependencias PHP
-- **Git** para clonar repositorios
-- Una herramienta de desarrollo local como [LocalWP](https://localwp.com/), [MAMP](https://www.mamp.info/), o [XAMPP](https://www.apachefriends.org/)
-
-## 🛠️ Paso 1: Preparar el Entorno WordPress
-
-### Opción A: Usando LocalWP (Recomendado)
-
-1. **Descarga e instala LocalWP** desde su sitio oficial
-2. **Crea un nuevo sitio** con WordPress
-3. **Anota la ruta** donde está instalado WordPress (generalmente en `~/Local Sites/[nombre-del-sitio]/app/public/`)
-
-### Opción B: Instalación Manual
-
-Si prefieres una instalación manual:
-
+**Uso mínimo** - Instalación básica:
 ```bash
-# Navega al directorio de temas de WordPress
-cd /ruta/a/tu/wordpress/wp-content/themes
-```
-
-## 📦 Paso 2: Obtener el Tema Base
-
-Glory funciona dentro de un tema WordPress. Necesitas clonar el tema base que incluye la estructura necesaria:
-
-```bash
-# Desde wp-content/themes
+# 1. Clona el tema base
+cd wp-content/themes
 git clone https://github.com/1ndoryu/glorytemplate.git
-```
 
-Esto creará una carpeta `glorytemplate` con la estructura base del tema.
-
-## 📥 Paso 3: Instalar Dependencias
-
-```bash
-# Entra en la carpeta del tema
+# 2. Instala dependencias
 cd glorytemplate
-
-# Instala las dependencias PHP con Composer
 composer install
-```
 
-Este comando instalará todas las dependencias necesarias definidas en `composer.json`.
-
-## ⚡ Paso 4: Instalar Glory Framework
-
-Ahora necesitas clonar el framework Glory dentro del tema:
-
-```bash
-# Desde la carpeta del tema (glorytemplate)
+# 3. Clona Glory
 git clone https://github.com/1ndoryu/glory.git
+
+# 4. Crea archivo .env
+echo "LOCAL=TRUE\nDEV=TRUE" > .env
 ```
 
-Esto creará la carpeta `Glory/` dentro de tu tema con todo el código del framework.
-
-## ⚙️ Paso 5: Configurar Variables de Entorno
-
-Para el desarrollo local, necesitas crear un archivo `.env` en la raíz de tu tema con las siguientes variables:
-
+**Uso avanzado** - Con verificación:
 ```bash
-# Archivo: .env (en la raíz del tema)
-LOCAL=TRUE
-DEV=TRUE
+# Después de los pasos básicos, verifica instalación
+php -r "if(class_exists('Glory\Core\Setup')) echo 'Glory OK'; else echo 'Error';"
 ```
 
-### ¿Por qué son importantes estas variables?
+## Activar tema
+Ve a WordPress Admin → Apariencia → Temas y activa "Template Glory".
 
-- **`LOCAL=TRUE`**: Indica que estás trabajando en un entorno local
-- **`DEV=TRUE`**: Activa el modo desarrollador con características especiales
-
-**Nota importante**: Si estas variables no existen en el archivo `.env`, por defecto serán `false`. Es crucial configurarlas correctamente para el desarrollo local.
-
-### Cómo crear el archivo .env
-
-1. En la raíz de tu tema (donde está `functions.php`), crea un archivo llamado `.env`
-2. Añade las líneas mostradas arriba
-3. Guarda el archivo
-
-**Advertencia**: El archivo `.env` contiene información sensible y nunca debe subirse a control de versiones (asegúrate de que esté en tu `.gitignore`).
-
-## 🎨 Paso 6: Activar el Tema
-
-1. **Accede al panel de administración** de WordPress:
-   - URL: `http://tu-sitio.local/wp-admin/`
-   - Usuario y contraseña: los que configuraste durante la instalación
-
-2. **Ve a Apariencia → Temas**
-
-3. **Activa el tema "Template Glory"**
-
-## ✅ Paso 7: Verificar la Instalación
-
-Después de activar el tema, deberías poder acceder a tu sitio y ver que Glory está funcionando correctamente.
-
-### Verificación Básica
-
-1. **Página principal**: Debería cargar sin errores
-2. **Consola del navegador**: No debería haber errores de JavaScript
-3. **Panel de administración**: Debería aparecer el menú "Glory" si está configurado
-
-### Verificación Avanzada
-
-Puedes verificar que Glory esté cargado correctamente revisando:
-
-```php
-// En cualquier archivo PHP del tema
-if (class_exists('Glory\\Core\\Setup')) {
-    echo 'Glory Framework está cargado correctamente';
-}
-```
-
-## 🔧 Paso 8: Configuración Inicial (Opcional)
-
-Una vez instalado, puedes empezar a configurar las funcionalidades básicas:
-
-### Crear tu primera página
-
-Edita `App/Config/config.php` para definir páginas:
-
-```php
-use Glory\Manager\PageManager;
-
-// Define una página de inicio
-PageManager::define('home', 'renderHome');
-```
-
-### Registrar assets básicos
-
-Edita `App/Config/assets.php`:
-
-```php
-use Glory\Manager\AssetManager;
-
-// Registra un archivo CSS básico
-AssetManager::define(
-    'style',
-    'mi-tema-css',
-    '/assets/css/estilos.css'
-);
-```
-
-## 🐛 Solución de Problemas
-
-### Error común: "Class not found"
-
-Si ves errores como "Class 'Glory\Manager\AssetManager' not found":
-
-1. Verifica que la carpeta `Glory/` existe en el tema
-2. Asegúrate de que `composer install` se ejecutó correctamente
-3. Revisa que el archivo `functions.php` del tema incluye `Glory/load.php`
-
-### Error común: Tema no aparece
-
-Si el tema no aparece en Apariencia → Temas:
-
-1. Verifica que la carpeta del tema esté en `wp-content/themes/`
-2. Asegúrate de que existe el archivo `style.css` en la raíz del tema
-3. Revisa los permisos de archivos
-
-### Error común: Página en blanco
-
-Si obtienes una página en blanco:
-
-1. Habilita los errores de PHP en `wp-config.php`:
-   ```php
-   define('WP_DEBUG', true);
-   define('WP_DEBUG_LOG', true);
-   ```
-
-2. Revisa el log de errores en `wp-content/debug.log`
-
-## 📚 Próximos Pasos
-
-Una vez instalado Glory, puedes empezar a:
-
-- [Crear tus primeras páginas](/introduccion/primeros-pasos)
-- [Configurar opciones del tema](/managers/opcion-manager)
-- [Registrar assets](/managers/asset-manager)
-- [Explorar componentes disponibles](/componentes/)
-
-## 🎯 ¿Necesitas Ayuda?
-
-Si encuentras problemas durante la instalación:
-
-1. Revisa esta documentación completa
-2. Consulta los logs de error de WordPress
-3. Verifica que todas las dependencias están instaladas
-4. Asegúrate de seguir cada paso en orden
-
-¡Glory está listo para acelerar tu desarrollo WordPress!
+¡Glory está listo para usar!

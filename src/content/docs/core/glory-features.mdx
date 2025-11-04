@@ -51,155 +51,40 @@ if (option_exists('optionKey')) return get_option('optionKey');
 return $default;
 ```
 
-## Ejemplos extras
-
-1) Dev ON — el dev forzó activar
-
-```php
-// dev mode = true
-GloryFeatures::enable('X'); // override = true
-GloryFeatures::isActive('X') // -> true
-```
-
-2) Dev ON — el dev forzó desactivar
-
-```php
-// dev mode = true
-GloryFeatures::disable('X'); // override = false
-GloryFeatures::isActive('X') // -> false
-```
-
-3) Dev ON — no hay override, la BD tiene la opción
-
-```php
-// dev mode = true
-// override = null
-// DB: optionKey = true
-GloryFeatures::isActive('X', 'mi_opcion') // -> true
-```
-
-4) Prod (dev OFF) — el dev forzó activar pero el admin dijo false en BD
-
-```php
-// dev mode = false
-GloryFeatures::enable('X'); // override = true
-// DB: optionKey = false
-GloryFeatures::isActive('X', 'mi_opcion') // -> false
-```
-
-5) Prod (dev OFF) — el dev forzó activar y NO existe opción en BD
-
-```php
-// dev mode = false
-GloryFeatures::enable('X'); // override = true
-// DB: optionKey NO existe
-GloryFeatures::isActive('X', 'mi_opcion', true) // -> true
-```
-
-6) Prod (dev OFF) — no override y la BD tiene false
-
-```php
-// dev mode = false
-// override = null
-// DB: optionKey = false
-GloryFeatures::isActive('X', 'mi_opcion') // -> false
-```
-
-## ¿Por qué existen las dos funciones? ¿Tiene que ver con el modo dev?
-
-- `isEnabled` sirve para que un desarrollador pueda **forzar** algo desde el código (útil en desarrollo o pruebas). Es temporal y local al código.
-- `isActive` es la **decisión final** que usa el sistema: combina override, configuración del admin y un valor por defecto.
-- En **modo desarrollo** los overrides por código suelen tener prioridad absoluta (para facilitar pruebas).
-- En **producción** el override actúa como **valor por defecto**: si el cliente final / administrador del sitio cambió la opción desde el panel, ese valor guardado en la BD prevalece.
-
-Ejemplo práctico para entenderlo:
-
-- Estás desarrollando y quieres probar una feature sin tocar el panel: `GloryFeatures::enable('miFeature')` → `isActive('miFeature')` devolverá `true` en tu entorno local.
-- En producción, si el cliente final configuró la feature como `false` en el panel, `isActive` devolverá `false` aunque el código llame a `enable()` (el cliente final tiene la última palabra en producción).
-
----
-
-### Integración con `AssetManager`
-
-`AssetManager` soporta la clave `feature` en la configuración de un asset. Si un asset declara `'feature' => 'miFeature'`,
-el manager comprobará internamente `GloryFeatures::isActive('miFeature')` y **omitirá** la definición/encolado del asset cuando la
-feature esté desactivada. Esto permite simplificar la declaración de assets en `App/Config/assets.php` sin envolver el código
-con condicionales.
-
-Formato aceptado:
-
-- `feature` (string): nombre de la feature, p. ej. `'gloryAjax'`.
-- `feature` (array): `['name' => 'gloryAjax', 'option' => 'clave_opcion_en_bd']` para mapear una opción distinta.
-
-Ejemplo rápido:
-
-```php
-AssetManager::define(
-    'script',
-    'glory-realtime-core',
-    '/Glory/assets/js/Core/gloryRealtime.js',
-    [
-        'deps'    => [],
-        'in_footer'=> true,
-        'area'    => 'both',
-        'feature' => 'gloryAjax', // el asset solo se definirá/encolará si la feature gloryAjax está activa
-    ]
-);
-```
-
-Con esta integración, no necesitas envolver la llamada a `AssetManager::define()` en un `if (GloryFeatures::isActive(...))` —
-AssetManager se encarga de respetar la configuración de features automáticamente.
-
 ## Ejemplos de uso
 
-### Forzar una feature desde código (override)
-
+**Uso mínimo** - Activar/desactivar feature:
 ```php
 use Glory\Core\GloryFeatures;
 
-// Forzar activación
-GloryFeatures::enable('gloryRealtime');
+// Activar feature
+GloryFeatures::enable('miFeature');
 
-// Forzar desactivación
-GloryFeatures::disable('cssCritico');
-```
-
-### Comprobar si una feature está activa (modo recomendado al registrar assets)
-
-```php
-use Glory\Manager\AssetManager;
-use Glory\Core\GloryFeatures;
-
-if (GloryFeatures::isActive('gloryRealtime')) {
-    AssetManager::define('script', 'glory-gloryrealtime', '/assets/js/gloryRealtime.js', [
-        'deps' => ['glory-ajax'],
-        'in_footer' => true,
-        'area' => 'frontend',
-    ]);
+// Verificar si está activa
+if (GloryFeatures::isActive('miFeature')) {
+    // Código aquí
 }
 ```
 
-### `isActive` con `optionKey`
-
-Si la opción en BD usa una clave personalizada diferente al nombre de la feature, pásala como segundo parámetro:
-
+**Uso avanzado** - Con opción de BD:
 ```php
-// Si la opción real en BD es 'mi_plugin_realtime_enabled'
-GloryFeatures::isActive('gloryRealtime', 'mi_plugin_realtime_enabled');
+// Verificar con opción personalizada y valor por defecto
+if (GloryFeatures::isActive('miFeature', 'mi_opcion_personalizada', false)) {
+    AssetManager::define('script', 'mi-script', '/assets/js/script.js');
+}
 ```
 
-## Buenas prácticas
+## Integración con AssetManager
 
-- Usa `isActive()` siempre que el comportamiento deba depender de la configuración del sitio o de un override por código.
-- Reserva `isEnabled()` para casos en los que exclusivamente quieras comprobar si existe un override por código.
-- Evita usar valores por defecto inconsistentes: cuando definas una feature documenta el `optionKey` y el `default` esperado.
-- Para assets que solo deberían cargarse en admin o frontend, define `area` en el `AssetManager` y consulta `isActive()` antes de definir el asset.
-- Documenta en la documentación del componente o del tema (p. ej. el README correspondiente) cada feature nueva con su `optionKey`, `valorDefault`, y ejemplos de uso (enable/disable/isActive).
+AssetManager soporta `'feature'` para cargar assets condicionalmente:
 
-## Errores comunes
+```php
+AssetManager::define('script', 'mi-script', '/assets/js/script.js', [
+    'feature' => 'miFeature' // Solo carga si la feature está activa
+]);
+```
 
-- No comprobar `isActive()` antes de registrar assets o hooks: puede provocar que assets innecesarios se registren en entornos donde la feature debe estar desactivada.
-- Confundir `isEnabled()` con `isActive()` y depender únicamente de `isEnabled()` en código que debe respetar la configuración del panel.
+¡Usa GloryFeatures para controlar funcionalidades dinámicamente!
 
 
 

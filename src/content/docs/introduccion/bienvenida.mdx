@@ -45,35 +45,33 @@ Después de la instalación, puedes crear rápidamente una página personalizada
 **Uso mínimo** - Página básica con Glory:
 ```php
 <?php
-use Glory\Managers\PageManager;
+use Glory\Manager\PageManager;
 
-// Crea página simple
-PageManager::create('mi-pagina', [
-    'title' => 'Mi Página',
-    'callback' => function() {
-        echo '<h1>¡Glory funcionando!</h1>';
-    }
-]);
+// Define página simple con función de renderizado
+function renderizarMiPagina() {
+    echo '<h1>¡Glory funcionando!</h1>';
+}
+
+PageManager::define('mi-pagina', 'renderizarMiPagina');
 ```
 
 **Uso avanzado** - Con assets y componentes:
 ```php
 <?php
-use Glory\Managers\AssetManager;
+use Glory\Manager\AssetManager;
 use Glory\Components\Modal;
 
 // Define assets automáticamente
 AssetManager::defineFolder('assets/');
 
-// Crea página con modal
-PageManager::create('demo-avanzada', [
-    'title' => 'Demo Avanzada',
-    'callback' => function() {
-        $modal = new Modal('demo-modal');
-        $modal->setTitle('Hola Glory')->render();
-        echo '<button onclick="jQuery(\'#demo-modal\').show()">Abrir</button>';
-    }
-]);
+// Define página con modal
+function renderizarDemoAvanzada() {
+    $modal = new Modal('demo-modal');
+    $modal->setTitle('Hola Glory')->render();
+    echo '<button onclick="jQuery(\'#demo-modal\').show()">Abrir</button>';
+}
+
+PageManager::define('demo-avanzada', 'renderizarDemoAvanzada');
 ```
 
 ## Estructura relevante (rápida)

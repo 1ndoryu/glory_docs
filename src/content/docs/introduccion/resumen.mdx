@@ -3,7 +3,7 @@ title: Resumen del Framework Glory
 description: Guía completa de todas las funcionalidades y componentes disponibles en Glory Framework
 ---
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
 # Resumen del Framework Glory
 
@@ -27,304 +27,304 @@ Glory es un framework PHP completamente agnóstico para WordPress que proporcion
 ## 📚 Introducción y Setup
 
 <CardGrid>
-  <LinkCard title="Instalación" icon="seti:config" href="/introduccion/instalacion/">
-    Guía completa de instalación y configuración inicial del framework
-  </LinkCard>
-  <LinkCard title="Primeros Pasos" icon="seti:rocket" href="/introduccion/primeros-pasos/">
-    Tutorial básico para comenzar con Glory y crear tu primera funcionalidad
-  </LinkCard>
-  <LinkCard title="Cómo Usar Componentes" icon="seti:php" href="/introduccion/como-usar-componentes/">
-    Guía práctica para integrar y personalizar componentes Glory
-  </LinkCard>
-  <LinkCard title="Cómo Crear Componentes" icon="seti:php" href="/introduccion/como-crear-componentes/">
-    Tutorial para desarrollar nuevos componentes siguiendo las mejores prácticas
-  </LinkCard>
-  <LinkCard title="Cómo Crear Páginas" icon="seti:html" href="/introduccion/como-crear-paginas/">
-    Guía para crear páginas de administración con Glory
-  </LinkCard>
+  <Card title="Instalación" icon="seti:config">
+    <a href="/introduccion/instalacion/">Guía completa de instalación y configuración inicial del framework</a>
+  </Card>
+  <Card title="Primeros Pasos" icon="seti:rocket">
+    <a href="/introduccion/primeros-pasos/">Tutorial básico para comenzar con Glory y crear tu primera funcionalidad</a>
+  </Card>
+  <Card title="Cómo Usar Componentes" icon="seti:php">
+    <a href="/introduccion/como-usar-componentes/">Guía práctica para integrar y personalizar componentes Glory</a>
+  </Card>
+  <Card title="Cómo Crear Componentes" icon="seti:php">
+    <a href="/introduccion/como-crear-componentes/">Tutorial para desarrollar nuevos componentes siguiendo las mejores prácticas</a>
+  </Card>
+  <Card title="Cómo Crear Páginas" icon="seti:html">
+    <a href="/introduccion/como-crear-paginas/">Guía para crear páginas de administración con Glory</a>
+  </Card>
 </CardGrid>
 
 ## ⚙️ Core y Features
 
 <CardGrid>
-  <LinkCard title="GloryFeatures" icon="seti:config" href="/core/glory-features/">
-    Sistema de control de features con overrides por código y opciones de BD
-  </LinkCard>
-  <LinkCard title="Glory AJAX" icon="seti:javascript" href="/core/glory-ajax/">
-    Utilidad unificada para peticiones AJAX con manejo avanzado de errores
-  </LinkCard>
-  <LinkCard title="Features Disponibles" icon="seti:checklist" href="/core/features/available-features/">
-    Catálogo completo de todas las features activables en Glory
-  </LinkCard>
-  <LinkCard title="Glory Realtime" icon="seti:zap" href="/core/features/glory-realtime/">
-    Sistema de comunicación en tiempo real con WebSockets
-  </LinkCard>
+  <Card title="GloryFeatures" icon="seti:config">
+    <a href="/core/glory-features/">Sistema de control de features con overrides por código y opciones de BD</a>
+  </Card>
+  <Card title="Glory AJAX" icon="seti:javascript">
+    <a href="/core/glory-ajax/">Utilidad unificada para peticiones AJAX con manejo avanzado de errores</a>
+  </Card>
+  <Card title="Features Disponibles" icon="seti:checklist">
+    <a href="/core/features/available-features/">Catálogo completo de todas las features activables en Glory</a>
+  </Card>
+  <Card title="Glory Realtime" icon="seti:zap">
+    <a href="/core/features/glory-realtime/">Sistema de comunicación en tiempo real con WebSockets</a>
+  </Card>
 </CardGrid>
 
 ## 🔧 Managers Principales
 
 <CardGrid>
-  <LinkCard title="AssetManager" icon="seti:javascript" href="/managers/asset-manager/">
-    Gestiona assets (CSS/JS) con auto-detección, defer, localización y cache
-  </LinkCard>
-  <LinkCard title="OpcionManager" icon="seti:config" href="/managers/opcion-manager/">
-    Maneja opciones de tema con validación, sanitización y UI automática
-  </LinkCard>
-  <LinkCard title="PageManager" icon="seti:html" href="/managers/page-manager/">
-    Crea páginas de administración con builders fluidos y validación
-  </LinkCard>
-  <LinkCard title="DefaultContentManager" icon="seti:markdown" href="/managers/default-content-manager/">
-    Gestiona contenido por defecto con sincronización y plantillas
-  </LinkCard>
-  <LinkCard title="PostTypeManager" icon="seti:php" href="/managers/post-type-manager/">
-    Registra tipos de contenido personalizados con metaboxes automáticos
-  </LinkCard>
-  <LinkCard title="AdminPageManager" icon="seti:html" href="/managers/admin-page-manager/">
-    Construye páginas de admin con componentes reutilizables
-  </LinkCard>
-  <LinkCard title="MenuManager" icon="seti:html" href="/managers/menu-manager/">
-    Gestiona menús con walkers personalizados y navegación AJAX
-  </LinkCard>
+  <Card title="AssetManager" icon="seti:javascript">
+    <a href="/managers/asset-manager/">Gestiona assets (CSS/JS) con auto-detección, defer, localización y cache</a>
+  </Card>
+  <Card title="OpcionManager" icon="seti:config">
+    <a href="/managers/opcion-manager/">Maneja opciones de tema con validación, sanitización y UI automática</a>
+  </Card>
+  <Card title="PageManager" icon="seti:html">
+    <a href="/managers/page-manager/">Crea páginas de administración con builders fluidos y validación</a>
+  </Card>
+  <Card title="DefaultContentManager" icon="seti:markdown">
+    <a href="/managers/default-content-manager/">Gestiona contenido por defecto con sincronización y plantillas</a>
+  </Card>
+  <Card title="PostTypeManager" icon="seti:php">
+    <a href="/managers/post-type-manager/">Registra tipos de contenido personalizados con metaboxes automáticos</a>
+  </Card>
+  <Card title="AdminPageManager" icon="seti:html">
+    <a href="/managers/admin-page-manager/">Construye páginas de admin con componentes reutilizables</a>
+  </Card>
+  <Card title="MenuManager" icon="seti:html">
+    <a href="/managers/menu-manager/">Gestiona menús con walkers personalizados y navegación AJAX</a>
+  </Card>
 </CardGrid>
 
 ## 🌐 Sistema AJAX y Formularios
 
 <CardGrid>
-  <LinkCard title="gloryAjax.js" icon="seti:javascript" href="/core/glory-ajax/">
-    Utilidad unificada para todas las peticiones AJAX con manejo de errores
-  </LinkCard>
-  <LinkCard title="Sistema de formularios" icon="seti:php" href="/ajax-formularios/sistema-formularios/">
-    Framework completo para formularios dinámicos y validación
-  </LinkCard>
-  <LinkCard title="FormBuilder" icon="seti:php" href="/ajax-formularios/form-builder/">
-    Constructor fluido de formularios con validación automática
-  </LinkCard>
-  <LinkCard title="FormHandler" icon="seti:php" href="/ajax-formularios/form-handler/">
-    Procesa envíos de formularios con sanitización y respuestas JSON
-  </LinkCard>
-  <LinkCard title="Handlers específicos" icon="seti:php" href="/ajax-formularios/handlers/">
-    Procesadores especializados para diferentes tipos de formularios
-  </LinkCard>
+  <Card title="gloryAjax.js" icon="seti:javascript">
+    <a href="/core/glory-ajax/">Utilidad unificada para todas las peticiones AJAX con manejo de errores</a>
+  </Card>
+  <Card title="Sistema de formularios" icon="seti:php">
+    <a href="/ajax-formularios/sistema-formularios/">Framework completo para formularios dinámicos y validación</a>
+  </Card>
+  <Card title="FormBuilder" icon="seti:php">
+    <a href="/ajax-formularios/form-builder/">Constructor fluido de formularios con validación automática</a>
+  </Card>
+  <Card title="FormHandler" icon="seti:php">
+    <a href="/ajax-formularios/form-handler/">Procesa envíos de formularios con sanitización y respuestas JSON</a>
+  </Card>
+  <Card title="Handlers específicos" icon="seti:php">
+    <a href="/ajax-formularios/handlers/">Procesadores especializados para diferentes tipos de formularios</a>
+  </Card>
 </CardGrid>
 
 ## 🧩 Componentes Reutilizables
 
 <CardGrid>
-  <LinkCard title="ContentRender" icon="seti:php" href="/componentes/renderers/content-render/">
-    Renderiza contenido dinámico con plantillas y filtros
-  </LinkCard>
-  <LinkCard title="TermRender" icon="seti:php" href="/componentes/renderers/term-render/">
-    Maneja taxonomías y términos con navegación jerárquica
-  </LinkCard>
-  <LinkCard title="BusquedaRenderer" icon="seti:php" href="/componentes/renderers/busqueda-renderer/">
-    Componente de búsqueda avanzada con filtros y resultados en tiempo real
-  </LinkCard>
-  <LinkCard title="LogoRenderer" icon="seti:php" href="/componentes/renderers/logo-renderer/">
-    Gestiona logos responsive con fallback automático
-  </LinkCard>
-  <LinkCard title="BarraFiltrosRenderer" icon="seti:php" href="/componentes/renderers/barra-filtros-renderer/">
-    Filtros interactivos para listados y búsquedas
-  </LinkCard>
-  <LinkCard title="FormBuilder" icon="seti:php" href="/ajax-formularios/form-builder/">
-    Constructor visual de formularios con drag & drop
-  </LinkCard>
-  <LinkCard title="Modal" icon="seti:javascript" href="/componentes/ui/modales/">
-    Sistema modal reutilizable con animaciones y accesibilidad
-  </LinkCard>
-  <LinkCard title="BadgeList" icon="seti:javascript" href="/componentes/ui/badge-list/">
-    Lista de badges interactivos con estados dinámicos
-  </LinkCard>
-  <LinkCard title="Sistema de Alertas" icon="seti:javascript" href="/componentes/ui/alertas/">
-    Notificaciones personalizadas que reemplazan alert() y confirm() nativos
-  </LinkCard>
-  <LinkCard title="DataGridRenderer" icon="seti:php" href="/componentes/renderers/data-grid-renderer/">
-    Tabla de datos con paginación, ordenamiento y filtros
-  </LinkCard>
-  <LinkCard title="PaginationRenderer" icon="seti:javascript" href="/componentes/renderers/pagination-renderer/">
-    Paginación inteligente con navegación AJAX
-  </LinkCard>
-  <LinkCard title="SchedulerRenderer" icon="seti:php" href="/componentes/renderers/scheduler-renderer/">
-    Calendario y programador de eventos interactivo
-  </LinkCard>
-  <LinkCard title="PerfilRenderer" icon="seti:php" href="/componentes/renderers/perfil-renderer/">
-    Gestión de perfiles de usuario con formularios integrados
-  </LinkCard>
-  <LinkCard title="ThemeToggle" icon="seti:javascript" href="/componentes/ui/theme-toggle/">
-    Interruptor de tema claro/oscuro con persistencia
-  </LinkCard>
-  <LinkCard title="HeaderRenderer" icon="seti:php" href="/componentes/renderers/header-renderer/">
-    Renderizado dinámico de headers con navegación responsive
-  </LinkCard>
-  <LinkCard title="AutenticacionRenderer" icon="seti:php" href="/componentes/renderers/autenticacion-renderer/">
-    Sistema completo de autenticación con formularios integrados
-  </LinkCard>
-  <LinkCard title="Button" icon="seti:php" href="/componentes/ui/button/">
-    Componente de botones reutilizable con múltiples estilos y estados
-  </LinkCard>
-  <LinkCard title="FormularioFluente" icon="seti:php" href="/componentes/ui/formulario-fluente/">
-    Constructor fluido de formularios con API intuitiva
-  </LinkCard>
-  <LinkCard title="GloryImage" icon="seti:php" href="/componentes/ui/glory-image/">
-    Gestión avanzada de imágenes con optimización automática
-  </LinkCard>
-  <LinkCard title="MenuWalker" icon="seti:php" href="/componentes/ui/menu-walker/">
-    Walker personalizado para menús con navegación AJAX
-  </LinkCard>
-  <LinkCard title="Sistema de Previsualizaciones" icon="seti:javascript" href="/componentes/ui/previsualizaciones/">
-    Gestión interactiva de archivos con drag & drop y previsualización en tiempo real
-  </LinkCard>
-  <LinkCard title="Sistema de Pestañas" icon="seti:javascript" href="/componentes/ui/pestanas/">
-    Navegación por pestañas con persistencia de estado y accesibilidad ARIA
-  </LinkCard>
-  <LinkCard title="Sistema de Submenús" icon="seti:javascript" href="/componentes/ui/submenus/">
-    Menús contextuales con activación múltiple y posicionamiento inteligente
-  </LinkCard>
-  <LinkCard title="Header Adaptativo" icon="seti:javascript" href="/componentes/ui/header-adaptativo/">
-    Adaptación automática del header según contraste de fondo y menú móvil
-  </LinkCard>
-  <LinkCard title="Navegación AJAX" icon="seti:javascript" href="/componentes/ui/nav-ajax/">
-    Navegación asíncrona con prefetching inteligente y cache avanzado
-  </LinkCard>
-  <LinkCard title="Componente Calendario" icon="seti:javascript" href="/componentes/ui/calendario/">
-    Calendario interactivo con selección de fechas y gestión contextual
-  </LinkCard>
-  <LinkCard title="Sistema de Filtros AJAX" icon="seti:javascript" href="/componentes/ui/filtros/">
-    Filtrado dinámico con ordenamiento, paginación y acciones masivas
-  </LinkCard>
-  <LinkCard title="Selector de Rangos de Fecha" icon="seti:javascript" href="/componentes/ui/date-range/">
-    Componente para selección de rangos de fechas con interfaz intuitiva y validación automática
-  </LinkCard>
-  <LinkCard title="Sistema de Fondos Modales" icon="seti:javascript" href="/componentes/ui/crear-fondo/">
-    Gestor centralizado de fondos oscuros para modales y overlays con contador de referencias múltiple
-  </LinkCard>
-  <LinkCard title="Sistema de Formularios Modales" icon="seti:javascript" href="/componentes/ui/form-modal/">
-    Gestor avanzado de formularios dentro de modales con creación/edición AJAX, upload de imágenes y validaciones dinámicas
-  </LinkCard>
-  <LinkCard title="Sistema de Acciones de Contenido" icon="seti:javascript" href="/componentes/ui/content-actions/">
-    Gestor de acciones interactivas sobre elementos de contenido con eliminación, submenús y eventos contextuales
-  </LinkCard>
-  <LinkCard title="Layout Masonry Row Major" icon="seti:javascript" href="/componentes/ui/masonry-row-major/">
-    Sistema de organización automática de elementos en columnas estilo muro de ladrillos con posicionamiento absoluto
-  </LinkCard>
-  <LinkCard title="Sistema de Menús Interactivos" icon="seti:javascript" href="/componentes/ui/menu/">
-    Gestor de menús de navegación con submenús hover, posicionamiento inteligente y soporte para accesibilidad
-  </LinkCard>
+  <Card title="ContentRender" icon="seti:php">
+    <a href="/componentes/renderers/content-render/">Renderiza contenido dinámico con plantillas y filtros</a>
+  </Card>
+  <Card title="TermRender" icon="seti:php">
+    <a href="/componentes/renderers/term-render/">Maneja taxonomías y términos con navegación jerárquica</a>
+  </Card>
+  <Card title="BusquedaRenderer" icon="seti:php">
+    <a href="/componentes/renderers/busqueda-renderer/">Componente de búsqueda avanzada con filtros y resultados en tiempo real</a>
+  </Card>
+  <Card title="LogoRenderer" icon="seti:php">
+    <a href="/componentes/renderers/logo-renderer/">Gestiona logos responsive con fallback automático</a>
+  </Card>
+  <Card title="BarraFiltrosRenderer" icon="seti:php">
+    <a href="/componentes/renderers/barra-filtros-renderer/">Filtros interactivos para listados y búsquedas</a>
+  </Card>
+  <Card title="FormBuilder" icon="seti:php">
+    <a href="/ajax-formularios/form-builder/">Constructor visual de formularios con drag & drop</a>
+  </Card>
+  <Card title="Modal" icon="seti:javascript">
+    <a href="/componentes/ui/modales/">Sistema modal reutilizable con animaciones y accesibilidad</a>
+  </Card>
+  <Card title="BadgeList" icon="seti:javascript">
+    <a href="/componentes/ui/badge-list/">Lista de badges interactivos con estados dinámicos</a>
+  </Card>
+  <Card title="Sistema de Alertas" icon="seti:javascript">
+    <a href="/componentes/ui/alertas/">Notificaciones personalizadas que reemplazan alert() y confirm() nativos</a>
+  </Card>
+  <Card title="DataGridRenderer" icon="seti:php">
+    <a href="/componentes/renderers/data-grid-renderer/">Tabla de datos con paginación, ordenamiento y filtros</a>
+  </Card>
+  <Card title="PaginationRenderer" icon="seti:javascript">
+    <a href="/componentes/renderers/pagination-renderer/">Paginación inteligente con navegación AJAX</a>
+  </Card>
+  <Card title="SchedulerRenderer" icon="seti:php">
+    <a href="/componentes/renderers/scheduler-renderer/">Calendario y programador de eventos interactivo</a>
+  </Card>
+  <Card title="PerfilRenderer" icon="seti:php">
+    <a href="/componentes/renderers/perfil-renderer/">Gestión de perfiles de usuario con formularios integrados</a>
+  </Card>
+  <Card title="ThemeToggle" icon="seti:javascript">
+    <a href="/componentes/ui/theme-toggle/">Interruptor de tema claro/oscuro con persistencia</a>
+  </Card>
+  <Card title="HeaderRenderer" icon="seti:php">
+    <a href="/componentes/renderers/header-renderer/">Renderizado dinámico de headers con navegación responsive</a>
+  </Card>
+  <Card title="AutenticacionRenderer" icon="seti:php">
+    <a href="/componentes/renderers/autenticacion-renderer/">Sistema completo de autenticación con formularios integrados</a>
+  </Card>
+  <Card title="Button" icon="seti:php">
+    <a href="/componentes/ui/button/">Componente de botones reutilizable con múltiples estilos y estados</a>
+  </Card>
+  <Card title="FormularioFluente" icon="seti:php">
+    <a href="/componentes/ui/formulario-fluente/">Constructor fluido de formularios con API intuitiva</a>
+  </Card>
+  <Card title="GloryImage" icon="seti:php">
+    <a href="/componentes/ui/glory-image/">Gestión avanzada de imágenes con optimización automática</a>
+  </Card>
+  <Card title="MenuWalker" icon="seti:php">
+    <a href="/componentes/ui/menu-walker/">Walker personalizado para menús con navegación AJAX</a>
+  </Card>
+  <Card title="Sistema de Previsualizaciones" icon="seti:javascript">
+    <a href="/componentes/ui/previsualizaciones/">Gestión interactiva de archivos con drag & drop y previsualización en tiempo real</a>
+  </Card>
+  <Card title="Sistema de Pestañas" icon="seti:javascript">
+    <a href="/componentes/ui/pestanas/">Navegación por pestañas con persistencia de estado y accesibilidad ARIA</a>
+  </Card>
+  <Card title="Sistema de Submenús" icon="seti:javascript">
+    <a href="/componentes/ui/submenus/">Menús contextuales con activación múltiple y posicionamiento inteligente</a>
+  </Card>
+  <Card title="Header Adaptativo" icon="seti:javascript">
+    <a href="/componentes/ui/header-adaptativo/">Adaptación automática del header según contraste de fondo y menú móvil</a>
+  </Card>
+  <Card title="Navegación AJAX" icon="seti:javascript">
+    <a href="/componentes/ui/nav-ajax/">Navegación asíncrona con prefetching inteligente y cache avanzado</a>
+  </Card>
+  <Card title="Componente Calendario" icon="seti:javascript">
+    <a href="/componentes/ui/calendario/">Calendario interactivo con selección de fechas y gestión contextual</a>
+  </Card>
+  <Card title="Sistema de Filtros AJAX" icon="seti:javascript">
+    <a href="/componentes/ui/filtros/">Filtrado dinámico con ordenamiento, paginación y acciones masivas</a>
+  </Card>
+  <Card title="Selector de Rangos de Fecha" icon="seti:javascript">
+    <a href="/componentes/ui/date-range/">Componente para selección de rangos de fechas con interfaz intuitiva y validación automática</a>
+  </Card>
+  <Card title="Sistema de Fondos Modales" icon="seti:javascript">
+    <a href="/componentes/ui/crear-fondo/">Gestor centralizado de fondos oscuros para modales y overlays con contador de referencias múltiple</a>
+  </Card>
+  <Card title="Sistema de Formularios Modales" icon="seti:javascript">
+    <a href="/componentes/ui/form-modal/">Gestor avanzado de formularios dentro de modales con creación/edición AJAX, upload de imágenes y validaciones dinámicas</a>
+  </Card>
+  <Card title="Sistema de Acciones de Contenido" icon="seti:javascript">
+    <a href="/componentes/ui/content-actions/">Gestor de acciones interactivas sobre elementos de contenido con eliminación, submenús y eventos contextuales</a>
+  </Card>
+  <Card title="Layout Masonry Row Major" icon="seti:javascript">
+    <a href="/componentes/ui/masonry-row-major/">Sistema de organización automática de elementos en columnas estilo muro de ladrillos con posicionamiento absoluto</a>
+  </Card>
+  <Card title="Sistema de Menús Interactivos" icon="seti:javascript">
+    <a href="/componentes/ui/menu/">Gestor de menús de navegación con submenús hover, posicionamiento inteligente y soporte para accesibilidad</a>
+  </Card>
 </CardGrid>
 
 ## 🛠️ Utilidades y Helpers
 
 <CardGrid>
-  <LinkCard title="AssetsUtility" icon="seti:php" href="/utilidades/assets-utility/">
-    Utilidades para gestión avanzada de assets y dependencias
-  </LinkCard>
-  <LinkCard title="EmailUtility" icon="seti:php" href="/utilidades/email-utility/">
-    Envío de emails con plantillas y colas de procesamiento
-  </LinkCard>
-  <LinkCard title="PostUtility" icon="seti:php" href="/utilidades/post-utility/">
-    Funciones helper para manipulación avanzada de posts
-  </LinkCard>
-  <LinkCard title="UserUtility" icon="seti:php" href="/utilidades/user-utility/">
-    Utilidades para gestión de usuarios y roles
-  </LinkCard>
-  <LinkCard title="ScheduleManager" icon="seti:php" href="/utilidades/schedule-manager/">
-    Programador de tareas con cron jobs y eventos
-  </LinkCard>
-  <LinkCard title="ImageUtility" icon="seti:php" href="/utilidades/image-utility/">
-    Procesamiento y optimización de imágenes
-  </LinkCard>
-  <LinkCard title="TemplateRegistry" icon="seti:php" href="/utilidades/template-registry/">
-    Registro y gestión de plantillas reutilizables
-  </LinkCard>
+  <Card title="AssetsUtility" icon="seti:php">
+    <a href="/utilidades/assets-utility/">Utilidades para gestión avanzada de assets y dependencias</a>
+  </Card>
+  <Card title="EmailUtility" icon="seti:php">
+    <a href="/utilidades/email-utility/">Envío de emails con plantillas y colas de procesamiento</a>
+  </Card>
+  <Card title="PostUtility" icon="seti:php">
+    <a href="/utilidades/post-utility/">Funciones helper para manipulación avanzada de posts</a>
+  </Card>
+  <Card title="UserUtility" icon="seti:php">
+    <a href="/utilidades/user-utility/">Utilidades para gestión de usuarios y roles</a>
+  </Card>
+  <Card title="ScheduleManager" icon="seti:php">
+    <a href="/utilidades/schedule-manager/">Programador de tareas con cron jobs y eventos</a>
+  </Card>
+  <Card title="ImageUtility" icon="seti:php">
+    <a href="/utilidades/image-utility/">Procesamiento y optimización de imágenes</a>
+  </Card>
+  <Card title="TemplateRegistry" icon="seti:php">
+    <a href="/utilidades/template-registry/">Registro y gestión de plantillas reutilizables</a>
+  </Card>
 </CardGrid>
 
 ## ⚡ Servicios Avanzados
 
 <CardGrid>
-  <LinkCard title="AnalyticsEngine" icon="seti:php" href="/servicios/analytics-engine/">
-    Motor de analíticas con tracking y reportes
-  </LinkCard>
-  <LinkCard title="BusquedaService" icon="seti:php" href="/servicios/busqueda-service/">
-    Servicio de búsqueda inteligente con índices y filtros
-  </LinkCard>
-  <LinkCard title="DefaultContentSynchronizer" icon="seti:php" href="/servicios/default-content-synchronizer/">
-    Servicio de sincronización automática de contenido por defecto con gestión inteligente de actualizaciones
-  </LinkCard>
-  <LinkCard title="EventBus" icon="seti:php" href="/servicios/event-bus/">
-    Sistema de eventos desacoplado para comunicación entre componentes
-  </LinkCard>
-  <LinkCard title="GestorCssCritico" icon="seti:php" href="/servicios/gestor-css-critico/">
-    Generación automática de CSS crítico para performance
-  </LinkCard>
-  <LinkCard title="GloryLogger" icon="seti:php" href="/servicios/glory-logger/">
-    Logging avanzado con niveles, contextos y rotación
-  </LinkCard>
-  <LinkCard title="LicenseManager" icon="seti:php" href="/servicios/license-manager/">
-    Gestión de licencias y validación de productos
-  </LinkCard>
-  <LinkCard title="LocalCriticalCss" icon="seti:php" href="/servicios/local-critical-css/">
-    Cache local de CSS crítico por página
-  </LinkCard>
-  <LinkCard title="ManejadorGit" icon="seti:php" href="/servicios/manejador-git/">
-    Integración con Git para despliegues y versionado
-  </LinkCard>
-  <LinkCard title="MediaIntegrityService" icon="seti:php" href="/servicios/media-integrity-service/">
-    Servicio de integridad automática de medios con reparación inteligente de imágenes faltantes
-  </LinkCard>
-  <LinkCard title="PerformanceProfiler" icon="seti:php" href="/servicios/performance-profiler/">
-    Monitoreo de performance y optimización
-  </LinkCard>
-  <LinkCard title="PostActionManager" icon="seti:php" href="/servicios/post-action-manager/">
-    Utilidades completas para operaciones CRUD de posts en WordPress con validación y logging
-  </LinkCard>
-  <LinkCard title="PostRelationHandler" icon="seti:php" href="/servicios/post-relation-handler/">
-    Manejador especializado para gestionar relaciones de posts con imágenes, galerías y taxonomías
-  </LinkCard>
-  <LinkCard title="PostSyncHandler" icon="seti:php" href="/servicios/post-sync-handler/">
-    Manejador de sincronización de posts individuales con comparación inteligente de cambios
-  </LinkCard>
-  <LinkCard title="QueryProfiler" icon="seti:php" href="/servicios/query-profiler/">
-    Perfilado de consultas de base de datos
-  </LinkCard>
-  <LinkCard title="ServidorChat" icon="seti:php" href="/servicios/servidor-chat/">
-    Sistema de chat en tiempo real con WebSockets
-  </LinkCard>
-  <LinkCard title="TermSyncHandler" icon="seti:php" href="/servicios/term-sync-handler/">
-    Manejador de sincronización de términos de taxonomía con gestión automática de categorías
-  </LinkCard>
-  <LinkCard title="TokenManager" icon="seti:php" href="/servicios/token-manager/">
-    Gestión segura de tokens JWT y sesiones
-  </LinkCard>
+  <Card title="AnalyticsEngine" icon="seti:php">
+    <a href="/servicios/analytics-engine/">Motor de analíticas con tracking y reportes</a>
+  </Card>
+  <Card title="BusquedaService" icon="seti:php">
+    <a href="/servicios/busqueda-service/">Servicio de búsqueda inteligente con índices y filtros</a>
+  </Card>
+  <Card title="DefaultContentSynchronizer" icon="seti:php">
+    <a href="/servicios/default-content-synchronizer/">Servicio de sincronización automática de contenido por defecto con gestión inteligente de actualizaciones</a>
+  </Card>
+  <Card title="EventBus" icon="seti:php">
+    <a href="/servicios/event-bus/">Sistema de eventos desacoplado para comunicación entre componentes</a>
+  </Card>
+  <Card title="GestorCssCritico" icon="seti:php">
+    <a href="/servicios/gestor-css-critico/">Generación automática de CSS crítico para performance</a>
+  </Card>
+  <Card title="GloryLogger" icon="seti:php">
+    <a href="/servicios/glory-logger/">Logging avanzado con niveles, contextos y rotación</a>
+  </Card>
+  <Card title="LicenseManager" icon="seti:php">
+    <a href="/servicios/license-manager/">Gestión de licencias y validación de productos</a>
+  </Card>
+  <Card title="LocalCriticalCss" icon="seti:php">
+    <a href="/servicios/local-critical-css/">Cache local de CSS crítico por página</a>
+  </Card>
+  <Card title="ManejadorGit" icon="seti:php">
+    <a href="/servicios/manejador-git/">Integración con Git para despliegues y versionado</a>
+  </Card>
+  <Card title="MediaIntegrityService" icon="seti:php">
+    <a href="/servicios/media-integrity-service/">Servicio de integridad automática de medios con reparación inteligente de imágenes faltantes</a>
+  </Card>
+  <Card title="PerformanceProfiler" icon="seti:php">
+    <a href="/servicios/performance-profiler/">Monitoreo de performance y optimización</a>
+  </Card>
+  <Card title="PostActionManager" icon="seti:php">
+    <a href="/servicios/post-action-manager/">Utilidades completas para operaciones CRUD de posts en WordPress con validación y logging</a>
+  </Card>
+  <Card title="PostRelationHandler" icon="seti:php">
+    <a href="/servicios/post-relation-handler/">Manejador especializado para gestionar relaciones de posts con imágenes, galerías y taxonomías</a>
+  </Card>
+  <Card title="PostSyncHandler" icon="seti:php">
+    <a href="/servicios/post-sync-handler/">Manejador de sincronización de posts individuales con comparación inteligente de cambios</a>
+  </Card>
+  <Card title="QueryProfiler" icon="seti:php">
+    <a href="/servicios/query-profiler/">Perfilado de consultas de base de datos</a>
+  </Card>
+  <Card title="ServidorChat" icon="seti:php">
+    <a href="/servicios/servidor-chat/">Sistema de chat en tiempo real con WebSockets</a>
+  </Card>
+  <Card title="TermSyncHandler" icon="seti:php">
+    <a href="/servicios/term-sync-handler/">Manejador de sincronización de términos de taxonomía con gestión automática de categorías</a>
+  </Card>
+  <Card title="TokenManager" icon="seti:php">
+    <a href="/servicios/token-manager/">Gestión segura de tokens JWT y sesiones</a>
+  </Card>
 </CardGrid>
 
 ## 👥 Sistema de Administración
 
 <CardGrid>
-  <LinkCard title="SyncManager" icon="seti:php" href="/administracion/sync-manager/">
-    Sincronización de contenido entre entornos
-  </LinkCard>
-  <LinkCard title="TaxonomyMetaManager" icon="seti:php" href="/administracion/taxonomy-meta-manager/">
-    Gestión de metadatos en taxonomías
-  </LinkCard>
-  <LinkCard title="Page Content Mode Metabox" icon="seti:html" href="/administracion/page-content-mode-metabox/">
-    Metabox para configuración del modo de contenido de páginas
-  </LinkCard>
-  <LinkCard title="SEO Metabox" icon="seti:search" href="/administracion/seo-metabox/">
-    Metabox completo para configuración SEO y metadatos
-  </LinkCard>
+  <Card title="SyncManager" icon="seti:php">
+    <a href="/administracion/sync-manager/">Sincronización de contenido entre entornos</a>
+  </Card>
+  <Card title="TaxonomyMetaManager" icon="seti:php">
+    <a href="/administracion/taxonomy-meta-manager/">Gestión de metadatos en taxonomías</a>
+  </Card>
+  <Card title="Page Content Mode Metabox" icon="seti:html">
+    <a href="/administracion/page-content-mode-metabox/">Metabox para configuración del modo de contenido de páginas</a>
+  </Card>
+  <Card title="SEO Metabox" icon="seti:search">
+    <a href="/administracion/seo-metabox/">Metabox completo para configuración SEO y metadatos</a>
+  </Card>
 </CardGrid>
 
 ## 🛠️ Desarrollo y API
 
 <CardGrid>
-  <LinkCard title="Eventos y Hooks" icon="seti:php" href="/desarrollo/eventos-hooks/">
-    Sistema completo de hooks AJAX, filtros de contenido y puntos de extensión
-  </LinkCard>
-  <LinkCard title="Extensibilidad" icon="seti:plugin" href="/desarrollo/extensibilidad/">
-    Guía para extender Glory con plugins y módulos personalizados
-  </LinkCard>
-  <LinkCard title="Mejores Prácticas" icon="seti:checklist" href="/desarrollo/mejores-practicas/">
-    Convenciones, patrones y recomendaciones para desarrollo con Glory
-  </LinkCard>
+  <Card title="Eventos y Hooks" icon="seti:php">
+    <a href="/desarrollo/eventos-hooks/">Sistema completo de hooks AJAX, filtros de contenido y puntos de extensión</a>
+  </Card>
+  <Card title="Extensibilidad" icon="seti:plugin">
+    <a href="/desarrollo/extensibilidad/">Guía para extender Glory con plugins y módulos personalizados</a>
+  </Card>
+  <Card title="Mejores Prácticas" icon="seti:checklist">
+    <a href="/desarrollo/mejores-practicas/">Convenciones, patrones y recomendaciones para desarrollo con Glory</a>
+  </Card>
 </CardGrid>
 
 ---

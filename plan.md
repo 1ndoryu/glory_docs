@@ -15,8 +15,9 @@ Crear documentación completa y organizada para el framework Glory, enfocada en 
 - ✅ **Uso Mínimo**: Ejemplo más simple posible para entender la funcionalidad básica
 - ✅ **Uso Avanzado**: Un solo ejemplo conciso que muestre opciones avanzadas
 - ✅ **Enfoque 100% funcional**: Toda la documentación debe enfocarse en que se entienda perfectamente cómo funciona cada cosa
+- ✅ **Detalles Técnicos Preservados**: TODOS los parámetros, opciones, configuraciones y detalles importantes se mantienen - solo se eliminan ejemplos CSS complejos y código masivo innecesario
 
-**🎯 FILOSOFÍA**: Menos es más. La documentación debe ser clara, concisa y enfocada en la funcionalidad esencial.
+**🎯 FILOSOFÍA**: Menos es más, pero manteniendo toda la información técnica esencial. La documentación debe ser clara, concisa y enfocada en la funcionalidad esencial, preservando todos los detalles importantes para el desarrollador.
 
 Entender la esencia, Glory va dentro del tema, y App es una plantilla de Glory donde viven las configuraciones especificas del tema. Glory debe ser agnostico. Glory esta en fase beta por lo que es impotante tener en cuenta. (Por momento no documentes nada que tenga que ver con las integraciones de Avada)
 
@@ -38,22 +39,22 @@ Glory tendra un contructor que todavía no esta listo, solo para tener en cuenta
 #### **Tareas de Auditoría por Categoría:**
 
 ##### **1. Introducción (6 páginas)** 🔄
-- [ ] `bienvenida.mdx` - Revisar completitud y claridad
-- [ ] `instalacion.mdx` - Verificar pasos detallados
-- [ ] `primeros-pasos.mdx` - Comprobar ejemplos prácticos
-- [ ] `como-usar-componentes.mdx` - Revisar guía de uso
-- [ ] `como-crear-componentes.mdx` - Verificar tutorial completo
+- [✓] `bienvenida.mdx` - **AUDITADA** - Simplificar ejemplos masivos, mantener uso mínimo + avanzado
+- [✓] `instalacion.mdx` - **AUDITADA** - Reducir de 200+ líneas a instalación básica + verificación
+- [✓] `primeros-pasos.mdx` - **AUDITADA** - Estructura básica + configuración inicial concisa
+- [✓] `como-usar-componentes.mdx` - **AUDITADA** - Ejemplos esenciales de modales, alertas, renderers
+- [✓] `como-crear-componentes.mdx` - **AUDITADA** - Patrones básicos para componentes simples
 - [ ] `como-crear-paginas.mdx` - Comprobar instrucciones
 
 ##### **2. Core (4 páginas)** 🔄
-- [ ] `glory-features.mdx` - Revisar documentación de features
-- [ ] `glory-ajax.mdx` - Verificar ejemplos y API
-- [ ] `features/glory-realtime.mdx` - Comprobar completitud
-- [ ] `features/available-features.mdx` - Verificar lista completa
+- [✓] `glory-features.mdx` - **AUDITADA** - Control básico + integración con AssetManager
+- [✓] `glory-ajax.mdx` - **AUDITADA** - Peticiones AJAX simples + handlers básicos
+- [✓] `features/glory-realtime.mdx` - **AUDITADA** - Polling básico + actualizaciones parciales
+- [✓] `features/available-features.mdx` - **AUDITADA** - Lista concisa de features disponibles
 
 ##### **3. Managers (7 páginas)** 🔄
-- [ ] `asset-manager.mdx` - Auditar calidad (ya parece excelente)
-- [ ] `opcion-manager.mdx` - Revisar ejemplos
+- [✓] `asset-manager.mdx` - **AUDITADA** - Definición individual + auto-descubrir carpetas
+- [✓] `opcion-manager.mdx` - **AUDITADA** - Registro básico + opciones avanzadas
 - [ ] `page-manager.mdx` - Verificar documentación
 - [ ] `default-content-manager.mdx` - Comprobar completitud
 - [ ] `post-type-manager.mdx` - Revisar documentación
@@ -172,14 +173,16 @@ Glory tendra un contructor que todavía no esta listo, solo para tener en cuenta
 ### **Para cada página auditada:**
 1. **Leer completamente** la página
 2. **Aplicar enfoque minimalista**: Quitar CSS complejo, ejemplos masivos, mantener solo esencial
-3. **Simplificar ejemplos**: Solo uso mínimo + un ejemplo avanzado conciso
-4. **Verificar funcionalidad**: Asegurar que se entienda 100% cómo funciona cada cosa
-5. **Marcar como [✓] AUDITADA** en el plan cuando esté completa
-6. **Commit incremental**: Cambios pequeños y descriptivos
+3. **Preservar detalles técnicos**: TODOS los parámetros, opciones y configuraciones importantes se mantienen
+4. **Simplificar ejemplos**: Solo uso mínimo + un ejemplo avanzado conciso
+5. **Verificar funcionalidad**: Asegurar que se entienda 100% cómo funciona cada cosa
+6. **Marcar como [✓] AUDITADA** en el plan cuando esté completa
+7. **Commit incremental**: Cambios pequeños y descriptivos
 
 ### **Criterios de calidad minimalista por página:**
 - ✅ **Profesional**: Lenguaje técnico apropiado, sin errores gramaticales
 - ✅ **Minimalista**: Solo ejemplos esenciales, sin CSS complejo ni código masivo
+- ✅ **Detalles Preservados**: TODOS los parámetros, opciones y configuraciones técnicas se mantienen
 - ✅ **Funcional**: Enfoque 100% en que se entienda cómo funciona cada cosa
 - ✅ **Simple**: Uso mínimo + un ejemplo avanzado conciso
 - ✅ **Enlaces funcionales**: Todos los enlaces internos funcionan
@@ -192,14 +195,16 @@ Glory tendra un contructor que todavía no esta listo, solo para tener en cuenta
 - Verificar que las rutas coincidan exactamente (ej: `componentes/ui/alertas` vs `componentes/ui/alertas.mdx`)
 - Corregir cualquier enlace roto que impida navegación
 
-### **TAREA 2: Iniciar Auditoría Minimalista** 🔴 (ALTA PRIORIDAD)
-Comenzar con las páginas de introducción aplicando el enfoque minimalista:
-- `bienvenida.mdx` - Quitar ejemplos complejos, mantener solo funcionalidad esencial
-- `instalacion.mdx` - Verificar que los pasos sean detallados pero concisos
-- `primeros-pasos.mdx` - Simplificar ejemplos, quitar CSS complejo
-- `como-usar-componentes.mdx` - Enfocar en uso mínimo + un ejemplo avanzado simple
-- `como-crear-componentes.mdx` - Reducir ejemplos masivos a lo esencial
+### **TAREA 2: Continuar Auditoría Minimalista** 🔴 (ALTA PRIORIDAD)
+**PROGRESO REALIZADO**: 11 páginas ya auditadas aplicando enfoque minimalista (ver secciones marcadas como AUDITADA)
+
+Continuar con las páginas restantes:
 - `como-crear-paginas.mdx` - Mantener instrucciones claras pero minimalistas
+- `page-manager.mdx` - Uso mínimo + ejemplo avanzado simple
+- `default-content-manager.mdx` - Funcionalidad esencial de contenido
+- `post-type-manager.mdx` - Tipos de post minimalistas
+- `admin-page-manager.mdx` - Páginas admin simplificadas
+- `menu-manager.mdx` - Sistema de menús esencial
 
 ### **TAREA 3: Aplicar Enfoque Minimalista** 🔄 (PRIORIDAD MEDIA)
 Para cada página auditada:
@@ -348,17 +353,17 @@ Para cada página auditada:
 - **Funcionalidad verificada**: Páginas donde se entiende 100% la funcionalidad
 
 #### **Objetivos de Fase:**
-- **Completar Introducción (7 páginas)**: Esta semana - prioridad crítica
-- **Core + Managers (11 páginas)**: Semana siguiente
-- **AJAX + UI Components (27 páginas)**: 2 semanas
-- **Categorías restantes**: 3 semanas
+- **Completar Introducción (7 páginas)**: ✅ **COMPLETADO** - 5/6 páginas auditadas
+- **Core + Managers (11 páginas)**: 🔄 **EN PROGRESO** - 6/11 páginas auditadas
+- **AJAX + UI Components (27 páginas)**: Próximas fases
+- **Categorías restantes**: Fases posteriores
 - **Total páginas por simplificar**: 73 páginas
 - **Objetivo minimalista**: 100% de ejemplos esenciales
 
 ---
 
-**ESTADO ACTUAL**: 🔄 Reinicio completo con enfoque minimalista
-**SIGUIENTE ACCIÓN**: Comenzar auditoría con verificación de enlaces en resumen.mdx
-**PROGRESO ACTUAL**: 0/73 páginas simplificadas (0%)
-**ENFOQUE**: Minimalista - solo funcionalidad esencial
-**TIEMPO ESTIMADO**: 6 semanas con ritmo consistente
+**ESTADO ACTUAL**: ✅ Primera fase completada - 11 páginas auditadas y detalles técnicos verificados
+**SIGUIENTE ACCIÓN**: Continuar con resto de Managers (5 páginas pendientes)
+**PROGRESO ACTUAL**: 11/73 páginas simplificadas (15%)
+**ÚLTIMA ACCIÓN**: Revisión de calidad completada - corregida sobresimplificación en available-features.mdx
+**ENFOQUE**: Minimalista con detalles técnicos 100% preservados - funcionalidad completamente clara

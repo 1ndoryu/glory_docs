@@ -26,13 +26,54 @@ if (GloryFeatures::isActive('miFeature')) {
 
 ## Features principales
 
-- **Managers**: menu, assetManager, pageManager, postTypeManager, etc.
-- **UI**: modales, alertas, pestanas, scheduler, etc.
-- **Services**: cssCritico, gloryAjax, gloryRealtime, etc.
-- **Renderers**: contentRender, termRender, logoRenderer
-- **Theme**: titleTag, postThumbnails
+### Managers
+- **`assetManager`**: Gestión automática de CSS/JS con minificación y defer
+- **`pageManager`**: Creación de páginas admin y frontend personalizadas
+- **`postTypeManager`**: Registro de custom post types con metaboxes
+- **`menuManager`**: Sistema de menús con walkers personalizados
+- **`opcionManager`**: Gestión de opciones del tema con sanitización
 
-Usa `GloryFeatures::isActive()` para controlar assets y funcionalidades.
+### UI Components
+- **`modales`**: Sistema modal responsivo con AJAX
+- **`alertas`**: Notificaciones toast con tipos (success, error, warning)
+- **`pestanas`**: Navegación por pestañas con contenido dinámico
+- **`scheduler`**: Calendario interactivo con eventos
+- **`themeToggle`**: Interruptor modo claro/oscuro
+
+### Services
+- **`cssCritico`**: Generación y cache de CSS crítico para performance
+- **`gloryAjax`**: Utilidad AJAX centralizada con manejo de archivos
+- **`gloryRealtime`**: Actualizaciones en tiempo real por polling
+- **`emailUtility`**: Envío de emails con plantillas
+- **`performanceProfiler`**: Análisis de rendimiento de consultas
+
+### Renderers
+- **`contentRender`**: Renderizado de listas de posts/páginas con filtros
+- **`termRender`**: Display de taxonomías con jerarquía
+- **`logoRenderer`**: Gestión inteligente de logos responsive
+- **`headerRenderer`**: Header adaptable con navegación
+- **`busquedaRenderer`**: Sistema de búsqueda con filtros avanzados
+
+### Theme Features
+- **`titleTag`**: Gestión automática de títulos SEO
+- **`postThumbnails`**: Soporte para imágenes destacadas
+- **`customBackground`**: Fondos personalizados con parallax
+- **`seoMetabox`**: Metabox SEO para posts/páginas
+
+## Uso recomendado
+
+```php
+// Activar solo features necesarias para optimizar performance
+if (GloryFeatures::isActive('cssCritico')) {
+    // Cargar CSS crítico
+}
+
+if (GloryFeatures::isActive('gloryRealtime')) {
+    // Inicializar polling
+}
+```
+
+Cada feature se puede controlar individualmente para optimizar el rendimiento de tu tema.
 
 ---
 

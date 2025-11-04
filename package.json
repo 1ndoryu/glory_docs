@@ -3,10 +3,17 @@
   "version": "1.0.0",
   "description": "Documentación del Framework Glory",
   "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
     "verificar-calidad": "node scripts/verificar-calidad.js",
     "calidad": "npm run verificar-calidad"
   },
   "dependencies": {
+    "astro": "^4.0.0",
+    "@astrojs/starlight": "^0.24.0",
     "glob": "^10.3.10"
   },
   "engines": {

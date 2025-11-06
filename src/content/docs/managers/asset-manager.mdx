@@ -73,3 +73,69 @@ AssetManager::defineFolder(
 ## Integración con el tema
 - Define tus assets del tema en `App/Config/assets.php` agrupando por carpeta cuando sea posible.
 - Usa `AssetManager::setThemeVersion('0.1.1')` en `App/Config/config.php` para controlar el cache busting del tema.
+
+## Recomendaciones de uso
+- Ubica los archivos del tema en `App/Assets/js/` y `App/Assets/css/` y usa `defineFolder` con prefijo (p.ej. `tema-`).
+- Activa/desactiva librerías del core con `GloryFeatures` (no copies assets del core al tema).
+- Prefiere `localize` para pasar datos a JS en lugar de scripts inline.
+- Usa `area` para limitar dónde se encolan (admin/frontend) y `feature` para toggles finos.
+- Nombra handles consistentes y cortos; evita duplicados.
+
+## Diferencias: assets del tema vs assets de Glory
+- Tema (`/App`):
+  - Viven en `App/Assets/...`.
+  - Se definen en `App/Config/assets.php` con `AssetManager`.
+  - Son específicos del proyecto/tema.
+- Glory (`/Glory`):
+  - Viven en el núcleo de Glory y son agnósticos.
+  - Se controlan por features (p.ej. `GloryFeatures::enable('highlight')`).
+  - No deben editarse desde el tema; si necesitas cambios, sobreescribe desde el tema con tu propio handle.
+
+## Ejemplo avanzado
+
+```php
+use Glory\Manager\AssetManager;
+
+// 1) Registrar un script con feature flag, datos localizados y sólo en frontend
+AssetManager::define(
+    'script',
+    'tema-busqueda',
+    'App/Assets/js/busqueda.js',
+    [
+        'deps'      => ['jquery'],
+        'in_footer' => true,
+        'area'      => 'frontend',
+        'feature'   => 'gloryBusqueda',
+        'localize'  => [
+            'nombreObjeto' => 'busquedaData',
+            'datos'        => [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('buscar'),
+            ],
+        ],
+        'ver'       => '0.1.1',
+    ]
+);
+
+// 2) Auto-descubrir CSS del tema con exclusiones y prefijo
+AssetManager::defineFolder(
+    'style',
+    'App/Assets/css/',
+    ['media' => 'all'],
+    'tema-',
+    ['task.css']
+);
+```
+
+Notas del ejemplo:
+- `feature` permite alinear el encolado con toggles de `GloryFeatures`.
+- `localize` expone `busquedaData` en `window` con `ajaxUrl` y `nonce`.
+- `defineFolder` evita registrar uno a uno y mantiene un prefijo coherente.
+
+## Errores frecuentes (rápido)
+- Rutas relativas mal puestas (usa `App/Assets/...`, no `/assets/...`).
+- Olvidar activar la feature asociada y el asset no se encola.
+- Duplicar `handle` entre archivos (el último pisa al anterior).
+- Usar `localize` sin `nombreObjeto` válido.
+- Esperar scripts en admin sin ajustar `area: 'admin'` o `'both'`.
+- Cambiar archivos en producción y no actualizar `setThemeVersion` (caché).

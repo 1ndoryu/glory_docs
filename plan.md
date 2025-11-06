@@ -22,7 +22,7 @@ No revises todas las paginas, simplemente ve una por 1 por 1. Tambien verifica q
 - [ ] `core/features/available-features.mdx` 
 
 ### Managers
-- [ ] `managers/asset-manager.mdx` 
+- [x] `managers/asset-manager.mdx` 
 - [ ] `managers/opcion-manager.mdx` 
 - [ ] `managers/page-manager.mdx` 
 - [ ] `managers/default-content-manager.mdx` 
@@ -120,15 +120,17 @@ No revises todas las paginas, simplemente ve una por 1 por 1. Tambien verifica q
 ## ✅ Criterios de Revisión (calidad mínima por página)
 - Exactitud técnica contrastada con el código real (sin supuestos).
 - Glory agnóstico: nada específico del tema salvo sección de integración.
-- Un solo ejemplo básico y funcional; sin ejemplos redundantes.
+- Ejemplos: 1 básico y funcional; opcional 1 avanzado si aporta valor.
 - Parámetros, retornos y efectos colaterales descritos de forma precisa.
 - Nombrado y términos consistentes con el código (camelCase en funciones/opciones).
 - Enlaces internos correctos; nada de promesas o features inexistentes.
+- API presentada como bloque PHP con comentarios por parámetro; parámetros complejos explicados fuera del código.
+- Diferenciar claramente assets/uso del Tema (`/App`) vs núcleo Glory (`/Glory`) cuando aplique.
 
 ## ✍️ Guía de Estilo de Documentación
 - Español claro y directo, frases cortas y concretas.
 - Estructura con `##` y `###` (no `#`, ya lo ocupa el título de la página).
-- Bloques de código mínimos; centrados en cómo se usa.
+- Bloques de código mínimos; centrados en cómo se usa. Para API, usar PHP con comentarios inline.
 - Explicar el "cuándo usarlo" y los límites/edge cases si aplica.
 - No añadir contenido de relleno al final del archivo.
 
@@ -148,16 +150,23 @@ Checklist técnico rápido por página:
 - [ ] Ruta y slug correctos según estructura del sidebar
 - [ ] Sidebar actualizado y visible
 - [ ] `astro.config.mjs` ajustado si la nueva ruta lo requiere
-- [ ] Un único ejemplo mínimo probado
-- [ ] Diferenciar claramente Glory vs Tema (integración)
+- [ ] Ejemplo mínimo probado (y opcional avanzado si aporta)
+- [ ] API en bloque PHP con comentarios por parámetro
+- [ ] Parámetros complejos explicados fuera del bloque de código
+- [ ] Sección breve de "Errores frecuentes"
+- [ ] Recomendaciones y diferencias Glory vs Tema si corresponde
 
 ## 🧩 Estructura Base por Tipo de Página
 - Resumen: 1–2 líneas sobre qué resuelve.
 - Cuándo usarlo: casos típicos y no-usos.
-- API: métodos/props/parámetros clave (bullets, no tabla si no aporta).
+- API (bloque PHP comentado): llamada(s) principales con comentarios por parámetro.
+- Parámetros complejos (breve): explicación fuera del código.
 - Ejemplo mínimo: snippet funcional y autocontenido.
+- Ejemplo avanzado (opcional): sólo si añade valor real.
+- Recomendaciones: buenas prácticas y convenciones (carpetas, prefijos, area/feature, camelCase).
 - Notas/edge cases: límites, rendimiento, seguridad.
-- Integración con tema (si aplica): cómo usarlo desde `App/`.
+- Integración con tema (si aplica): cómo usarlo desde `App/` vs Glory agnóstico.
+- Errores frecuentes: listado muy breve y accionable.
 
 ## 🗂️ Priorización Sugerida
 1. Managers: `asset-manager`, `page-manager`, `post-type-manager`, `menu-manager`, `admin-page-manager`, `opcion-manager`.
@@ -169,4 +178,4 @@ Checklist técnico rápido por página:
 7. Introducción (al final).
 
 ## 🎯 Siguiente objetivo propuesto
-- Primera a reescribir: `managers/asset-manager.mdx` (base del resto de páginas).
+- Próxima a reescribir: `managers/page-manager.mdx`.

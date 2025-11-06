@@ -3,81 +3,53 @@ title: Bienvenida
 description: Introducción a Glory — qué es, filosofía y primeros pasos
 ---
 
-Glory es un framework moderno y ligero diseñado para acelerar el desarrollo de temas y funcionalidades avanzadas en WordPress. Su objetivo principal es proporcionar herramientas reutilizables (managers, componentes y utilidades) que permitan escribir código más limpio, modular y fácil de mantener, reduciendo significativamente los tiempos de desarrollo.
+Glory es un conjunto de clases y utilidades para construir temas en WordPress con un enfoque claro: mantener el núcleo agnóstico y mover la personalización al tema. Proporciona managers y componentes reutilizables para organizar mejor el código y reducir repetición.
 
-## ¿Por qué Glory?
+## Cuándo usarlo
 
-### 🚀 **Acelera tu desarrollo**
-- **Componentes preconstruidos**: Más de 40 componentes UI listos para usar (modales, formularios, navegación, etc.)
-- **Managers especializados**: AssetManager, PageManager, PostTypeManager y más para tareas comunes
-- **Utilidades integradas**: AJAX, logging, cache, email y herramientas de desarrollo
+- Cuando necesitas declarar y sincronizar páginas desde código (en lugar de crearlas manualmente).
+- Cuando quieres gestionar assets del tema de forma consistente y versionada.
+- Cuando prefieres separar responsabilidades: reutilizable en `Glory/`, específico del proyecto en `App/`.
 
-### 🏗️ **Arquitectura sólida**
-- **Separación clara**: Framework agnóstico (`Glory/`) vs. código específico del proyecto (`App/`)
-- **Modularidad**: Cada componente es independiente y reutilizable
-- **Extensible**: Fácil de personalizar y expandir según necesidades del proyecto
+## Principios
 
-### ⚡ **Rendimiento optimizado**
-- **Carga inteligente**: Assets se cargan solo cuando son necesarios
-- **Cache integrado**: Sistema de cache local para CSS crítico y assets
-- **Optimización automática**: Minificación y defer de scripts por defecto
+- Glory (núcleo) es agnóstico: no contiene lógica de negocio del proyecto.
+- El tema (`App/`) concentra las decisiones concretas del sitio.
+- Managers y componentes ayudan a escribir menos código repetitivo y más mantenible.
 
-### 🎯 **Desarrollo moderno**
-- **Código limpio**: Estructura organizada siguiendo mejores prácticas
-- **Documentación completa**: Guías detalladas con ejemplos funcionales
-- **Comunidad**: Framework en evolución con actualizaciones regulares
+## Arquitectura (alto nivel)
 
-## Filosofía
+- `Glory/`: clases reutilizables (managers, utilidades, componentes) sin atar a un proyecto concreto.
+- `App/`: funciones/configuración del tema. Aquí defines tus páginas, assets y opciones del proyecto.
 
-- Separación clara entre framework (`Glory/`) y código específico del proyecto (`App/`).
-- Reutilización: componentes y managers pensados para evitar repetición.
-- Agnosticismo: el framework no debe contener lógica de negocio del proyecto.
+En particular:
+- `AssetManager`: registra y encola CSS/JS del tema.
+- `PageManager`: define páginas por `slug` y sincroniza su existencia y ajustes.
 
-## Requisitos mínimos
+Consulta las páginas dedicadas para detalles y API:
+- [AssetManager](/managers/asset-manager)
+- [PageManager](/managers/page-manager)
 
-- WordPress (versión según tu entorno de desarrollo).
-- PHP 7.4+ (o la versión requerida por tu proyecto).
+## Ejemplo mínimo (orientativo)
 
-## Primeros pasos
-
-Después de la instalación, puedes crear rápidamente una página personalizada:
-
-**Uso mínimo** - Página básica con Glory:
 ```php
 <?php
 use Glory\Manager\PageManager;
 
-// Define página simple con función de renderizado
-function renderizarMiPagina() {
-    echo '<h1>¡Glory funcionando!</h1>';
-}
-
-PageManager::define('mi-pagina', 'renderizarMiPagina');
+// Definir y sincronizar una página básica
+PageManager::define('mi-pagina', 'mi_pagina_render');
+PageManager::register();
+PageManager::procesarPaginasDefinidas();
 ```
 
-**Uso avanzado** - Con assets y componentes:
-```php
-<?php
-use Glory\Manager\AssetManager;
-use Glory\Components\Modal;
+Nota: la configuración concreta del tema (dónde colocar estas llamadas) depende de tu proyecto. La guía completa está en [PageManager](/managers/page-manager).
 
-// Define assets automáticamente
-AssetManager::defineFolder('assets/');
+## Modo Dev/Local (breve)
 
-// Define página con modal
-function renderizarDemoAvanzada() {
-    $modal = new Modal('demo-modal');
-    $modal->setTitle('Hola Glory')->render();
-    echo '<button onclick="jQuery(\'#demo-modal\').show()">Abrir</button>';
-}
+- En entornos de desarrollo, algunas tareas se facilitan (p. ej., sincronización automática de páginas y comportamiento de caché para assets). Revisa los apartados «Modo Dev/Local» en las páginas de cada manager para detalles y requisitos.
 
-PageManager::define('demo-avanzada', 'renderizarDemoAvanzada');
-```
+## Errores frecuentes
 
-## Estructura relevante (rápida)
-
-- `Glory/` — código del framework (agnóstico).
-- `App/` — funciones y configuraciones específicas del tema.
-- `App/Config/` — donde defines assets, páginas, post types y opciones.
-
-
+- Colocar lógica específica del proyecto dentro de `Glory/` (debe ir en `App/`).
+- Documentar o depender de features no verificadas en el código real.
+- Duplicar handles de assets o usar rutas incorrectas al registrarlos.

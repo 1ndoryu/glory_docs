@@ -13,26 +13,42 @@ Gestiona el registro y encolado de scripts y estilos del tema. Permite definir a
 - No lo uses para lógica del core: el núcleo de Glory debe permanecer agnóstico del tema.
 
 ## API
-- `AssetManager::define(type, handle, ruta, config)`
-  - **type**: `'script'|'style'`.
-  - **handle**: identificador único sin espacios.
-  - **ruta**: relativa al tema, p.ej. `App/Assets/js/app.js`. Detecta `.min.js/.min.css` si existen.
-  - **config** (opcional):
-    - **deps**: string[]. Dependencias de WP (p.ej. `['jquery']`).
-    - **in_footer**: bool. Sólo para scripts.
-    - **media**: string. Sólo para estilos (p.ej. `'all'`).
-    - **area**: `'frontend'|'admin'|'both'` (por defecto `'both'`).
-    - **feature**: string. Se encola sólo si `GloryFeatures::enable('<feature>')` está activo.
-    - **localize**: `{ nombreObjeto: string, datos: array|object }`.
-    - **defer**: bool. `true` por defecto en scripts.
-    - **ver**: string|null. Override de versión (si no, usa la del tema).
-- `AssetManager::defineFolder(type, carpeta, config = [], prefijo = '', excluir = [])`
-  - **carpeta**: ruta relativa al tema, p.ej. `App/Assets/js/` o `App/Assets/css/`.
-  - **config**: igual que en `define` (aplica a todos los archivos hallados).
-  - **prefijo**: se antepone al handle generado por archivo.
-  - **excluir**: string[] de nombres de archivo a omitir.
-- `AssetManager::setThemeVersion(version)` fija la versión base para cache busting.
-- `AssetManager::setGlobalDevMode(bool)` activa modo desarrollo global (sin caché de descubrimiento).
+
+```php
+// define(type, handle, ruta, config)
+AssetManager::define(
+    'script',                 // type: 'script' | 'style'
+    'miHandle',               // handle: identificador único sin espacios
+    'App/Assets/js/app.js',   // ruta: relativa al tema; detecta .min.* si existe
+    [
+        'deps'      => ['jquery'],                 // dependencias WP
+        'in_footer' => true,                       // solo scripts
+        'media'     => 'all',                      // solo estilos
+        'area'      => 'frontend',                 // 'frontend'|'admin'|'both'
+        'feature'   => 'miFeature',                // requiere feature activa
+        'localize'  => [                           // objeto JS inyectado
+            'nombreObjeto' => 'misDatos',
+            'datos'        => ['ajaxUrl' => admin_url('admin-ajax.php')],
+        ],
+        'defer'     => true,                       // por defecto true en scripts
+        'ver'       => '0.1.1',                    // override de versión del tema
+    ]
+);
+
+// defineFolder(type, carpeta, config = [], prefijo = '', excluir = [])
+AssetManager::defineFolder(
+    'style',                   // type
+    'App/Assets/css/',         // carpeta relativa al tema
+    ['media' => 'all'],        // config aplicada a todos los archivos
+    'tema-',                   // prefijo del handle
+    ['task.css']               // excluir archivos concretos
+);
+```
+
+Métodos auxiliares: `AssetManager::setThemeVersion(version)` (cache busting) y `AssetManager::setGlobalDevMode(bool)` (desactiva la caché del auto‑descubrimiento en desarrollo).
+
+Parámetros complejos:
+- **localize**: genera una variable global JS con `nombreObjeto` que contiene `datos`. Útil para pasar `ajaxUrl`, nonces u opciones del tema sin escribir inline scripts manuales.
 
 Nota: El registro/encolado se engancha automáticamente a los hooks de WP (no necesitas llamar a `register()` explícitamente).
 

@@ -3,40 +3,66 @@ title: Instalación
 description: Guía completa para instalar y configurar Glory Framework en tu proyecto WordPress
 ---
 
-# Instalación de Glory Framework
+## Resumen
 
-## Requisitos
-- WordPress 5.0+
-- PHP 7.4+
-- Composer
-- Git
+Instala el tema, ejecuta Composer y crea un `.env` con `LOCAL`/`DEV`. Activa el tema y, en desarrollo, se sincronizará automáticamente el contenido gestionado por código.
 
-## Pasos de instalación
+## Requisitos (confirmados)
 
-**Uso mínimo** - Instalación básica:
+- WordPress activo.
+- PHP >= 5.6 (según `composer.json`).
+- Composer.
+- Git (opcional, si clonas el tema).
+- WP‑CLI (opcional, para utilidades de desarrollo).
+
+## Preparación
+
+Coloca el tema en `wp-content/themes/glory/` (clonando el repositorio o copiando la carpeta del tema).
+
+## Instalación
+
 ```bash
-# 1. Clona el tema base
-cd wp-content/themes
-git clone https://github.com/1ndoryu/glorytemplate.git
+# En la carpeta del tema
+env | grep DONT_RUN_THIS > /dev/null 2>&1 # placeholder inocuo
+cd wp-content/themes/glory
 
-# 2. Instala dependencias
-cd glorytemplate
+# Instalar dependencias PHP del tema
 composer install
-
-# 3. Clona Glory
-git clone https://github.com/1ndoryu/glory.git
-
-# 4. Crea archivo .env
-echo "LOCAL=TRUE\nDEV=TRUE" > .env
 ```
 
-**Uso avanzado** - Con verificación:
-```bash
-# Después de los pasos básicos, verifica instalación
-php -r "if(class_exists('Glory\Core\Setup')) echo 'Glory OK'; else echo 'Error';"
+Crea un archivo `.env` en la raíz del tema con el siguiente contenido:
+
+```ini
+LOCAL=true
+DEV=true
 ```
 
-## Activar tema
-Ve a WordPress Admin → Apariencia → Temas y activa "Template Glory".
+Variables del `.env` leídas por `App/Config/environment.php`:
+- `LOCAL`: activa banderas locales desde el tema (`define('LOCAL', true)`).
+- `DEV`: habilita modo desarrollo global en `AssetManager` (afecta la caché del auto‑descubrimiento de assets y activa sincronizaciones automáticas en DEV).
 
-¡Glory está listo para usar!
+## Activar el tema
+
+En WordPress Admin → Apariencia → Temas, activa el tema.
+
+## Verificación rápida
+
+- Con `DEV=true` y sesión en admin:
+  - En admin se ejecuta una sincronización completa (opciones, páginas y contenido por defecto).
+  - En frontend se sincronizan sólo las páginas gestionadas.
+- Si la feature `pageManager` está activa (ver `App/Config/control.php`), las páginas definidas en `App/Config/pages.php` quedarán creadas/actualizadas.
+- Abre la home; si hay páginas definidas (p. ej., `home`), deberían estar disponibles.
+
+## Sincronización manual (producción o cuando `DEV=false`)
+
+Usa la barra de admin «Glory Sync» para:
+- «Sincronizar Todo»: opciones, páginas y contenido por defecto.
+- «Restablecer a Default»: restablecer contenido gestionado a su valor por defecto desde el código.
+- «Borrar Caché de Glory»: limpiar cachés internas y de plugins populares.
+
+## Problemas comunes
+
+- Falta `vendor/`: ejecuta `composer install` en la raíz del tema.
+- `.env` no leído: asegúrate de crearlo en la raíz del tema y que `vlucas/phpdotenv` esté instalado; revisa `App/Config/environment.php`.
+- Sin páginas nuevas: verifica que `GloryFeatures::enable('pageManager')` está activo en `App/Config/control.php` y que existen definiciones en `App/Config/pages.php`.
+- Cambios de assets no reflejados: en DEV, `AssetManager` desactiva la caché de auto‑descubrimiento; en producción, usa «Borrar Caché de Glory» o actualiza la versión del tema con `AssetManager::setThemeVersion(...)`.

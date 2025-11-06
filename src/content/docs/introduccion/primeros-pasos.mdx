@@ -1,60 +1,89 @@
 ---
 title: Primeros Pasos
-description: Guía básica para empezar a usar Glory Framework en tus proyectos WordPress
+description: Guía básica para ver Glory funcionando con una página y assets mínimos
 ---
 
-# Primeros Pasos con Glory
+## Resumen
 
-## Estructura básica
+Define una página desde código y verifica que los assets del tema se encolan. En DEV, Glory sincroniza automáticamente lo necesario.
+
+## Estructura (alto nivel)
+
 ```
-tu-tema/
-├── Glory/          # Framework (agnóstico)
-├── App/            # Tu código específico
-│   ├── Config/     # Configuraciones
-│   └── Functions/  # Funciones personalizadas
-├── assets/         # CSS, JS, imágenes
-└── functions.php   # Archivo principal
+wp-content/themes/glory/
+├── Glory/              # Núcleo agnóstico
+├── App/                # Código del tema (específico)
+│   ├── Config/         # Definiciones: páginas, assets, opciones
+│   ├── Assets/         # CSS/JS del tema
+│   └── ...
+├── TemplateGlory.php   # Plantilla central para handlers por función
+└── functions.php
 ```
 
-## Configuración inicial
+## 1) Define una página mínima
 
-**Uso mínimo** - Página básica:
+Edita `App/Config/pages.php` y añade una definición simple:
+
 ```php
 <?php
 use Glory\Manager\PageManager;
 
-// Define función de renderizado
-function renderMiPagina() {
-    echo '<h1>¡Glory funcionando!</h1>';
-}
-
-// Define página simple
-PageManager::define('mi-pagina', 'renderMiPagina');
+PageManager::define('demo', 'demoRender');
 ```
 
-**Uso avanzado** - Con assets y opciones:
+Ahora asegúrate de tener una función de render en el tema (por ejemplo en `functions.php` o en un archivo cargado por tu tema):
+
+```php
+<?php
+function demoRender() {
+    echo '<main id="main"><h1>Hola Glory</h1><p>Página demo.</p></main>';
+}
+```
+
+Notas:
+- `TemplateGlory.php` (incluido en el tema) ejecuta la función indicada por `PageManager` cuando la página tiene handler por función.
+- En DEV (con `DEV=true` en `.env`) la sincronización de páginas se hace automáticamente.
+
+## 2) Encola assets del tema
+
+El proyecto ya define assets por carpeta en `App/Config/assets.php` usando `AssetManager::defineFolder(...)` para `App/Assets/css/` y `App/Assets/js/`.
+
+- Si agregas `App/Assets/js/app.js`, se registrará automáticamente con prefijo `tema-` (salvo los archivos excluidos en ese archivo).
+- Si agregas `App/Assets/css/app.css`, también se registrará automáticamente y se encolará.
+
+Ejemplo (si necesitas registrar uno puntual):
+
 ```php
 <?php
 use Glory\Manager\AssetManager;
-use Glory\Manager\OpcionManager;
 
-// Define assets automáticamente
-AssetManager::defineFolder('assets/');
-
-// Registra opción
-OpcionManager::register('color_primario', [
-    'valorDefault' => '#3498db',
-    'tipo' => 'color',
-    'etiqueta' => 'Color Principal'
-]);
-
-// Define función de renderizado
-function renderInicio() {
-    $color = OpcionManager::get('color_primario');
-    echo "<h1 style='color:$color'>¡Bienvenido!</h1>";
-}
-
-// Define página con opción
-PageManager::define('inicio', 'renderInicio');
+AssetManager::define(
+    'style',
+    'tema-demo',
+    'App/Assets/css/home.css',
+    ['media' => 'all']
+);
 ```
+
+## 3) Verifica en el navegador
+
+- Entra a WP Admin y, con `DEV=true`, la barra «Glory Sync» sincronizará automáticamente (en admin es completa; en frontend, ligera de páginas).
+- Accede a `/demo`. Si la definición existe, se renderizará con `TemplateGlory.php` ejecutando `demoRender()`.
+
+## Modo Dev/Local (breve)
+
+- `.env` en la raíz del tema admite `LOCAL=true` y `DEV=true` (ver `App/Config/environment.php`).
+- En DEV, `SyncManager` sincroniza automáticamente (admin: completa; frontend: sólo páginas gestionadas) y `AssetManager` evita la caché del auto‑descubrimiento.
+
+## Errores frecuentes
+
+- No está activa la feature `pageManager` en `App/Config/control.php`.
+- Falta `TemplateGlory.php` o la función de render no existe.
+- Rutas de assets incorrectas (usa `App/Assets/...`).
+- Esperar minificados en DEV (en desarrollo se prioriza no minificado y sin caché de descubrimiento).
+
+## Enlaces útiles
+
+- [AssetManager](/managers/asset-manager)
+- [PageManager](/managers/page-manager)
 

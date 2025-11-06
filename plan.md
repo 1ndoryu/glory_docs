@@ -2,7 +2,7 @@
 
 Tarea, la documentación esta llena de alucinaciones, hay que arreglar cada pagina revisandola exautivamente en profundidad y detalle, cuando se explique alguna clase o una funcionalidad, explicar con profesionalidad cada detalle, cada parametro sin caer en la redundancia o la de agregar muchos ejemplos, basta con un ejemplo basico. 
 
-No revises todas las paginas, simplemente ve una por 1 por 1,
+No revises todas las paginas, simplemente ve una por 1 por 1. Tambien verifica que este todo en la lista. Arregla una documentanción, marcas checklist y luego continua con otra despues de la aprobación del usuario. La verdad hay que rehacer toda la documentación, hacerla lo mas profesional posible. 
 
 ## 📋 Inventario Completo de Páginas de Documentación
 
@@ -116,3 +116,57 @@ No revises todas las paginas, simplemente ve una por 1 por 1,
 ### Páginas Especiales
 - [ ] `404.mdx` 
 - [ ] `index.mdx` 
+
+## ✅ Criterios de Revisión (calidad mínima por página)
+- Exactitud técnica contrastada con el código real (sin supuestos).
+- Glory agnóstico: nada específico del tema salvo sección de integración.
+- Un solo ejemplo básico y funcional; sin ejemplos redundantes.
+- Parámetros, retornos y efectos colaterales descritos de forma precisa.
+- Nombrado y términos consistentes con el código (camelCase en funciones/opciones).
+- Enlaces internos correctos; nada de promesas o features inexistentes.
+
+## ✍️ Guía de Estilo de Documentación
+- Español claro y directo, frases cortas y concretas.
+- Estructura con `##` y `###` (no `#`, ya lo ocupa el título de la página).
+- Bloques de código mínimos; centrados en cómo se usa.
+- Explicar el "cuándo usarlo" y los límites/edge cases si aplica.
+- No añadir contenido de relleno al final del archivo.
+
+## 🔁 Flujo de Trabajo por Página
+1. Elegir una página pendiente de la lista.
+2. Leer el código fuente real correspondiente en `Glory/` y/o `App/`.
+3. Reescribir siguiendo la estructura base de abajo.
+4. Validar frontmatter YAML y ruta/slug correctos.
+5. Añadir/ajustar en sidebar y en `astro.config.mjs` si procede.
+6. Commit y push DESDE el repo `glory_docs` (no desde raíz):
+   - `cd glory_docs`
+   - `git add . && git commit -m "docs: reescribe <pagina>" && git push`
+7. Solicitar revisión del usuario; al aprobar, marcar la casilla aquí.
+
+Checklist técnico rápido por página:
+- [ ] Frontmatter válido (YAML bien formado, sin comillas rotas)
+- [ ] Ruta y slug correctos según estructura del sidebar
+- [ ] Sidebar actualizado y visible
+- [ ] `astro.config.mjs` ajustado si la nueva ruta lo requiere
+- [ ] Un único ejemplo mínimo probado
+- [ ] Diferenciar claramente Glory vs Tema (integración)
+
+## 🧩 Estructura Base por Tipo de Página
+- Resumen: 1–2 líneas sobre qué resuelve.
+- Cuándo usarlo: casos típicos y no-usos.
+- API: métodos/props/parámetros clave (bullets, no tabla si no aporta).
+- Ejemplo mínimo: snippet funcional y autocontenido.
+- Notas/edge cases: límites, rendimiento, seguridad.
+- Integración con tema (si aplica): cómo usarlo desde `App/`.
+
+## 🗂️ Priorización Sugerida
+1. Managers: `asset-manager`, `page-manager`, `post-type-manager`, `menu-manager`, `admin-page-manager`, `opcion-manager`.
+2. Core: `glory-ajax`, `glory-features` y `features/*`.
+3. AJAX y Formularios: `sistema-formularios`, `form-builder`, `form-handler`.
+4. Componentes Renderers críticos y `componentes/ui/*` más usados.
+5. Utilidades comunes (`post`, `user`, `image`, `assets`).
+6. Servicios.
+7. Introducción (al final).
+
+## 🎯 Siguiente objetivo propuesto
+- Primera a reescribir: `managers/asset-manager.mdx` (base del resto de páginas).

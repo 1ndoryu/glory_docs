@@ -3,46 +3,57 @@ title: AssetManager
 description: Registro y gestión de scripts y estilos en Glory
 ---
 
-## ¿Qué es AssetManager?
+## Resumen
 
-AssetManager gestiona scripts y estilos en Glory. Permite definir assets individuales o auto-descubrir carpetas completas.
+Gestiona el registro y encolado de scripts y estilos del tema. Permite definir assets puntuales o auto‑descubrir una carpeta completa con un solo llamado.
 
-## Uso básico
+## Cuándo usarlo
+- Cuando el tema necesite registrar CSS/JS propios.
+- Cuando quieras auto‑descubrir y versionar archivos por carpeta con un prefijo uniforme.
+- No lo uses para lógica del core: el núcleo de Glory debe permanecer agnóstico del tema.
 
-**Uso mínimo** - Asset individual:
+## API
+- `AssetManager::define(type, handle, ruta, config)`
+  - **type**: `'script'|'style'`.
+  - **handle**: identificador único sin espacios.
+  - **ruta**: relativa al tema, p.ej. `App/Assets/js/app.js`. Detecta `.min.js/.min.css` si existen.
+  - **config** (opcional):
+    - **deps**: string[]. Dependencias de WP (p.ej. `['jquery']`).
+    - **in_footer**: bool. Sólo para scripts.
+    - **media**: string. Sólo para estilos (p.ej. `'all'`).
+    - **area**: `'frontend'|'admin'|'both'` (por defecto `'both'`).
+    - **feature**: string. Se encola sólo si `GloryFeatures::enable('<feature>')` está activo.
+    - **localize**: `{ nombreObjeto: string, datos: array|object }`.
+    - **defer**: bool. `true` por defecto en scripts.
+    - **ver**: string|null. Override de versión (si no, usa la del tema).
+- `AssetManager::defineFolder(type, carpeta, config = [], prefijo = '', excluir = [])`
+  - **carpeta**: ruta relativa al tema, p.ej. `App/Assets/js/` o `App/Assets/css/`.
+  - **config**: igual que en `define` (aplica a todos los archivos hallados).
+  - **prefijo**: se antepone al handle generado por archivo.
+  - **excluir**: string[] de nombres de archivo a omitir.
+- `AssetManager::setThemeVersion(version)` fija la versión base para cache busting.
+- `AssetManager::setGlobalDevMode(bool)` activa modo desarrollo global (sin caché de descubrimiento).
+
+Nota: El registro/encolado se engancha automáticamente a los hooks de WP (no necesitas llamar a `register()` explícitamente).
+
+## Ejemplo mínimo
+
 ```php
 use Glory\Manager\AssetManager;
 
-AssetManager::define('script', 'mi-script', '/assets/js/script.js', [
-    'deps' => ['jquery'],
-    'in_footer' => true
-]);
+AssetManager::defineFolder(
+    'script',
+    'App/Assets/js/',
+    ['deps' => ['jquery'], 'in_footer' => true],
+    'tema-'
+);
 ```
 
-**Uso avanzado** - Con localize y features:
-```php
-AssetManager::define('script', 'mi-script', '/assets/js/script.js', [
-    'deps' => ['jquery'],
-    'in_footer' => true,
-    'area' => 'frontend',
-    'localize' => [
-        'nombreObjeto' => 'misDatos',
-        'datos' => [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mi_nonce')
-        ]
-    ],
-    'feature' => 'miFeature' // Solo carga si feature está activa
-]);
-```
+## Notas y límites
+- Requiere tener activa la feature `assetManager` en `App/Config/control.php`.
+- Fuera de modo desarrollo, el auto‑descubrimiento se cachea y prioriza archivos `.min.*` si existen.
+- Para datos dinámicos en JS, usa `localize` con `nombreObjeto` y `datos` (se emite vía `wp_localize_script`).
 
-## Auto-descubrir carpeta
-
-```php
-// Define todos los CSS de una carpeta
-AssetManager::defineFolder('style', '/assets/css/', [], 'tema-');
-```
-
-¡AssetManager simplifica la gestión de assets en WordPress!
-
-
+## Integración con el tema
+- Define tus assets del tema en `App/Config/assets.php` agrupando por carpeta cuando sea posible.
+- Usa `AssetManager::setThemeVersion('0.1.1')` en `App/Config/config.php` para controlar el cache busting del tema.

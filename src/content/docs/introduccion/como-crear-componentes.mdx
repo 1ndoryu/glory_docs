@@ -1,62 +1,120 @@
 ---
 title: Cómo Crear Componentes
-description: Guía completa para crear componentes reutilizables en Glory Framework siguiendo patrones consistentes
+description: Patrón mínimo para crear componentes reutilizables y agnósticos en Glory
 ---
 
-Glory permite crear componentes reutilizables siguiendo patrones consistentes. Todos los componentes van en `Glory/src/Components/`.
+## Resumen
 
-## Estructura básica
+Crea una clase en `Glory/src/Components/` que devuelva HTML (o lo imprima), registra assets opcionales en `Glory/Config/scriptSetup.php` bajo una feature, y habilita esa feature desde el tema (`App/Config/control.php`). Mantén el componente agnóstico (sin lógica de negocio del proyecto).
 
-```
-Glory/src/Components/
-├── TuComponente.php          # Clase principal
-└── TuComponente/
-    └── assets/              # CSS y JS opcionales
-```
+## Cuándo usarlo
 
-## Crear componente básico
+- Necesitas UI o renderizados reutilizables entre proyectos.
+- Quieres evitar duplicar HTML/JS/CSS en cada tema.
+- Requieres control por feature para activar/desactivar el componente.
 
-**Uso mínimo** - Componente simple:
+## Esqueleto básico (clase PHP)
+
 ```php
 <?php
 namespace Glory\Components;
 
-class MiComponente
+class HelloBox
 {
-    public static function render($args = [])
+    /**
+     * Devuelve HTML del componente.
+     * @param array $args { 'texto' => string, 'clase' => string }
+     */
+    public static function get_html(array $args = []): string
     {
-        $texto = $args['texto'] ?? 'Hola Mundo';
-        return "<div class='mi-componente'>{$texto}</div>";
+        $texto = isset($args['texto']) ? (string) $args['texto'] : 'Hola';
+        $clase = isset($args['clase']) ? (string) $args['clase'] : 'hello-box';
+        $texto = esc_html($texto);
+        $clase = sanitize_html_class($clase);
+        return '<div class="' . $clase . '">' . $texto . '</div>';
     }
 
-    public static function print($args = [])
+    /** Imprime el HTML (atajos convenientes). */
+    public static function print(array $args = []): void
     {
-        echo self::render($args);
+        echo self::get_html($args);
     }
 }
 ```
 
-**Uso avanzado** - Con validación y configuración:
+- API mínima clara: `get_html([...])` para componer, `print([...])` para imprimir.
+- Nombres camelCase y parámetros simples, sin dependencias a código del tema.
+
+## Assets opcionales (JS/CSS)
+
+Si tu componente necesita JS/CSS agnóstico, define los assets en `Glory/Config/scriptSetup.php` y protégelos con una feature. Ejemplo:
+
+```php
+// Glory/Config/scriptSetup.php
+use Glory\Manager\AssetManager;
+use Glory\Core\GloryFeatures;
+
+// JS del componente HelloBox (solo si la feature está activa)
+AssetManager::define(
+    'script',
+    'glory-hellobox',
+    '/Glory/assets/js/UI/helloBox.js',
+    [
+        'deps'      => ['jquery'],
+        'in_footer' => true,
+        'feature'   => 'helloBox',
+    ]
+);
+
+// CSS opcional
+AssetManager::define(
+    'style',
+    'glory-hellobox',
+    '/Glory/assets/css/helloBox.css',
+    [
+        'media'   => 'all',
+        'feature' => 'helloBox',
+    ]
+);
+```
+
+Activa la feature desde el tema (`App/Config/control.php`):
+
+```php
+use Glory\Core\GloryFeatures;
+GloryFeatures::enable('helloBox');
+```
+
+Notas:
+- Para assets específicos del tema, usa `App/Config/assets.php` con `AssetManager::defineFolder(...)` en lugar de `scriptSetup.php`.
+- Mantén la carga condicionada por feature para evitar recursos innecesarios.
+
+## Uso desde el tema
+
 ```php
 <?php
-class MiComponenteAvanzado
-{
-    public static function render($args = [])
-    {
-        $defaults = ['texto' => 'Hola', 'clase' => 'componente'];
-        $config = array_merge($defaults, $args);
+use Glory\Components\HelloBox;
 
-        // Validar
-        if (empty($config['texto'])) {
-            return '<div class="error">Texto requerido</div>';
-        }
+// Devolver HTML para componer
+$html = HelloBox::get_html(['texto' => 'Bienvenido', 'clase' => 'hello-primary']);
 
-        $clase = esc_attr($config['clase']);
-        $texto = esc_html($config['texto']);
-
-        return "<div class='{$clase}'>{$texto}</div>";
-    }
-}
+echo $html; // o directamente:
+HelloBox::print(['texto' => 'Hola Glory']);
 ```
 
-¡Crea componentes siguiendo estos patrones simples!
+## Modo Dev/Local (impacto)
+
+- Con `DEV=true` en `.env`, `AssetManager` favorece desarrollo (sin caché de auto‑descubrimiento y sin minificados forzados).
+- En producción (`DEV=false`), los assets pueden servirse minificados y cacheados; controla versiones con `AssetManager::setThemeVersion(...)`.
+
+## Errores frecuentes
+
+- Incluir lógica específica del proyecto en `Glory/` en lugar de `App/`.
+- No proteger assets con feature (cargan siempre aunque el proyecto no lo use).
+- Suponer API de instancias cuando el componente expone estáticos (`get_html`, `print`).
+- Rutas de assets incorrectas (`/Glory/assets/...` para núcleo; `App/Assets/...` para el tema).
+
+## Enlaces útiles
+
+- [AssetManager](/managers/asset-manager)
+- [Cómo usar componentes](/introduccion/como-usar-componentes)

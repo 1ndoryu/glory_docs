@@ -70,6 +70,20 @@ AssetManager::defineFolder(
 - Fuera de modo desarrollo, el auto‑descubrimiento se cachea y prioriza archivos `.min.*` si existen.
 - Para datos dinámicos en JS, usa `localize` con `nombreObjeto` y `datos` (se emite vía `wp_localize_script`).
 
+## Modo Dev/Local
+
+- Activación: `App/Config/environment.php` lee `.env` (`DEV` y `LOCAL`). `DEV=true` activa `AssetManager::setGlobalDevMode(true)`. Además, `defineFolder` considera `WP_DEBUG` para decidir si usa caché del auto‑descubrimiento.
+- Efectos en desarrollo (DEV o `WP_DEBUG` activos):
+  - `defineFolder`: no usa el archivo de caché; re‑explora la carpeta en cada carga.
+  - Versionado: si no defines `ver`, se usa `filemtime` del archivo para cache busting.
+  - Encolado: se sirven archivos sin `.min.*` (no se fuerza minificados).
+- Efectos en producción (DEV=false):
+  - `defineFolder`: cachea la lista descubierta en `Glory/cache/glory_assets_*.php` y la reutiliza.
+  - Encolado: si existe `.min.js/.min.css`, se usa automáticamente.
+  - Versionado: por defecto usa `AssetManager::setThemeVersion(...)` o `ver` explícito.
+- Control por asset: en `define(...)` puedes usar `'dev_mode' => true|false` para forzar el modo de versionado por archivo (prioriza sobre el global).
+- Limpieza de caché: si cambias archivos en producción, usa la opción de la barra de admin «Borrar Caché de Glory» (SyncManager) para eliminar la caché de auto‑descubrimiento.
+
 ## Integración con el tema
 - Define tus assets del tema en `App/Config/assets.php` agrupando por carpeta cuando sea posible.
 - Usa `AssetManager::setThemeVersion('0.1.1')` en `App/Config/config.php` para controlar el cache busting del tema.

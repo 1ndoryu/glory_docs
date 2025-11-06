@@ -123,6 +123,16 @@ PageManager::reconciliarPaginasGestionadas();
 - Migración a `editor`: solo cuando el contenido no ha sido editado (hash coincide) o está vacío.
 - Reconciliación nunca elimina la página frontal ni la de entradas.
 
+## Modo Dev/Local
+
+- Configuración de entorno: `App/Config/environment.php` lee `.env` (`DEV` y `LOCAL`). `DEV=true` activa el modo desarrollo global vía `AssetManager::setGlobalDevMode(true)`.
+- Sincronización automática en DEV:
+  - Admin: se ejecuta una sincronización completa (opciones, páginas y contenido por defecto) al cargar el admin.
+  - Frontend: sincronización ligera solo de páginas gestionadas: `procesarPaginasDefinidas()` y `reconciliarPaginasGestionadas()`.
+  - Requiere que la feature `pageManager` esté activa en `GloryFeatures`.
+- Producción (DEV=false): no hay sincronizaciones automáticas. Ejecuta sincronizaciones manuales (barra de admin «Glory Sync») o llama a `procesarPaginasDefinidas()` en tu flujo de deploy.
+- Relación con modo editor: la sincronización en DEV respeta el hash; solo re‑prellena cuando el contenido no ha sido editado manualmente.
+
 ## Integración con el tema (App)
 
 - Ubicación sugerida: `App/Config/pages.php`.

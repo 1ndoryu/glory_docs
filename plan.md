@@ -129,6 +129,7 @@ SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
 - Nombrado y términos consistentes con el código (camelCase en funciones/opciones).
 - Enlaces internos correctos; nada de promesas o features inexistentes.
 - API presentada como bloque PHP con comentarios por parámetro; parámetros complejos explicados fuera del código. Si existe una API avanzada poco frecuente, dividir en dos bloques: "API básica" al inicio y "API avanzada" al final de la página.
+- Explicar diferencias de comportamiento entre DEV y producción: auto‑sync en DEV (qué, cuándo, requisitos) vs manual en prod.
 - Diferenciar claramente assets/uso del Tema (`/App`) vs núcleo Glory (`/Glory`) cuando aplique.
 
 ## ✍️ Guía de Estilo de Documentación
@@ -158,6 +159,7 @@ Checklist técnico rápido por página:
 - [ ] Ejemplo mínimo probado (y opcional avanzado si aporta)
 - [ ] API en bloque PHP con comentarios por parámetro (si hay API avanzada, dividir en "API básica" al inicio y "API avanzada" al final)
 - [ ] Parámetros complejos explicados fuera del bloque de código
+- [ ] Sección "Modo Dev/Local" indicando DEV/LOCAL, auto‑sync y cómo operar en producción
 - [ ] Sección breve de "Errores frecuentes"
 - [ ] Recomendaciones y diferencias Glory vs Tema si corresponde
 
@@ -172,6 +174,7 @@ Checklist técnico rápido por página:
 - Recomendaciones: buenas prácticas y convenciones (carpetas, prefijos, area/feature, camelCase).
 - Notas/edge cases: límites, rendimiento, seguridad.
 - Integración con tema (si aplica): cómo usarlo desde `App/` vs Glory agnóstico.
+- Modo Dev/Local: cómo se activa (`.env` DEV/LOCAL), qué se auto‑sincroniza, y comportamiento en producción.
 - Errores frecuentes: listado muy breve y accionable.
 
 ## 🗂️ Priorización Sugerida

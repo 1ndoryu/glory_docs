@@ -1,64 +1,102 @@
 ---
 title: Cómo Usar Componentes
-description: Guía completa para usar los componentes reutilizables de Glory Framework
+description: Consumir componentes reutilizables de Glory desde tu tema
 ---
 
-Glory incluye componentes reutilizables para acelerar el desarrollo. Todos los componentes son agnósticos y funcionan en temas y plugins.
+## Resumen
 
-## Componentes principales
+Usa componentes del núcleo (`Glory/`) desde tu tema (`App/`) para evitar repetir lógica/HTML. Activa la feature del componente y llama su API mínima.
 
-**Uso mínimo** - Modal básico:
+## Cuándo usarlo
+
+- Quieres reutilizar UI o renderizados comunes sin duplicar código.
+- Buscas consistencia y rapidez (listas de posts, logo del tema, modales básicos).
+- Necesitas mantener el núcleo agnóstico y la personalización en el tema.
+
+## Ejemplos mínimos
+
+### 1) Logo del tema (LogoRenderer)
+
+Asegúrate de tener activa la feature en `App/Config/control.php`:
+
+```php
+Glory\Core\GloryFeatures::enable('logoRenderer');
+```
+
+Uso vía shortcode (rápido):
+
 ```php
 <?php
-use Glory\Components\Modal;
-$modal = new Modal('mi-modal');
-$modal->setTitle('Hola')->setContent('Contenido')->render();
-echo '<button onclick="jQuery(\'#mi-modal\').show()">Abrir</button>';
+echo do_shortcode('[theme_logo width="120px" filter="white"]');
 ```
 
-**Uso avanzado** - Sistema completo:
+Uso en PHP (control total):
+
 ```php
 <?php
-use Glory\Components\FormBuilder;
+use Glory\Components\LogoRenderer;
 
-// Modal con formulario
-$modal = new Modal('contacto-modal');
-$modal->setContent(FormBuilder::campoTexto(['nombre'=>'email','label'=>'Email'])
-                  . FormBuilder::botonEnviar(['accion'=>'enviar']));
-$modal->render();
+echo LogoRenderer::get_html([
+    'width'  => '120px',      // opcional
+    'filter' => 'white',      // '', 'white', 'black' o cualquier CSS filter
+]);
 ```
 
-**Alertas** - Reemplazan alert() nativo:
-```javascript
-// Alerta simple
-window.gloryAlert.show('Mensaje enviado', 'success');
+Más detalles: [LogoRenderer](/componentes/renderers/logo-renderer)
 
-// Con confirmación
-window.gloryAlert.show('¿Eliminar?', 'warning', {
-    onConfirm: () => eliminarItem()
-});
-```
+### 2) Listas de contenido (ContentRender)
 
-**ContentRender** - Mostrar listas de contenido:
+Renderiza posts de forma declarativa (con caché en producción):
+
 ```php
 <?php
 use Glory\Components\ContentRender;
 
-// Posts recientes
 ContentRender::print('post', [
-    'publicacionesPorPagina' => 5
+    'publicacionesPorPagina' => 6,
+    // 'paginacion' => true,
+    // 'plantillaCallback' => [MiClase::class, 'miPlantilla'],
 ]);
 ```
 
-**FormBuilder** - Formularios sencillos:
-```php
-<?php
-use Glory\Components\FormBuilder;
+- En DEV (WP_DEBUG true) no se usa caché.
+- Puedes personalizar la plantilla pasando `plantillaCallback($post, $itemClass)`.
 
-echo FormBuilder::inicio(['atributos' => ['id' => 'contacto']]);
-echo FormBuilder::campoTexto(['nombre' => 'email', 'label' => 'Email']);
-echo FormBuilder::botonEnviar(['accion' => 'enviar']);
-echo FormBuilder::fin();
+Más detalles: [ContentRender](/componentes/renderers/content-render)
+
+### 3) Modal básico (Modal)
+
+Activa la feature si tu proyecto usa estilos/JS asociados (p. ej. `modales`):
+
+```php
+Glory\Core\GloryFeatures::enable('modales');
 ```
 
-¡Usa estos componentes para acelerar tu desarrollo!
+Render mínimo en PHP:
+
+```php
+<?php
+use Glory\Components\Modal;
+
+echo Modal::render('miModal', 'Título', '<p>Contenido del modal</p>');
+```
+
+Luego, muestra/oculta el modal con tu JS preferido (por ejemplo, togglear `display`).
+
+## Integración con el tema
+
+- Activa sólo las features que uses en `App/Config/control.php`.
+- Si un componente requiere CSS/JS del tema, define assets en `App/Config/assets.php` con `AssetManager`.
+- Mantén la lógica de negocio y personalizaciones en `App/` (el núcleo `Glory/` es agnóstico).
+
+## Modo Dev/Local
+
+- En DEV (`DEV=true` en `.env`): assets auto‑descubiertos sin caché; sincronizaciones automáticas activas según el manager.
+- En producción (`DEV=false`): usa la barra «Glory Sync» para sincronizar; controla versión de assets con `AssetManager::setThemeVersion(...)`.
+
+## Errores frecuentes
+
+- Olvidar activar la feature del componente en `control.php`.
+- Suponer métodos que no existen (usa `get_html(...)` en `LogoRenderer`, no instancias).
+- Rutas de assets del tema mal puestas (usa `App/Assets/...`).
+- Esperar comportamiento de DEV en producción (caché y minificados cambian).

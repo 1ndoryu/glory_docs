@@ -234,3 +234,5 @@ if (require.main === module) {
 module.exports = { verificarFrontmatter, verificarEnlaces, verificarConfiguracion, generarEstadisticas };
 
 
+
+

@@ -4,6 +4,10 @@ Tarea, la documentación esta llena de alucinaciones, hay que arreglar cada pagi
 
 No revises todas las paginas, simplemente ve una por 1 por 1. Tambien verifica que este todo en la lista. Arregla una documentanción, marcas checklist y luego continua con otra despues de la aprobación del usuario. La verdad hay que rehacer toda la documentación, hacerla lo mas profesional posible. 
 
+NOTA: ESTAMOS REESCRIBIENDO LA DOCUMENTACION PORQUE LA IA ANTENRIOR ALUCINO DEMASIADO; NO SE DONDE Y TAMPOCO SE CUANTO; HAY QUE ESTAR ATENTO A NO VOLVER ALUCINAR; NO HAY QUE CREER LAS COSAS QUE DICE LA DOCUMENTACION VIEJA SINO GUIARSE COMPLETAMENTE POR EL CODIGO REAL.
+
+SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
+
 ## 📋 Inventario Completo de Páginas de Documentación
 
 ### Introducción (dejar de ultimo)
@@ -22,7 +26,7 @@ No revises todas las paginas, simplemente ve una por 1 por 1. Tambien verifica q
 - [ ] `core/features/available-features.mdx` 
 
 ### Managers
-- [x] `managers/asset-manager.mdx` 
+- [x] `managers/asset-manager.mdx` (REVISADA POR EL USUARIO; TENER DE REFERENCIA PRINCIPAL)
 - [ ] `managers/opcion-manager.mdx` 
 - [ ] `managers/page-manager.mdx` 
 - [ ] `managers/default-content-manager.mdx` 

@@ -2,165 +2,163 @@
 title: PageManager
 description: "Gestión programática de páginas: definir, sincronizar y controlar plantillas/roles"
 ---
+`PageManager` permite definir páginas desde código y mantenerlas sincronizadas con WordPress: crea/actualiza páginas, asigna plantillas, controla acceso por roles y, cuando usas handlers por función, delega el render en una plantilla central (`TemplateGlory.php`).
 
-`PageManager` facilita definir páginas desde código y sincronizarlas con WordPress: crea/actualiza páginas, asigna plantillas, controla acceso por roles y permite usar una plantilla central para funciones de renderizado.
+## Resumen
 
-## Propósito
+- Declara páginas por `slug` y handler (función o plantilla).
+- Sincroniza con la BD (crear/actualizar) y limpia obsoletas.
+- Controla acceso por roles, modo de contenido y SEO por defecto.
 
-- Permitir declarar páginas manejadas por el tema desde código con un slug único, un handler (función o plantilla) y roles opcionales.
-- Sincronizar esas definiciones con la base de datos (crear o actualizar páginas) y limpiar páginas obsoletas gestionadas anteriormente.
-- Soportar una plantilla central (`TemplateGlory.php`) que delega el renderizado a una función definida en el handler.
+## Cuándo usarlo
 
-## API pública
+- Cuando quieras asegurar que ciertas páginas del proyecto existan siempre con los ajustes correctos.
+- Cuando prefieras una plantilla central con renderizado por función en vez de múltiples plantillas sueltas.
+- Cuando necesites restringir páginas por roles o preconfigurar SEO por defecto.
 
-- `PageManager::define(string $slug, ?string $handler = null, ?string $plantilla = null, array $roles = []): void`
-  - `slug`: identificador amigable (solo `a-z0-9-`).
-  - `handler`: puede ser el nombre de una función de renderizado o el nombre de un archivo `.php` de plantilla.
-  - `plantilla`: si `handler` es un título y quieres especificar plantilla distinta.
-  - `roles`: array opcional de roles que requieren estar autenticados y tener dichos roles para ver la página.
+## API
 
-- `PageManager::register(): void`
-  - Engancha un filtro para interceptar la carga de plantillas y, cuando corresponde, redirige a la plantilla central si la definición usa una función.
+```php
+<?php
+use Glory\Manager\PageManager;
 
-- `PageManager::procesarPaginasDefinidas(): void`
-  - Recorre las páginas definidas y crea o actualiza las entradas `page` en la BD según la configuración. Marca las páginas creadas/gestionadas con meta `_page_manager_managed`.
+/**
+ * Define una página gestionada por código.
+ *
+ * @param string      $slug       Slug (^[a-z0-9]+(?:-[a-z0-9]+)*$).
+ * @param string|null $handler    Nombre de función de render o archivo .php de plantilla.
+ *                                - Si termina en .php ⇒ se usa como plantilla.
+ *                                - Si no termina en .php y no se provee $plantilla ⇒ usa TemplateGlory.php y la función.
+ * @param string|null $plantilla  Nombre de plantilla cuando $handler es un título.
+ * @param array       $roles      Roles requeridos para ver la página (obliga login y valida roles).
+ */
+PageManager::define(string $slug, ?string $handler = null, ?string $plantilla = null, array $roles = []): void;
 
-- `PageManager::reconciliarPaginasGestionadas(): void`
-  - Busca páginas en la BD marcadas como gestionadas pero que ya no están definidas en el código y las elimina (salvo la página frontal o la de entradas).
+/**
+ * Intercepta la plantilla y enruta a TemplateGlory.php si corresponde.
+ */
+PageManager::register(): void;
 
-- `PageManager::getFuncionParaRenderizar(): ?string`
-  - Devuelve el nombre de la función que la plantilla central debe invocar para renderizar el contenido.
+/**
+ * Crea/actualiza en BD todas las páginas definidas.
+ * - Marca con _page_manager_managed.
+ * - Sincroniza _wp_page_template.
+ * - Ajusta modo de contenido por defecto y prellena editor si aplica.
+ * - Si el slug es 'home' y la página es válida, la fija como página frontal.
+ */
+PageManager::procesarPaginasDefinidas(): void;
 
-- `PageManager::setDefaultContentMode(string $mode): void`
-  - Configura el modo de contenido por defecto para páginas gestionadas ('code' o 'editor').
+/**
+ * Elimina páginas gestionadas que ya no están definidas (sin tocar página frontal/entradas).
+ */
+PageManager::reconciliarPaginasGestionadas(): void;
 
-- `PageManager::getDefaultContentMode(): string`
-  - Retorna el modo de contenido por defecto configurado.
+/**
+ * Indica a TemplateGlory.php qué función ejecutar.
+ * @return string|null
+ */
+PageManager::getFuncionParaRenderizar(): ?string;
 
-- `PageManager::setDefaultSeoMap(array $map): void`
-  - Define valores SEO por defecto por slug: ['title' => '', 'desc' => '', 'canonical' => ''].
+/** Modo de contenido por defecto global: 'code' | 'editor'. */
+PageManager::setDefaultContentMode(string $mode): void;
+PageManager::getDefaultContentMode(): string;
 
-- `PageManager::getDefaultSeoForSlug(string $slug): array`
-  - Retorna los valores SEO por defecto para un slug específico.
+/**
+ * SEO por defecto por slug. Claves soportadas:
+ * - title (string)
+ * - desc (string)
+ * - canonical (string, se normaliza con barra final)
+ * - faq (array, se guarda JSON)
+ * - breadcrumb (array, se guarda JSON)
+ */
+PageManager::setDefaultSeoMap(array $map): void;
+PageManager::getDefaultSeoForSlug(string $slug): array;
 
-- `PageManager::getModoContenidoParaPagina(int $postId): string`
-  - Retorna el modo de contenido ('code' o 'editor') para una página específica.
+/** Consultas auxiliares */
+PageManager::getModoContenidoParaPagina(int $postId): string; // 'code' | 'editor'
+PageManager::getHandlerPorSlug(string $slug): ?string;         // nombre de función o null
+PageManager::getDefinicionPorSlug(string $slug): ?array;       // ['titulo','plantilla','funcion','slug','roles']
 
-- `PageManager::getHandlerPorSlug(string $slug): ?string`
-  - Retorna el handler (función o plantilla) asociado a un slug.
+/** Devuelve el HTML del handler para prellenar editor/sync inteligente. */
+PageManager::renderHandlerParaCopiar(string $handler): string;
+```
 
-- `PageManager::getDefinicionPorSlug(string $slug): ?array`
-  - Retorna la definición completa de una página por su slug.
+### Parámetros complejos
 
-- `PageManager::renderHandlerParaCopiar(string $handler): string`
-  - Genera código PHP para copiar y usar como handler personalizado.
+- SEO map (`setDefaultSeoMap`): por cada `slug` puedes definir `title`, `desc`, `canonical`, `faq` (array) y `breadcrumb` (array). No sobreescribe valores ya presentes en meta.
+- Modo de contenido: `'code'` (por defecto) o `'editor'`. En `'editor'` se prellena con el HTML del handler si el contenido no ha sido editado (hash coincide) o está vacío.
+- Roles: si se indican, se fuerza login y se valida con `UserUtility::tieneRoles`. Si falla, redirige a login o 403.
 
-## Comportamiento y consideraciones
-
-- Validación de `slug`: solo acepta slugs con `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Si el slug es inválido, registra un error y no define la página.
-- Si `handler` termina en `.php`, se asume que es una plantilla; si se pasa un `handler` que no termina en `.php` y no se especifica `plantilla`, la plantilla por defecto será `TemplateGlory.php` y se espera que la función indicada exista y sea llamada por la plantilla central.
-- Control de roles: si se especifican roles, al interceptar la plantilla el manager obliga a login y valida roles usando `UserUtility::tieneRoles`. Si falla, redirige a login o muestra 403.
-- Marcas en BD: las páginas creadas o gestionadas se marcan con meta `_page_manager_managed` para poder reconciliarlas y limpiar obsoletos.
-- Al crear páginas, el manager intenta publicar la página (`post_status => 'publish'`) y actualiza `_wp_page_template` con la plantilla configurada.
-- Evita eliminar la página frontal (`page_on_front`) o la página de entradas (`page_for_posts`) al reconciliar.
-- **Modo de contenido**: Las páginas gestionadas pueden tener modo 'code' (contenido definido por código) o 'editor' (editable desde el panel de WordPress). El modo por defecto se configura con `setDefaultContentMode()`.
-- **SEO por defecto**: Se pueden definir valores SEO por defecto para cada slug usando `setDefaultSeoMap()`, útiles para páginas que no tienen metaboxes SEO específicas.
-
-## Ejemplos
-
-- Definir una página que usa una función de renderizado (usada por la plantilla central `TemplateGlory.php`):
+## Ejemplo mínimo
 
 ```php
 use Glory\Manager\PageManager;
 
-PageManager::define('home', 'home_func');
+// 1) Definir página 'home' renderizada por función
+PageManager::define('home', 'home_render');
 
-// En algún bootstrap, registrar interceptación
+// 2) Interceptar plantilla y sincronizar definiciones
 PageManager::register();
-
-// Luego, en un hook de activación o inicialización puedes sincronizar:
 PageManager::procesarPaginasDefinidas();
 ```
 
-- Definir una página que usa una plantilla específica:
-
-```php
-PageManager::define('contacto', 'Contacto', 'TemplateContacto.php');
-```
-
-- Definir una página accesible solo para administradores:
-
-```php
-PageManager::define('panel-privado', 'panel_privado_func', null, ['administrator']);
-```
-
-### Configurar modo de contenido por defecto
+## Ejemplo avanzado (roles, SEO, editor, reconciliar)
 
 ```php
 use Glory\Manager\PageManager;
 
-// Configurar que las páginas nuevas usen modo 'editor' por defecto
+// Páginas
+PageManager::define('contacto', 'Contacto', 'TemplateContacto.php');
+PageManager::define('panel-privado', 'panel_privado_render', null, ['administrator']);
+
+// Modo de contenido por defecto
 PageManager::setDefaultContentMode('editor');
 
-// Verificar el modo actual
-$modoActual = PageManager::getDefaultContentMode(); // 'editor'
-```
-
-### Configurar SEO por defecto
-
-```php
-use Glory\Manager\PageManager;
-
-// Configurar valores SEO por defecto para diferentes slugs
+// SEO por defecto
 PageManager::setDefaultSeoMap([
-    'home' => [
-        'title' => 'Inicio - Mi Sitio Web',
-        'desc' => 'Página principal del sitio web',
-        'canonical' => home_url('/')
-    ],
-    'contacto' => [
-        'title' => 'Contacto - Mi Sitio Web',
-        'desc' => 'Ponte en contacto con nosotros',
-        'canonical' => home_url('/contacto/')
-    ]
+  'home' => [
+    'title' => 'Inicio - Mi Sitio',
+    'desc' => 'Bienvenido a mi sitio',
+    'canonical' => home_url('/'),
+    'faq' => [ ['q' => '¿Qué es?', 'a' => 'Es un sitio.'] ],
+    'breadcrumb' => [ ['name' => 'Inicio', 'url' => home_url('/') ] ],
+  ],
 ]);
 
-// Obtener SEO para un slug específico
-$seoHome = PageManager::getDefaultSeoForSlug('home');
+// Registrar e instalar cambios
+PageManager::register();
+PageManager::procesarPaginasDefinidas();
+
+// Tras eliminar definiciones del código, depurar obsoletas con seguridad
+PageManager::reconciliarPaginasGestionadas();
 ```
 
-### Consultar información de páginas
+## Recomendaciones
 
-```php
-use Glory\Manager\PageManager;
+- Define páginas en `App/Config/pages.php` o en el bootstrap del tema para centralizar.
+- Usa `TemplateGlory.php` cuando el handler sea función; debe invocar `PageManager::getFuncionParaRenderizar()` y ejecutar la función.
+- Ejecuta `procesarPaginasDefinidas()` en activación/deploy; usa `reconciliarPaginasGestionadas()` al retirar definiciones.
+- El slug `home` puede fijarse automáticamente como página frontal si la página es válida.
 
-// Obtener el handler de una página
-$handler = PageManager::getHandlerPorSlug('home'); // 'home_func'
+## Notas y edge cases
 
-// Obtener definición completa
-$definicion = PageManager::getDefinicionPorSlug('home');
-// Retorna: ['titulo' => '...', 'plantilla' => '...', 'funcion' => '...', ...]
+- Si falta `TemplateGlory.php` y defines handlers por función, se registrará un error y se usará la plantilla original.
+- Slugs inválidos no se definen (se registra error y se ignoran).
+- Migración a `editor`: solo cuando el contenido no ha sido editado (hash coincide) o está vacío.
+- Reconciliación nunca elimina la página frontal ni la de entradas.
 
-// Verificar modo de contenido de una página existente
-$modo = PageManager::getModoContenidoParaPagina(123); // 'code' o 'editor'
-```
+## Integración con el tema (App)
 
-### Generar código de handler
+- Ubicación sugerida: `App/Config/pages.php`.
+- Mantén los handlers de render en archivos de funciones del tema o en componentes reusables.
+- Glory es agnóstico: no coloques lógica específica del proyecto en el núcleo.
 
-```php
-use Glory\Manager\PageManager;
+## Errores frecuentes
 
-// Generar código PHP para usar como base de un handler personalizado
-$codigoHandler = PageManager::renderHandlerParaCopiar('mi_nueva_funcion');
-echo $codigoHandler;
-// Imprime el código PHP que puedes copiar y modificar
-```
-
-## Buenas prácticas
-
-- Define páginas en `App/Config` o en bootstrap del tema para tener todo centralizado.
-- Evita usar slugs que puedan colisionar con otras páginas creadas manualmente, o controla esas colisiones manualmente.
-- Revisa `TemplateGlory.php` si usas funciones como handlers: debe llamar a `PageManager::getFuncionParaRenderizar()` y ejecutar la función si existe.
-- Ejecuta `PageManager::procesarPaginasDefinidas()` en hooks de activación o deployment para sincronizar la BD.
+- Slug con mayúsculas o caracteres inválidos.
+- Olvidar `register()` y la función no se ejecuta vía `TemplateGlory.php`.
+- Asignar roles inexistentes o esperar acceso en admin sin ajustar capacidades.
+- Cambiar plantillas y no re‑sincronizar (`procesarPaginasDefinidas`).
+- Esperar que sobreescriba SEO existente: solo completa si no hay valores.
 
 ---

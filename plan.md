@@ -28,7 +28,7 @@ SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
 ### Managers
 - [x] `managers/asset-manager.mdx` (REVISADA POR EL USUARIO; TENER DE REFERENCIA PRINCIPAL)
 - [ ] `managers/opcion-manager.mdx` 
-- [ ] `managers/page-manager.mdx` 
+- [x] `managers/page-manager.mdx` (REVISADA POR EL USUARIO)
 - [ ] `managers/default-content-manager.mdx` 
 - [ ] `managers/post-type-manager.mdx` 
 - [ ] `managers/admin-page-manager.mdx` 
@@ -128,13 +128,14 @@ SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
 - Parámetros, retornos y efectos colaterales descritos de forma precisa.
 - Nombrado y términos consistentes con el código (camelCase en funciones/opciones).
 - Enlaces internos correctos; nada de promesas o features inexistentes.
-- API presentada como bloque PHP con comentarios por parámetro; parámetros complejos explicados fuera del código.
+- API presentada como bloque PHP con comentarios por parámetro; parámetros complejos explicados fuera del código. Si existe una API avanzada poco frecuente, dividir en dos bloques: "API básica" al inicio y "API avanzada" al final de la página.
 - Diferenciar claramente assets/uso del Tema (`/App`) vs núcleo Glory (`/Glory`) cuando aplique.
 
 ## ✍️ Guía de Estilo de Documentación
 - Español claro y directo, frases cortas y concretas.
 - Estructura con `##` y `###` (no `#`, ya lo ocupa el título de la página).
 - Bloques de código mínimos; centrados en cómo se usa. Para API, usar PHP con comentarios inline.
+- Si hay parte de API claramente avanzada o poco usada, separar en secciones: primero "API básica" (completa con sus parámetros), y al final "API avanzada" (también en su propio bloque PHP).
 - Explicar el "cuándo usarlo" y los límites/edge cases si aplica.
 - No añadir contenido de relleno al final del archivo.
 
@@ -155,7 +156,7 @@ Checklist técnico rápido por página:
 - [ ] Sidebar actualizado y visible
 - [ ] `astro.config.mjs` ajustado si la nueva ruta lo requiere
 - [ ] Ejemplo mínimo probado (y opcional avanzado si aporta)
-- [ ] API en bloque PHP con comentarios por parámetro
+- [ ] API en bloque PHP con comentarios por parámetro (si hay API avanzada, dividir en "API básica" al inicio y "API avanzada" al final)
 - [ ] Parámetros complejos explicados fuera del bloque de código
 - [ ] Sección breve de "Errores frecuentes"
 - [ ] Recomendaciones y diferencias Glory vs Tema si corresponde
@@ -163,10 +164,11 @@ Checklist técnico rápido por página:
 ## 🧩 Estructura Base por Tipo de Página
 - Resumen: 1–2 líneas sobre qué resuelve.
 - Cuándo usarlo: casos típicos y no-usos.
-- API (bloque PHP comentado): llamada(s) principales con comentarios por parámetro.
+- API básica (bloque PHP comentado): llamada(s) principales más usadas, con comentarios por parámetro.
 - Parámetros complejos (breve): explicación fuera del código.
 - Ejemplo mínimo: snippet funcional y autocontenido.
 - Ejemplo avanzado (opcional): sólo si añade valor real.
+ - API avanzada (bloque PHP comentado, al final): métodos poco frecuentes o de mantenimiento.
 - Recomendaciones: buenas prácticas y convenciones (carpetas, prefijos, area/feature, camelCase).
 - Notas/edge cases: límites, rendimiento, seguridad.
 - Integración con tema (si aplica): cómo usarlo desde `App/` vs Glory agnóstico.
@@ -182,4 +184,4 @@ Checklist técnico rápido por página:
 7. Introducción (al final).
 
 ## 🎯 Siguiente objetivo propuesto
-- Próxima a reescribir: `managers/page-manager.mdx`.
+- Próxima a reescribir: `managers/post-type-manager.mdx`.

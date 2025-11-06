@@ -16,7 +16,7 @@ description: "Gestión programática de páginas: definir, sincronizar y control
 - Cuando prefieras una plantilla central con renderizado por función en vez de múltiples plantillas sueltas.
 - Cuando necesites restringir páginas por roles o preconfigurar SEO por defecto.
 
-## API
+## API básica
 
 ```php
 <?php
@@ -49,11 +49,6 @@ PageManager::register(): void;
 PageManager::procesarPaginasDefinidas(): void;
 
 /**
- * Elimina páginas gestionadas que ya no están definidas (sin tocar página frontal/entradas).
- */
-PageManager::reconciliarPaginasGestionadas(): void;
-
-/**
  * Indica a TemplateGlory.php qué función ejecutar.
  * @return string|null
  */
@@ -62,25 +57,6 @@ PageManager::getFuncionParaRenderizar(): ?string;
 /** Modo de contenido por defecto global: 'code' | 'editor'. */
 PageManager::setDefaultContentMode(string $mode): void;
 PageManager::getDefaultContentMode(): string;
-
-/**
- * SEO por defecto por slug. Claves soportadas:
- * - title (string)
- * - desc (string)
- * - canonical (string, se normaliza con barra final)
- * - faq (array, se guarda JSON)
- * - breadcrumb (array, se guarda JSON)
- */
-PageManager::setDefaultSeoMap(array $map): void;
-PageManager::getDefaultSeoForSlug(string $slug): array;
-
-/** Consultas auxiliares */
-PageManager::getModoContenidoParaPagina(int $postId): string; // 'code' | 'editor'
-PageManager::getHandlerPorSlug(string $slug): ?string;         // nombre de función o null
-PageManager::getDefinicionPorSlug(string $slug): ?array;       // ['titulo','plantilla','funcion','slug','roles']
-
-/** Devuelve el HTML del handler para prellenar editor/sync inteligente. */
-PageManager::renderHandlerParaCopiar(string $handler): string;
 ```
 
 ### Parámetros complejos
@@ -116,7 +92,7 @@ PageManager::setDefaultContentMode('editor');
 
 // SEO por defecto
 PageManager::setDefaultSeoMap([
-  'home' => [
+    'home' => [
     'title' => 'Inicio - Mi Sitio',
     'desc' => 'Bienvenido a mi sitio',
     'canonical' => home_url('/'),
@@ -152,6 +128,37 @@ PageManager::reconciliarPaginasGestionadas();
 - Ubicación sugerida: `App/Config/pages.php`.
 - Mantén los handlers de render en archivos de funciones del tema o en componentes reusables.
 - Glory es agnóstico: no coloques lógica específica del proyecto en el núcleo.
+
+## API avanzada
+
+```php
+<?php
+use Glory\Manager\PageManager;
+
+/**
+ * Elimina páginas gestionadas que ya no están definidas (sin tocar página frontal/entradas).
+ */
+PageManager::reconciliarPaginasGestionadas(): void;
+
+/**
+ * SEO por defecto por slug. Claves soportadas:
+ * - title (string)
+ * - desc (string)
+ * - canonical (string, se normaliza con barra final)
+ * - faq (array, se guarda JSON)
+ * - breadcrumb (array, se guarda JSON)
+ */
+PageManager::setDefaultSeoMap(array $map): void;
+PageManager::getDefaultSeoForSlug(string $slug): array;
+
+/** Consultas auxiliares */
+PageManager::getModoContenidoParaPagina(int $postId): string; // 'code' | 'editor'
+PageManager::getHandlerPorSlug(string $slug): ?string;         // nombre de función o null
+PageManager::getDefinicionPorSlug(string $slug): ?array;       // ['titulo','plantilla','funcion','slug','roles']
+
+/** Devuelve el HTML del handler para prellenar editor/sync inteligente. */
+PageManager::renderHandlerParaCopiar(string $handler): string;
+```
 
 ## Errores frecuentes
 

@@ -1,517 +1,86 @@
 ---
 title: Cómo Crear Páginas
-description: Guía completa para crear páginas personalizadas usando el sistema PageManager de Glory
+description: Definir páginas desde código con PageManager de forma simple y mantenible
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+## Resumen
 
-# 📄 Cómo Crear Páginas con Glory
+Declara páginas por `slug` desde código y deja que `TemplateGlory.php` ejecute tu función de render cuando aplique. En DEV, la sincronización ocurre automáticamente.
 
-Glory simplifica la creación de páginas mediante el `PageManager`. Las páginas se definen con un slug y una función handler que genera el contenido HTML.
+## Cuándo usarlo
 
-## 🏗️ Cómo Funciona
+- Quieres que ciertas páginas existan siempre con ajustes controlados por código.
+- Prefieres handlers por función centralizados en lugar de múltiples plantillas sueltas.
+- Necesitas reproducibilidad entre entornos (sin depender de crear páginas a mano).
 
-1. **Define** páginas en `App/Config/config.php` con `PageManager::define()`
-2. **Crea** funciones handler que generan solo el contenido (sin HTML completo)
-3. **TemplateGlory.php** se encarga del `<head>`, navegación y footer automáticamente
-
-### Ventajas
-
-- ✅ Sin repetir HTML boilerplate en cada página
-- ✅ Header/footer consistentes automáticamente
-- ✅ Enfoque en el contenido específico de cada página
-
-## 🚀 Crear tu Primera Página
-
-### Paso 1: Definir la Página
-
-Edita `App/Config/config.php`:
+## API básica (uso común)
 
 ```php
 <?php
 use Glory\Manager\PageManager;
 
-// Página de contacto
-PageManager::define('contacto', 'renderContacto');
+// Handler por función (usa TemplateGlory.php para render)
+PageManager::define('contacto', 'contactoRender');
 
-// Página "Sobre Nosotros"
-PageManager::define('sobre-nosotros', 'renderSobreNosotros');
-
-// Página con parámetros dinámicos
-PageManager::define('producto', 'renderProducto');
+// Página basada en plantilla .php específica (sin handler por función)
+PageManager::define('sobre-nosotros', 'TemplateSobreNosotros.php');
 ```
 
-### Paso 2: Crear la Función Handler
+Parámetros:
+- `slug`: `kebab-case`, único por página.
+- `handler`:
+  - Si termina en `.php`, se usa como plantilla.
+  - Si es nombre de función, se usará `TemplateGlory.php` y se llamará a esa función.
+- `roles` (opcional, cuarto parámetro): fuerza login y valida roles.
 
-Crea la función en cualquier archivo PHP cargado por tu tema (recomendado: `functions.php` o archivos dedicados):
+La API completa y casos avanzados están en [PageManager](/managers/page-manager).
+
+## Ejemplo mínimo
+
+1) Define una página en `App/Config/pages.php`:
 
 ```php
 <?php
-/**
- * Handler para la página de contacto
- */
-function renderContacto() {
-    // Obtener datos de opciones si es necesario
-    $email = get_option('admin_email');
-    $telefono = OpcionManager::get('telefono_contacto');
-    ?>
+use Glory\Manager\PageManager;
 
-    <div class="contacto-hero">
-        <h1>Contáctanos</h1>
-        <p>Estamos aquí para ayudarte</p>
-    </div>
-
-    <div class="contacto-content">
-        <div class="contacto-info">
-            <div class="info-item">
-                <h3>Email</h3>
-                <p><?php echo esc_html($email); ?></p>
-            </div>
-            <?php if ($telefono): ?>
-            <div class="info-item">
-                <h3>Teléfono</h3>
-                <p><?php echo esc_html($telefono); ?></p>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <div class="contacto-form">
-            <h2>Envíanos un mensaje</h2>
-            <?php
-            use Glory\Components\FormBuilder;
-
-            echo FormBuilder::inicio([
-                'atributos' => ['id' => 'form-contacto']
-            ]);
-
-            echo FormBuilder::campoTexto([
-                'nombre' => 'nombre',
-                'label' => 'Nombre completo',
-                'requerido' => true
-            ]);
-
-            echo FormBuilder::campoEmail([
-                'nombre' => 'email',
-                'label' => 'Correo electrónico',
-                'requerido' => true
-            ]);
-
-            echo FormBuilder::campoTextarea([
-                'nombre' => 'mensaje',
-                'label' => 'Mensaje',
-                'requerido' => true,
-                'placeholder' => 'Escribe tu mensaje aquí...'
-            ]);
-
-            echo FormBuilder::botonEnviar([
-                'accion' => 'procesarContacto',
-                'texto' => 'Enviar Mensaje'
-            ]);
-
-            echo FormBuilder::fin();
-            ?>
-        </div>
-    </div>
-    <?php
-}
+PageManager::define('demo', 'demoRender');
 ```
 
-## 📋 Páginas con Parámetros Dinámicos
-
-### Página de Producto Detallado
-
-Para páginas que necesitan parámetros dinámicos, WordPress ofrece varias opciones. La más recomendada es usar **Custom Post Types** con rewrite rules para URLs amigables.
-
-#### Opción 1: Custom Post Types (Recomendado)
-
-Esta es la forma más WordPress-native y SEO-friendly.
-
-```php
-// En functions.php o archivo de configuración
-function registrar_post_type_producto() {
-    register_post_type('producto', [
-        'labels' => [
-            'name' => 'Productos',
-            'singular_name' => 'Producto',
-        ],
-        'public' => true,
-        'has_archive' => true,
-        'rewrite' => [
-            'slug' => 'producto',
-            'with_front' => false
-        ],
-        'supports' => ['title', 'editor', 'thumbnail', 'custom-fields'],
-        'show_in_rest' => true, // Para Gutenberg
-    ]);
-
-    // Registrar taxonomía para categorías de producto
-    register_taxonomy('categoria_producto', 'producto', [
-        'labels' => [
-            'name' => 'Categorías de Producto',
-            'singular_name' => 'Categoría de Producto',
-        ],
-        'hierarchical' => true,
-        'rewrite' => [
-            'slug' => 'categoria-producto',
-            'with_front' => false
-        ],
-    ]);
-}
-add_action('init', 'registrar_post_type_producto');
-```
-
-#### Crear Template para Single Producto
-
-Crea `single-producto.php` en la raíz del tema:
+2) Crea la función de render (p. ej. en `functions.php` del tema):
 
 ```php
 <?php
-/**
- * Template Name: Single Producto
- */
-
-get_header();
-
-// Obtener el producto actual
-$producto = get_queried_object();
-
-if ($producto && $producto->post_type === 'producto') {
-    ?>
-
-    <div class="producto-detalle">
-        <div class="producto-hero">
-            <h1><?php echo esc_html($producto->post_title); ?></h1>
-        </div>
-
-        <div class="producto-imagen">
-            <?php echo get_the_post_thumbnail($producto->ID, 'large'); ?>
-        </div>
-
-        <div class="producto-contenido">
-            <?php echo apply_filters('the_content', $producto->post_content); ?>
-        </div>
-
-        <div class="producto-meta">
-            <p><strong>Precio:</strong> <?php echo get_post_meta($producto->ID, 'precio', true); ?>€</p>
-            <p><strong>Categoría:</strong> <?php the_terms($producto->ID, 'categoria_producto'); ?></p>
-        </div>
-
-        <div class="producto-acciones">
-            <a href="<?php echo get_post_type_archive_link('producto'); ?>" class="btn-volver">
-                ← Volver al catálogo
-            </a>
-        </div>
-    </div>
-
-    <?php
-} else {
-    // Producto no encontrado
-    ?>
-    <div class="error-404">
-        <h1>Producto no encontrado</h1>
-        <p>El producto que buscas no existe.</p>
-        <a href="<?php echo get_post_type_archive_link('producto'); ?>" class="btn-catalogo">
-            Ver todos los productos
-        </a>
-    </div>
-    <?php
-}
-
-get_footer();
-```
-
-#### Crear Página de Catálogo
-
-Usa PageManager para la página de catálogo general:
-
-```php
-// En App/Config/pages.php
-PageManager::define('productos', 'renderCatalogoProductos');
-```
-
-```php
-<?php
-function renderCatalogoProductos() {
-    $paged = get_query_var('paged') ?: 1;
-
-    $args = [
-        'post_type' => 'producto',
-        'posts_per_page' => 12,
-        'paged' => $paged,
-    ];
-
-    // Filtros opcionales
-    if (isset($_GET['categoria'])) {
-        $args['tax_query'] = [[
-            'taxonomy' => 'categoria_producto',
-            'field' => 'slug',
-            'terms' => sanitize_text_field($_GET['categoria']),
-        ]];
-    }
-
-    $productos = new WP_Query($args);
-    ?>
-
-    <div class="catalogo-productos">
-        <div class="catalogo-header">
-            <h1>Nuestro Catálogo</h1>
-            <p>Descubre nuestros productos</p>
-        </div>
-
-        <?php if ($productos->have_posts()): ?>
-            <div class="productos-grid">
-                <?php while ($productos->have_posts()): $productos->the_post(); ?>
-                    <article class="producto-card">
-                        <div class="producto-imagen">
-                            <a href="<?php the_permalink(); ?>">
-                                <?php the_post_thumbnail('medium'); ?>
-                            </a>
-                        </div>
-                        <div class="producto-info">
-                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                            <p class="precio"><?php echo get_post_meta(get_the_ID(), 'precio', true); ?>€</p>
-                            <a href="<?php the_permalink(); ?>" class="btn-ver-mas">Ver detalles</a>
-                        </div>
-                    </article>
-                <?php endwhile; ?>
-            </div>
-
-            <?php
-            // Paginación
-            echo paginate_links([
-                'total' => $productos->max_num_pages,
-                'current' => $paged,
-                'base' => PageManager::getUrl('productos') . '%_%',
-                'format' => '?paged=%#%',
-            ]);
-            ?>
-
-        <?php else: ?>
-            <p>No se encontraron productos.</p>
-        <?php endif; ?>
-
-        <?php wp_reset_postdata(); ?>
-    </div>
-    <?php
+function demoRender() {
+    echo '<main id="main"><h1>Página demo</h1><p>Contenido mínimo.</p></main>';
 }
 ```
 
-#### Opción 2: URL Rewriting Personalizado
+Notas:
+- `TemplateGlory.php` (incluido en el tema) llama a `PageManager::getFuncionParaRenderizar()` y ejecuta la función.
+- Si prefieres una plantilla dedicada, usa `PageManager::define('demo', 'TemplateDemo.php');`.
 
-Si prefieres mantener el patrón PageManager, puedes usar URL rewriting:
+## Integración con el tema
 
-```php
-// En functions.php
-function agregar_rewrites_productos() {
-    add_rewrite_rule(
-        '^producto/([^/]+)/?$',
-        'index.php?pagename=productos&producto_slug=$matches[1]',
-        'top'
-    );
-}
-add_action('init', 'agregar_rewrites_productos');
+- Ubicación sugerida de definiciones: `App/Config/pages.php`.
+- Handlers por función: en `functions.php` u otro archivo cargado por el tema.
+- Evita lógica de negocio en `Glory/` (núcleo agnóstico); mantenla en `App/`.
 
-function agregar_query_vars_productos($vars) {
-    $vars[] = 'producto_slug';
-    return $vars;
-}
-add_filter('query_vars', 'agregar_query_vars_productos');
-```
+## Modo Dev/Local
 
-```php
-// En App/Config/pages.php
-PageManager::define('productos', 'renderProductos');
-```
+- `.env` admite `LOCAL=true` y `DEV=true` (ver `App/Config/environment.php`).
+- En DEV:
+  - Admin: sincronización completa (opciones, páginas, contenido por defecto).
+  - Frontend: sincronización ligera de páginas gestionadas.
+- En producción (`DEV=false`): usa la barra «Glory Sync» para sincronizar manualmente.
 
-```php
-<?php
-function renderProductos() {
-    $producto_slug = get_query_var('producto_slug');
+## Errores frecuentes
 
-    if ($producto_slug) {
-        // Mostrar producto individual
-        $producto = get_page_by_path($producto_slug, OBJECT, 'producto');
-        if ($producto) {
-            // Renderizar producto individual (similar al template anterior)
-            renderProductoIndividual($producto);
-        } else {
-            render404();
-        }
-    } else {
-        // Mostrar catálogo (similar al código anterior)
-        renderCatalogoProductos();
-    }
-}
-```
+- Slug inválido (usa sólo minúsculas, números y guiones).
+- Falta `TemplateGlory.php` cuando defines handler por función.
+- Handler inexistente o no cargado por el tema.
+- Esperar sincronización automática en producción (usa «Glory Sync»).
 
-## 🧩 Crear Páginas con Componentes Reutilizables
+## Enlaces
 
-### Página de Blog con ContentRender
-
-```php
-<?php
-function renderBlog() {
-    // Obtener parámetros de paginación
-    $paged = get_query_var('paged') ?: 1;
-
-    // Configuración de la consulta
-    $args = [
-        'post_type' => 'post',
-        'posts_per_page' => 10,
-        'paged' => $paged
-    ];
-
-    // Aplicar filtros si existen
-    if (isset($_GET['categoria'])) {
-        $args['category_name'] = sanitize_text_field($_GET['categoria']);
-    }
-    ?>
-
-    <div class="blog-header">
-        <h1>Nuestro Blog</h1>
-        <p>Descubre nuestros últimos artículos</p>
-    </div>
-
-    <div class="blog-content">
-        <div class="filtros-blog">
-            <form method="GET" action="<?php echo PageManager::getUrl('blog'); ?>">
-                <select name="categoria">
-                    <option value="">Todas las categorías</option>
-                    <?php
-                    $categorias = get_categories();
-                    foreach ($categorias as $cat) {
-                        $selected = (isset($_GET['categoria']) && $_GET['categoria'] === $cat->slug) ? 'selected' : '';
-                        echo "<option value='{$cat->slug}' {$selected}>{$cat->name}</option>";
-                    }
-                    ?>
-                </select>
-                <button type="submit">Filtrar</button>
-            </form>
-        </div>
-
-        <div class="posts-container">
-            <?php
-            use Glory\Components\ContentRender;
-
-            ContentRender::print('post', [
-                'queryArgs' => $args,
-                'publicacionesPorPagina' => 10,
-                'paginacion' => true,
-                'plantillaCallback' => 'plantillaPostBlog'
-            ]);
-            ?>
-        </div>
-    </div>
-    <?php
-}
-
-// Función de plantilla personalizada
-function plantillaPostBlog($post) {
-    ?>
-    <article class="post-card">
-        <div class="post-imagen">
-            <?php echo get_the_post_thumbnail($post->ID, 'medium'); ?>
-        </div>
-        <div class="post-contenido">
-            <h2><?php echo esc_html($post->post_title); ?></h2>
-            <div class="post-meta">
-                <span class="fecha"><?php echo get_the_date('', $post); ?></span>
-                <span class="autor">Por <?php echo get_the_author_meta('display_name', $post->post_author); ?></span>
-            </div>
-            <div class="post-excerpt">
-                <?php echo wp_trim_words(get_the_excerpt($post), 30); ?>
-            </div>
-            <a href="<?php echo get_permalink($post); ?>" class="leer-mas">Leer más</a>
-        </div>
-    </article>
-    <?php
-}
-```
-
-## 🔧 Páginas Avanzadas
-
-### Página con AJAX y Realtime
-
-```php
-<?php
-function renderDashboard() {
-    // Activar realtime para esta página
-    use Glory\Core\GloryFeatures;
-    GloryFeatures::enable('gloryRealtime');
-    ?>
-
-    <div class="dashboard-header">
-        <h1>Dashboard</h1>
-        <p>Panel de control en tiempo real</p>
-    </div>
-
-    <div id="notificaciones-container"></div>
-
-    <div class="stats-grid">
-        <div class="stat-card" data-channel="nuevo_pedido">
-            <h3>Pedidos Hoy</h3>
-            <span class="numero" id="pedidos-hoy">0</span>
-        </div>
-        <div class="stat-card" data-channel="nuevo_usuario">
-            <h3>Usuarios Nuevos</h3>
-            <span class="numero" id="usuarios-nuevos">0</span>
-        </div>
-    </div>
-
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Cargar datos iniciales
-        actualizarEstadisticas();
-
-        // Configurar realtime
-        if (window.gloryRealtimePoll) {
-            window.gloryRealtimePoll(['nuevo_pedido', 'nuevo_usuario'], {
-                intervalMs: 5000
-            });
-
-            document.addEventListener('gloryRealtime:update', function(e) {
-                actualizarEstadisticas();
-            });
-        }
-    });
-
-    function actualizarEstadisticas() {
-        gloryAjax('obtener_estadisticas_dashboard')
-            .then(function(response) {
-                if (response.success) {
-                    document.getElementById('pedidos-hoy').textContent = response.data.pedidos_hoy;
-                    document.getElementById('usuarios-nuevos').textContent = response.data.usuarios_nuevos;
-                }
-            });
-    }
-    </script>
-    <?php
-}
-```
-
-
-## 🎯 Mejores Prácticas
-
-### Organización del Código
-
-- **Funciones claras**: Una función por página con nombres descriptivos
-- **Reutilización**: Crea helpers para lógica común
-- **Separación**: Lógica de negocio separada de la presentación
-
-### Estructura Recomendada
-
-```
-App/
-├── Config/
-│   └── pages.php         # Definiciones de páginas
-└── Handlers/
-    ├── HomeHandler.php   # Lógica de página home
-    ├── BlogHandler.php   # Lógica de página blog
-    └── ContactHandler.php # Lógica de página contacto
-```
-
-¡Listo! Ahora puedes crear páginas con Glory Framework. El sistema PageManager se encarga del enrutamiento, tú solo necesitas definir las funciones que generan el contenido.
-
-## 🔍 Depuración
-
-Para verificar que tus páginas funcionan, puedes usar la función de debug del administrador de WordPress o revisar los logs de Glory.
+- [PageManager — Detalle y API](/managers/page-manager)
+- [Primeros pasos](/introduccion/primeros-pasos)

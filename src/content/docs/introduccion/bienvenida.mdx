@@ -7,8 +7,10 @@ Glory es un conjunto de clases y utilidades para construir temas en WordPress co
 
 ## Cuándo usarlo
 
-- Cuando necesitas declarar y sincronizar páginas desde código (en lugar de crearlas manualmente).
-- Cuando quieres gestionar assets del tema de forma consistente y versionada.
+- Cuando necesitas trabajar en equipo con definiciones declarativas desde código que se sincronizan con la base de datos (evita configuraciones manuales frágiles en admin).
+- Cuando quieres declarar y sincronizar páginas, contenido por defecto u opciones de forma reproducible entre entornos.
+- Cuando quieres gestionar assets del tema de forma consistente, con versionado y control por features.
+- Cuando buscas acelerar la creación de páginas/UI reutilizando componentes y utilidades comunes.
 - Cuando prefieres separar responsabilidades: reutilizable en `Glory/`, específico del proyecto en `App/`.
 
 ## Principios
@@ -25,10 +27,12 @@ Glory es un conjunto de clases y utilidades para construir temas en WordPress co
 En particular:
 - `AssetManager`: registra y encola CSS/JS del tema.
 - `PageManager`: define páginas por `slug` y sincroniza su existencia y ajustes.
+ - Otros managers/utilidades disponibles en el núcleo: post types, opciones, contenido por defecto, menús, y utilidades (`post`, `user`, `image`, `assets`, etc.).
 
 Consulta las páginas dedicadas para detalles y API:
 - [AssetManager](/managers/asset-manager)
 - [PageManager](/managers/page-manager)
+ - Panorama general: [Introducción / Resumen](/introduccion/resumen)
 
 ## Ejemplo mínimo (orientativo)
 
@@ -36,13 +40,12 @@ Consulta las páginas dedicadas para detalles y API:
 <?php
 use Glory\Manager\PageManager;
 
-// Definir y sincronizar una página básica
-PageManager::define('mi-pagina', 'mi_pagina_render');
+// Definir una página básica (handler por función)
+PageManager::define('mi-pagina', 'miPaginaRender');
 PageManager::register();
-PageManager::procesarPaginasDefinidas();
 ```
 
-Nota: la configuración concreta del tema (dónde colocar estas llamadas) depende de tu proyecto. La guía completa está en [PageManager](/managers/page-manager).
+Nota: en entornos de desarrollo puede haber sincronización automática; en producción usa la barra «Glory Sync» o tu flujo de deploy. La guía completa está en [PageManager](/managers/page-manager).
 
 ## Modo Dev/Local (breve)
 

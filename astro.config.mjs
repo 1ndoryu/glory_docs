@@ -19,7 +19,8 @@ export default defineConfig({
                         'introduccion/primeros-pasos',
                         'introduccion/como-crear-paginas',
                         'introduccion/como-usar-componentes',
-                        'introduccion/como-crear-componentes'
+                        'introduccion/como-crear-componentes',
+                        'introduccion/como-crear-contenido-por-defecto-y-post-types'
                     ]
                 },
                 {

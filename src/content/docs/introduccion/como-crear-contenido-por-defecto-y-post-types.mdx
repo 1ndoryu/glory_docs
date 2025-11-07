@@ -1,0 +1,56 @@
+---
+title: Cmo crear contenido por defecto y Post Types
+description: Gua prctica para definir CPTs y su contenido inicial
+---
+
+## Resumen
+Define un CPT y su contenido inicial desde cdigo del tema para que el sitio tenga siempre lo esencial.
+
+## Pasos rpidos
+1. Activar features en `App/Config/control.php`: `postTypeManager`, `defaultContentManager`, `syncManager`.
+2. Definir el CPT en `App/Content/postType.php`.
+3. Definir el contenido por defecto en `App/Content/defaultContent.php`.
+4. Sincronizar desde el panel (SyncManager) o CLI.
+
+## Ejemplo mnimo
+
+```php
+// App/Content/postType.php
+use Glory\Manager\PostTypeManager;
+
+PostTypeManager::define(
+  'libro',
+  [
+    'public' => true,
+    'has_archive' => true,
+    'menu_icon' => 'dashicons-book',
+  ],
+  'Libro',
+  'Libros'
+);
+```
+
+```php
+// App/Content/defaultContent.php
+use Glory\Manager\DefaultContentManager;
+
+DefaultContentManager::define('libro', [
+  [
+    'slugDefault' => 'el-principito',
+    'titulo' => 'El Principito',
+    'contenido' => 'Una novela potica...',
+    'imagenDestacadaAsset' => 'elements::libros/principito.jpeg',
+  ],
+]);
+```
+
+## Detalles clave
+- `slugDefault` identifica nicamente cada entrada gestionada.
+- `metaEntrada` puede incluir taxonomas del CPT (se asignan como trminos).
+- Assets: usa rutas `alias::archivo.ext` del sistema de assets del tema.
+
+## Modo Dev/Prod
+- Dev: usa `smart`; evita `eliminar=true` hasta estar seguro.
+- Prod: ejecutar sincronizacin desde SyncManager. Evitar `force` salvo despliegues controlados.
+
+

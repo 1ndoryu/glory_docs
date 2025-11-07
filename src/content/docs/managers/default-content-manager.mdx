@@ -1,121 +1,88 @@
 ---
 title: DefaultContentManager
-description: "Gestión y sincronización de contenido por defecto para tipos de post"
+description: "Define y sincroniza contenido por defecto para CPTs desde cdigo"
 ---
 
-`DefaultContentManager` es la fachada que facilita definir y sincronizar contenido por defecto para tipos de post. Se apoya en `DefaultContentRegistry` y `DefaultContentSynchronizer` para almacenamiento de definiciones y lógica de sincronización.
+`DefaultContentManager` es una fachada agnstica que permite declarar contenido por defecto (posts/pginas) desde cdigo y sincronizarlo con la base de datos. La lgica reside en `DefaultContentRegistry` (almacenamiento en memoria) y `DefaultContentSynchronizer` (sincronizacin real).
 
-## Propósito
+## Resumen
+- **Para qu sirve**: asegurar que cierto contenido exista y se mantenga segn definiciones versionadas.
+- **Dnde va**: en el tema (`/App`), por ejemplo `App/Content/defaultContent.php`. Glory sigue siendo agnstico.
 
-- Permitir declarar contenido por defecto (entradas/páginas) que deben existir en un sitio según definiciones del código.
-- Proveer mecanismos para sincronizar esas definiciones con la base de datos y detectar ediciones manuales.
+## Cundo usarlo
+- Semillas de contenido inicial (home, polticas, landing demo).
+- Contenido de sistema que no debe faltar.
 
-## API pública
-
-- `DefaultContentManager::define(string $tipoPost, array $postsDefault, string $modoActualizacion = 'smart', bool $permitirEliminacion = false): void`
-  - `tipoPost`: slug del post type (ej. `page`, `post`, `mi_tipo`).
-  - `postsDefault`: array con definiciones de posts (title, content, meta, etc.).
-  - `modoActualizacion`: `'none'|'force'|'smart'` — controla cómo se aplican cambios en la definición sobre la BD.
-  - `permitirEliminacion`: si se deben eliminar posts obsoletos.
-
-- `DefaultContentManager::register(): void`
-  - Engancha la inicialización al hook `init` donde instancia el sincronizador y registra hooks para detección de cambios.
-
-- `DefaultContentManager::procesarDefinicionesYRegistrarHooks(): void`
-  - Callback para `init`: instancia el sincronizador, evita sincronizar en contextos de front-end no admin y registra `save_post_{tipo}` hooks para detectar ediciones manuales.
-
-- `DefaultContentManager::detectarEdicionManualHook(int $idPost, WP_Post $objetoPost, bool $esActualizacion): void`
-  - Callback intermedio que delega en la instancia del sincronizador el manejo de ediciones manuales.
-
-- `DefaultContentManager::buildSamplePosts(array $titles, array $paragraphs, array $options = []): array`
-  - Helper para construir definiciones de posts de ejemplo automáticamente. Útil para desarrollo y testing.
-
-## Comportamiento y consideraciones
-
-- El manager usa un singleton para la instancia del synchronizer por petición para evitar instancias múltiples.
-- Evita ejecutar sincronización automática en el front-end para no impactar rendimiento; la sincronización se prepara para ejecutarse en entornos admin o CLI.
-- Tras sincronizar, el manager registra hooks `save_post_{tipo}` para los tipos gestionados y así detectar cambios manuales y actualizar el estado interno si es necesario.
-- `modoActualizacion` controla la estrategia: `'force'` reemplaza contenido, `'smart'` intenta aplicar cambios solo cuando es seguro y `'none'` desactiva sincronización.
-
-## Método buildSamplePosts
-
-El método `buildSamplePosts` es un helper que genera automáticamente definiciones de posts de ejemplo usando:
-
-- **Títulos**: Array de títulos que se convierten en slugs kebab-case
-- **Párrafos**: Pool de párrafos para generar contenido automáticamente
-- **Opciones**: Configuración adicional como alias de imágenes y tamaño mínimo
-
-### Parámetros de buildSamplePosts
-
-- `$titles`: Array de strings con los títulos de las páginas/posts a crear
-- `$paragraphs`: Array de strings con párrafos para generar contenido
-- `$options`: Array opcional con:
-  - `'aliasImagenes'`: Alias para AssetsUtility (default: 'colors')
-  - `'minBytes'`: Tamaño mínimo de imágenes en bytes (default: 103424)
-
-### Comportamiento
-
-- Genera slugs determinísticos basados en los títulos
-- Selecciona imágenes destacadas e internas de forma determinista usando el slug
-- Distribuye párrafos aleatoriamente pero consistentemente entre las páginas
-- Incluye imágenes en el contenido de forma automática
-
-## Ejemplos
-
-### Contenido manual básico
+## API bsica
 
 ```php
+<?php
 use Glory\Manager\DefaultContentManager;
 
-$posts = [
+/**
+ * Define contenido por defecto para un tipo.
+ * @param string $tipoPost  Slug del CPT (ej. 'page','libro').
+ * @param array  $posts     Definiciones (ver estructura abajo).
+ * @param string $modo      'none'|'force'|'smart' (def: 'smart').
+ * @param bool   $eliminar  Eliminar posts obsoletos (def: false).
+ */
+DefaultContentManager::define(string $tipoPost, array $posts, string $modo = 'smart', bool $eliminar = false): void;
+
+/** Registra hooks ('init' y deteccin de ediciones). */
+DefaultContentManager::register(): void;
+```
+
+### Estructura de cada definicin (array $posts)
+- **slugDefault**: string requerido y nico por CPT.
+- **titulo**: ttulo del post.
+- **contenido**: HTML seguro.
+- **extracto**: string (opcional).
+- **estado**: 'publish' (def), 'draft', etc.
+- **metaEntrada**: array asociativo de metadatos. Si una clave coincide con una taxonoma del CPT, se asigna como trmino.
+- **imagenDestacadaAsset**: referencia `alias::archivo.ext` o `random::alias`.
+- **galeriaAssets**: array de referencias de assets (opcional).
+
+## Ejemplo mnimo (tema)
+
+```php
+// App/Content/defaultContent.php
+use Glory\Manager\DefaultContentManager;
+
+DefaultContentManager::define('libro', [
     [
-        'post_title' => 'Página de ejemplo',
-        'post_content' => 'Contenido por defecto',
-        'post_status' => 'publish',
-        'post_name' => 'pagina-ejemplo',
+        'slugDefault' => 'el-principito',
+        'titulo'      => 'El Principito',
+        'contenido'   => 'Una novela potica...',
+        'imagenDestacadaAsset' => 'elements::libros/principito.jpeg',
     ],
-];
-
-DefaultContentManager::define('page', $posts, 'smart', false);
-DefaultContentManager::register();
+]);
 ```
 
-### Contenido de ejemplo automático
+## Parmetros y modos
+- **modo**: 'none' (no actualiza), 'force' (sobrescribe siempre), 'smart' (actualiza solo si no fue editado manualmente y hay cambios).
+- **eliminar**: si `true`, borra entradas gestionadas cuyo `slugDefault` ya no est en cdigo.
+
+## API avanzada
 
 ```php
-use Glory\Manager\DefaultContentManager;
-
-$titulos = [
-    'Arte Moderno',
-    'Diseño Contemporáneo',
-    'Fotografía Digital',
-    'Ilustración Digital'
-];
-
-$parrafos = [
-    'El arte moderno representa una evolución significativa en la expresión humana...',
-    'Los diseñadores contemporáneos utilizan herramientas digitales para crear experiencias visuales únicas...',
-    'La fotografía digital ha revolucionado la forma en que capturamos y compartimos momentos...',
-    'La ilustración digital combina técnica tradicional con posibilidades infinitas de la tecnología...',
-    'Las tendencias actuales en arte enfatizan la innovación y la experimentación...',
-    'El diseño gráfico moderno busca comunicar mensajes de manera efectiva y atractiva...'
-];
-
-$opciones = [
-    'aliasImagenes' => 'gallery',
-    'minBytes' => 200000  // Imágenes de al menos 200KB
-];
-
-$postsEjemplo = DefaultContentManager::buildSamplePosts($titulos, $parrafos, $opciones);
-
-DefaultContentManager::define('page', $postsEjemplo, 'smart', false);
-DefaultContentManager::register();
+/** Genera posts de ejemplo con slugs y contenido deterministas. */
+DefaultContentManager::buildSamplePosts(array $titles, array $paragraphs, array $options = []): array;
 ```
 
-## Buenas prácticas
+### Options de buildSamplePosts
+- **aliasImagenes**: alias de AssetsUtility (def: 'colors').
+- **minBytes**: filtro de tamao mnimo (bytes).
 
-- Define contenido por defecto en un archivo centralizado (`App/Config/default-content.php`) para poder versionarlo y sincronizarlo en despliegues.
-- Usa `modoActualizacion` apropiado según tu flujo de despliegue: `force` para entornos controlados, `smart` para producción.
-- Ten cuidado con `permitirEliminacion` — evita borrar contenido valioso por error.
+## Modo Dev/Local vs Produccin
+- La sincronizacin no corre automticamente en front. Se ejecuta desde el panel (SyncManager) o CLI.
+- Activa `defaultContentManager` y `syncManager` en `App/Config/control.php`.
+- Recomendacin: usar `smart` en prod; `force` solo en despliegues controlados. Evitar `eliminar` en prod salvo certeza.
 
----
+## Errores frecuentes
+- Falta `slugDefault` o CPT no existe al sincronizar.
+- Assets inexistentes en `imagenDestacadaAsset`/`galeriaAssets`.
+- Taxonomas declaradas en `metaEntrada` que no existen para el CPT.
+
+## Integracin con el tema
+- Define el contenido en `App/Content/defaultContent.php` (tema).
+- La registracin de hooks la realiza el core si la feature `defaultContentManager` est activa.

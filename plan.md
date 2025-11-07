@@ -6,18 +6,20 @@ No revises todas las paginas, simplemente ve una por 1 por 1. Tambien verifica q
 
 NOTA: ESTAMOS REESCRIBIENDO LA DOCUMENTACION PORQUE LA IA ANTENRIOR ALUCINO DEMASIADO; NO SE DONDE Y TAMPOCO SE CUANTO; HAY QUE ESTAR ATENTO A NO VOLVER ALUCINAR; NO HAY QUE CREER LAS COSAS QUE DICE LA DOCUMENTACION VIEJA SINO GUIARSE COMPLETAMENTE POR EL CODIGO REAL.
 
-SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
+IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
 
 ## 📋 Inventario Completo de Páginas de Documentación
 
-### Introducción (dejar de ultimo)
-- [ ] `introduccion/bienvenida.mdx` 
-- [ ] `introduccion/instalacion.mdx` 
-- [ ] `introduccion/primeros-pasos.mdx` 
-- [ ] `introduccion/como-crear-paginas.mdx` 
-- [ ] `introduccion/como-usar-componentes.mdx` 
-- [ ] `introduccion/como-crear-componentes.mdx` 
-- [ ] `introduccion/resumen.mdx` 
+### Introducción 
+- [x] `introduccion/bienvenida.mdx` 
+- [x] `introduccion/instalacion.mdx` 
+- [x] `introduccion/primeros-pasos.mdx` 
+- [x] `introduccion/como-crear-paginas.mdx` 
+- [x] `introduccion/como-usar-componentes.mdx` 
+- [x] `introduccion/como-crear-componentes.mdx` 
+- [x] `introduccion/resumen.mdx` 
+
+- [ ] `introduccion/como-crear-contenido-por-defecto-y-post-types.mdx`
 
 ### Core Framework
 - [ ] `core/glory-features.mdx` 
@@ -28,7 +30,7 @@ SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA Y VOLVERLA A ESCRIBIR.
 ### Managers
 - [x] `managers/asset-manager.mdx` (REVISADA POR EL USUARIO; TENER DE REFERENCIA PRINCIPAL)
 - [ ] `managers/opcion-manager.mdx` 
-- [x] `managers/page-manager.mdx` (REVISADA POR EL USUARIO)
+- [x] `managers/page-manager.mdx` (REVISADA POR EL USUARIO; TENER DE SEGUNDA REFERENCIA)
 - [ ] `managers/default-content-manager.mdx` 
 - [ ] `managers/post-type-manager.mdx` 
 - [ ] `managers/admin-page-manager.mdx` 
@@ -178,7 +180,7 @@ Checklist técnico rápido por página:
 - Errores frecuentes: listado muy breve y accionable.
 
 ## 🗂️ Priorización Sugerida
-1. Managers: `asset-manager`, `page-manager`, `post-type-manager`, `menu-manager`, `admin-page-manager`, `opcion-manager`.
+1. Managers: `asset-manager`, `page-manager`, `post-type-manager`, `menu-manager`, `admin-page-manager`, `opcion-manager`, `default-content-manager`.
 2. Core: `glory-ajax`, `glory-features` y `features/*`.
 3. AJAX y Formularios: `sistema-formularios`, `form-builder`, `form-handler`.
 4. Componentes Renderers críticos y `componentes/ui/*` más usados.
@@ -187,4 +189,5 @@ Checklist técnico rápido por página:
 7. Introducción (al final).
 
 ## 🎯 Siguiente objetivo propuesto
-- Próxima a reescribir: `managers/post-type-manager.mdx`.
+- Próxima a reescribir: `managers/default-content-manager.mdx`.
+- También preparar: `introduccion/como-crear-contenido-por-defecto-y-post-types.mdx`.

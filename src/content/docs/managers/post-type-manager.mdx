@@ -1,383 +1,104 @@
 ---
 title: PostTypeManager
-description: Gestión programática de tipos de contenido personalizados (CPT) en Glory
+description: "Definir y registrar CPTs (Custom Post Types) desde cdigo"
 ---
 
-`PostTypeManager` simplifica la creación y gestión de Tipos de Contenido Personalizados (Custom Post Types) en WordPress, permitiendo definir CPTs desde código con validación automática, generación de etiquetas y metadatos por defecto.
+`PostTypeManager` ofrece una API declarativa para crear CPTs con validacin, etiquetas automticas en espaol y metadatos por defecto.
 
-## Propósito
+## Resumen
+- **Para qu sirve**: definir CPTs versionables con defaults sensatos.
+- **Dnde va**: en el tema (`/App`), por ejemplo `App/Content/postType.php`.
 
-- **Definición declarativa**: Crear CPTs desde código sin repetir argumentos de `register_post_type`
-- **Validación automática**: Asegurar slugs válidos y evitar conflictos con tipos reservados
-- **Etiquetas inteligentes**: Generar automáticamente etiquetas de interfaz en español
-- **Metadatos por defecto**: Asignar automáticamente campos personalizados a nuevas entradas
-- **Soporte completo**: Todos los argumentos estándar de WordPress más extensiones útiles
-
-## API principal
-
-### `PostTypeManager::define()`
+## API bsica
 
 ```php
+<?php
+use Glory\Manager\PostTypeManager;
+
 PostTypeManager::define(
-    string $tipoEntradaSlug,     // Slug único del CPT (ej: 'libro', 'evento')
-    array $argumentos,           // Argumentos para register_post_type()
-    ?string $nombreSingular,     // Nombre singular para etiquetas (ej: 'Libro')
-    ?string $nombrePlural,       // Nombre plural para etiquetas (ej: 'Libros')
-    array $metaDefault = []      // Metadatos por defecto para nuevas entradas
-): void
+    string $slug,
+    array $args,
+    ?string $singular = null,
+    ?string $plural   = null,
+    array $metaDefault = []
+): void;
+
+/** Engancha 'init' para registrar los CPTs definidos. */
+PostTypeManager::register(): void;
+
+/** Registra todos los CPTs definidos (callback de 'init'). */
+PostTypeManager::procesarTiposEntrada(): void;
+
+/** Vuelve a generar reglas de reescritura si cambiaste CPTs. */
+PostTypeManager::limpiarReglasReescritura(): void;
 ```
 
-### `PostTypeManager::register()`
+### Reglas para `$slug`
+- Solo `[a-z0-9_]`, longitud  20.
+- No puede ser reservado: `post`, `page`, `attachment`, `revision`, `nav_menu_item`, `custom_css`, `customize_changeset`, `oembed_cache`, `user_request`, `wp_block`, `action`, `author`, `order`, `theme`.
 
-```php
-PostTypeManager::register(): void // Registra hooks para inicialización
-```
+### `$args` (extracto)
+- Valores por defecto inteligentes: `public: true`, `supports: ['title','editor','thumbnail']` si no defines `supports` y proporcionas `singular/plural`.
+- Si pasas `$metaDefault`, se aade `custom-fields` a `supports` si hiciera falta.
 
-### `PostTypeManager::procesarTiposEntrada()`
-
-```php
-PostTypeManager::procesarTiposEntrada(): void // Registra todos los CPTs definidos
-```
-
-### `PostTypeManager::limpiarReglasReescritura()`
-
-```php
-PostTypeManager::limpiarReglasReescritura(): void // Flush rewrite rules después de cambios
-```
-
-## Parámetros de `define()`
-
-### `$tipoEntradaSlug`
-- **Tipo**: `string`
-- **Restricciones**: Solo letras minúsculas, números y guiones bajos
-- **Longitud máxima**: 20 caracteres
-- **Validación**: No puede ser un tipo reservado de WordPress
-
-**Ejemplos válidos:**
-```php
-'libro', 'mi_cpt_123', 'evento'
-```
-
-**Ejemplos inválidos:**
-```php
-'MiLibro', 'libro-espacial', 'post', 'page' // Reservados
-```
-
-### `$argumentos`
-Array con todos los argumentos estándar de `register_post_type()` más extensiones:
-
-```php
-[
-    'public' => true,                    // Público por defecto
-    'has_archive' => true,               // Soporte para archivo
-    'supports' => ['title', 'editor'],   // Soporte automático si no especificado
-    'menu_icon' => 'dashicons-book',     // Icono en menú admin
-    'show_in_rest' => true,              // API REST
-    // ... todos los argumentos estándar
-]
-```
-
-### `$nombreSingular` y `$nombrePlural`
-- Usados para generar automáticamente etiquetas de interfaz
-- Si se proporcionan ambos, se generan etiquetas automáticamente
-- Si falta alguno, no se generan etiquetas (debes proporcionarlas manualmente)
+### `$singular`/`$plural`
+- Si ambos existen y no defines `labels`, se generan etiquetas completas en espaol (dominio `glory`).
 
 ### `$metaDefault`
-Array asociativo de metadatos que se asignan automáticamente a nuevas entradas:
+- Metadatos que se aaden automticamente al crear una nueva entrada del CPT (no en updates).
 
-```php
-[
-    'autor' => 'Anónimo',
-    'anio_publicacion' => date('Y'),
-    'estado' => 'borrador'
-]
-```
+## Ejemplo mnimo
 
-## Validación y seguridad
-
-### Validación de slugs
-```php
-private static function _validarSlugTipoEntrada(string $tipoEntradaSlug): bool
-```
-- Longitud ≤ 20 caracteres
-- Solo caracteres: `[a-z0-9_]+`
-- No tipos reservados de WordPress
-- Registra errores con `GloryLogger` si falla
-
-### Tipos reservados
-```php
-$tiposReservados = [
-    'post', 'page', 'attachment', 'revision', 'nav_menu_item',
-    'custom_css', 'customize_changeset', 'oembed_cache',
-    'user_request', 'wp_block', 'action', 'author', 'order', 'theme'
-];
-```
-
-## Generación automática de etiquetas
-
-Si se proporcionan `$nombreSingular` y `$nombrePlural`, genera automáticamente todas las etiquetas:
-
-```php
-private static function generarEtiquetas(string $singular, string $plural): array
-```
-
-**Etiquetas generadas:**
-- `name`: "Libros"
-- `singular_name`: "Libro"
-- `menu_name`: "Libros"
-- `add_new`: "Añadir nuevo"
-- `add_new_item`: "Añadir nuevo Libro"
-- `edit_item`: "Editar Libro"
-- `view_item`: "Ver Libro"
-- Y muchas más...
-
-**Idioma:** Todas las etiquetas se generan en español con dominio de texto `'glory'`.
-
-## Configuración automática de argumentos
-
-### Valores por defecto inteligentes
-```php
-$argumentos['public'] = $argumentos['public'] ?? true;
-$argumentos['supports'] = $argumentos['supports'] ?? ['title', 'editor', 'thumbnail'];
-```
-
-### Soporte automático para custom fields
-Si se definen `$metaDefault`, automáticamente añade `'custom-fields'` a `supports`:
-
-```php
-if (!empty($metaDefault) && !in_array('custom-fields', $argumentos['supports'], true)) {
-    $argumentos['supports'][] = 'custom-fields';
-}
-```
-
-## Metadatos por defecto
-
-### Funcionamiento
-- Se asignan automáticamente cuando se crea una nueva entrada del CPT
-- Solo para nuevas entradas (no actualizaciones)
-- Usa `add_post_meta()` con `$unique = true` para evitar duplicados
-
-### Hook utilizado
-```php
-add_action('save_post_' . $tipoEntradaSlug, [self::class, 'agregarMetaDefault'], 10, 3);
-```
-
-### Protección contra loops
-```php
-if ((defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) ||
-    wp_is_post_revision($idEntrada) ||
-    $esActualizacion) {
-    return;
-}
-```
-
-## Ejemplos prácticos
-
-### CPT básico con etiquetas automáticas
 ```php
 use Glory\Manager\PostTypeManager;
 
 PostTypeManager::define(
-    'libro',
-    [
-        'public' => true,
-        'has_archive' => true,
-        'menu_icon' => 'dashicons-book',
-        'show_in_rest' => true,
-        'supports' => ['title', 'editor', 'thumbnail', 'excerpt'],
-    ],
-    'Libro',  // Singular
-    'Libros'  // Plural
+  'libro',
+  [
+    'public' => true,
+    'has_archive' => true,
+    'menu_icon' => 'dashicons-book',
+    'show_in_rest' => true,
+  ],
+  'Libro',
+  'Libros'
 );
 ```
 
-### CPT con metadatos por defecto
+## Metadatos por defecto
+- Enganche automtico al `save_post_{slug}` para entradas nuevas.
+- Usa `add_post_meta($unique=true)`; no sobrescribe si ya existe.
+
 ```php
 PostTypeManager::define(
-    'evento',
-    [
-        'public' => true,
-        'supports' => ['title', 'editor'],
-        'menu_icon' => 'dashicons-calendar',
-    ],
-    'Evento',
-    'Eventos',
-    [
-        'fecha_inicio' => date('Y-m-d'),
-        'hora_inicio' => '09:00',
-        'capacidad_maxima' => 50,
-        'estado' => 'activo'
-    ]
+  'evento',
+  [ 'public' => true ],
+  'Evento',
+  'Eventos',
+  [ 'estado' => 'activo', 'capacidad_maxima' => 50 ]
 );
 ```
 
-### CPT privado sin archivo
+## Integracin con DefaultContentManager
+
 ```php
-PostTypeManager::define(
-    'documento_interno',
-    [
-        'public' => false,
-        'show_ui' => true,
-        'supports' => ['title', 'editor'],
-        'menu_icon' => 'dashicons-media-document',
-    ],
-    'Documento Interno',
-    'Documentos Internos'
-);
-```
+use Glory\Manager\DefaultContentManager;
 
-## Inicialización y registro
-
-### En archivo de configuración
-```php
-// App/Config/postType.php
-
-// Registrar hooks
-PostTypeManager::register();
-
-// Definir CPTs
-PostTypeManager::define('libro', [...], 'Libro', 'Libros');
-PostTypeManager::define('evento', [...], 'Evento', 'Eventos');
-```
-
-### Después de cambios
-```php
-// Después de añadir/modificar CPTs
-PostTypeManager::limpiarReglasReescritura();
-```
-
-## Integración con otros managers
-
-### DefaultContentManager
-```php
-// Definir contenido por defecto para el CPT
 DefaultContentManager::define('libro', [
-    [
-        'post_title' => 'El Principito',
-        'post_content' => 'Contenido del libro...',
-        'meta_input' => [
-            'autor' => 'Antoine de Saint-Exupéry',
-            'anio' => '1943'
-        ]
-    ]
+  [
+    'slugDefault' => 'el-principito',
+    'titulo' => 'El Principito',
+    'contenido' => '...'
+  ]
 ]);
 ```
 
-### OpcionManager
-```php
-// Crear opciones relacionadas con el CPT
-OpcionManager::register('libros_por_pagina', [
-    'valorDefault' => 10,
-    'tipo' => 'number',
-    'etiqueta' => 'Libros por página',
-    'seccion' => 'libros'
-]);
-```
+## Inicializacin desde el tema
+- Define tus CPTs en `App/Content/postType.php`.
+- El core registra los managers si las features estn activas en `App/Config/control.php`.
+- Si cambias slugs/reescrituras, ejecuta `PostTypeManager::limpiarReglasReescritura()` una vez (por ejemplo, en activacin del tema/plugin).
 
-## Debugging y logging
-
-### Errores registrados
-- Slugs inválidos
-- Tipos ya definidos
-- Fallos en `register_post_type()`
-- Etiquetas no generadas automáticamente
-
-### Información de debug
-```php
-// Ver definiciones registradas
-$definiciones = PostTypeManager::getDefined();
-// Retorna: ['slug' => ['argumentos' => [...], 'singular' => '...', ...]]
-```
-
-## Buenas prácticas
-
-### Nombres de CPTs
-- Usar slugs descriptivos pero concisos
-- Mantener consistencia en nomenclatura
-- Documentar el propósito de cada CPT
-
-### Etiquetas
-- Proporcionar siempre singular y plural para generación automática
-- Revisar etiquetas generadas en el admin
-- Personalizar si las automáticas no son apropiadas
-
-### Metadatos por defecto
-- Solo valores realmente necesarios para nuevas entradas
-- Considerar tipos de datos apropiados
-- Documentar qué campos son obligatorios
-
-### Performance
-- Definir todos los CPTs en un solo archivo de configuración
-- Llamar a `register()` una sola vez
-- Limpiar rewrite rules solo cuando sea necesario
-
-## Errores comunes
-
-### Slug ya registrado
-```php
-// Error: El tipo de entrada 'post' ya existe
-PostTypeManager::define('post', [...]); // ❌ Reservado
-```
-
-### Sin etiquetas
-```php
-// Advertencia: Se requieren tanto singular como plural
-PostTypeManager::define('libro', [...], 'Libro'); // ⚠️ Solo singular
-```
-
-### Supports no array
-```php
-// Error: supports debe ser array
-'supports' => 'title,editor' // ❌ String en lugar de array
-```
-
-### Meta duplicados
-```php
-// Los meta default no se sobrescriben si ya existen
-// Usar update_post_meta() si necesitas forzar actualización
-```
-
-## Casos de uso avanzados
-
-### CPT jerárquico
-```php
-PostTypeManager::define(
-    'categoria_producto',
-    [
-        'public' => true,
-        'hierarchical' => true,
-        'supports' => ['title', 'editor', 'page-attributes'],
-    ],
-    'Categoría de Producto',
-    'Categorías de Productos'
-);
-```
-
-### CPT con taxonomías
-```php
-// Definir taxonomía primero, luego CPT
-register_taxonomy('genero_libro', [], [...]);
-
-PostTypeManager::define('libro', [
-    'public' => true,
-    'taxonomies' => ['genero_libro', 'post_tag'],
-], 'Libro', 'Libros');
-```
-
-### CPT con capacidades personalizadas
-```php
-PostTypeManager::define('documento_confidencial', [
-    'public' => true,
-    'capabilities' => [
-        'edit_post' => 'edit_documento_confidencial',
-        'read_post' => 'read_documento_confidencial',
-        'delete_post' => 'delete_documento_confidencial',
-    ],
-], 'Documento Confidencial', 'Documentos Confidenciales');
-```
-
-
-
-
-
-
+## Errores frecuentes
+- Slug invlido o reservado.
+- `supports` no es array.
+- Esperar que `$metaDefault` actualice entradas existentes (solo aplica en nuevas).

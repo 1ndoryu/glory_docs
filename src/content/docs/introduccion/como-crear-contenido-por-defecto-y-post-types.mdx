@@ -44,10 +44,87 @@ DefaultContentManager::define('libro', [
 ]);
 ```
 
+## Imágenes: alias, aleatorias y opciones avanzadas
+
+### Referenciar imágenes por alias
+- Formato: `alias::archivo.ext`
+- Aliases pre-registrados: `glory`, `elements`, `tema`, `colors`, `logos`.
+- Puedes omitir la extensión si existe un archivo que coincida por nombre; el sistema intentará resolverla.
+
+Ejemplo:
+```php
+'imagenDestacadaAsset' => 'colors::default01.jpg',
+'galeriaAssets' => ['colors::default02.jpg', 'colors::default03.jpg']
+```
+
+### Imagen destacada aleatoria por carpeta
+- Usa `random::alias` para que el sistema elija una imagen aleatoria cuyo nombre empiece por `default*` dentro del alias.
+- Útil para sembrar contenido demo sin repetir.
+
+Ejemplo:
+```php
+'imagenDestacadaAsset' => 'random::colors'
+```
+Internamente se traduce a `colors::defaultXX.ext` (archivo existente), si hay coincidencias.
+
+### Galería automática basada en la destacada
+Si no defines `galeriaAssets` pero sí `imagenDestacadaAsset`, se intentarán `basename1.jpg`, `basename2.jpg`, `basename3.jpg` en el mismo alias para poblar una galería sencilla.
+
+Ejemplo: con `imagenDestacadaAsset => 'colors::default01.jpg'` buscará `colors::default011.jpg`, `...12.jpg`, `...13.jpg`.
+
+### Selección aleatoria avanzada (desde código)
+Disponible en `Glory\Utility\AssetsUtility`:
+- `getRandomDefaultImageName(alias)`: un nombre aleatorio que comienza por `default*`.
+- `pickRandomImages(alias, cantidad, minBytes=0)`: N aleatorias; filtrado opcional por tamaño mínimo en bytes.
+- `getRandomUniqueImagesFromAlias(alias, cantidad)`: N únicas al azar.
+- `listImagesForAlias(alias)`: lista ordenada determinística.
+- `listImagesForAliasWithMinSize(alias, minBytes)`: lista filtrada por tamaño.
+
+Ejemplo práctico (definición con destacada aleatoria y galería única):
+```php
+use Glory\Manager\DefaultContentManager;
+use Glory\Utility\AssetsUtility;
+
+$alias = 'colors';
+$galeria = AssetsUtility::pickRandomImages($alias, 3, 150_000); // >=150KB
+
+DefaultContentManager::define('libro', [
+  [
+    'slugDefault' => 'muestra-1',
+    'titulo' => 'Muestra 1',
+    'contenido' => 'Contenido...',
+    'imagenDestacadaAsset' => 'random::' . $alias,
+    'galeriaAssets' => array_map(fn($n) => $alias . '::' . $n, $galeria),
+  ],
+]);
+```
+
+### Registrar aliases de imágenes del tema
+Puedes añadir tus propias carpetas del tema como alias:
+```php
+use Glory\Utility\AssetsUtility;
+
+AssetsUtility::registerAssetPath('productos', 'App/Assets/images/productos');
+```
+Luego referencia con `productos::mi-foto.jpg`.
+
+### Integración con la Librería de Medios
+- Al sincronizar, si una imagen referenciada no existe como adjunto, el sistema intentará importarla y vincularla (siempre en admin; en frontend solo en modo desarrollo).
+- Mantiene meta `_glory_asset_source` y `_glory_asset_requested` para trazabilidad.
+- Si el archivo físico falta, intenta reparar/reattach automáticamente.
+
+### Usar imágenes dentro del contenido HTML
+Si generas contenido programático, puedes obtener URLs fiables:
+```php
+use Glory\Utility\AssetsUtility;
+$url = AssetsUtility::imagenUrl('colors::default01.jpg');
+$contenido = '<p>Texto</p><img src="' . $url . '" alt="demo">';
+```
+
 ## Detalles clave
 - `slugDefault` identifica únicamente cada entrada gestionada.
 - `metaEntrada` puede incluir taxonomías del CPT (se asignan como términos).
-- Assets: usa rutas `alias::archivo.ext` del sistema de assets del tema.
+- Los alias apuntan a carpetas del tema; mantén las imágenes en `App/Assets/images/...` para personalizaciones del proyecto.
 
 ## Modo Dev/Prod
 - Dev: usa `smart`; evita `eliminar=true` hasta estar seguro.

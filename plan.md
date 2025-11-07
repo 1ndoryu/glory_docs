@@ -19,6 +19,7 @@ IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA 
 - [x] `introduccion/como-crear-componentes.mdx` 
 - [x] `introduccion/resumen.mdx` 
 - [x] `introduccion/como-crear-contenido-por-defecto-y-post-types.mdx`
+- [x] `introduccion/como-crear-plantillas-content-render.mdx`
 
 ### Core Framework
 - [ ] `core/glory-features.mdx` 

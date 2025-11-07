@@ -1,15 +1,15 @@
 ---
 title: PostTypeManager
-description: "Definir y registrar CPTs (Custom Post Types) desde cdigo"
+description: "Definir y registrar CPTs (Custom Post Types) desde código"
 ---
 
-`PostTypeManager` ofrece una API declarativa para crear CPTs con validacin, etiquetas automticas en espaol y metadatos por defecto.
+`PostTypeManager` ofrece una API declarativa para crear CPTs con validación, etiquetas automáticas en español y metadatos por defecto.
 
 ## Resumen
-- **Para qu sirve**: definir CPTs versionables con defaults sensatos.
-- **Dnde va**: en el tema (`/App`), por ejemplo `App/Content/postType.php`.
+- **Para qué sirve**: definir CPTs versionables con defaults sensatos.
+- **Dónde va**: en el tema (`/App`), por ejemplo `App/Content/postType.php`.
 
-## API bsica
+## API básica
 
 ```php
 <?php
@@ -34,20 +34,20 @@ PostTypeManager::limpiarReglasReescritura(): void;
 ```
 
 ### Reglas para `$slug`
-- Solo `[a-z0-9_]`, longitud  20.
+- Solo `[a-z0-9_]`, longitud ≤ 20.
 - No puede ser reservado: `post`, `page`, `attachment`, `revision`, `nav_menu_item`, `custom_css`, `customize_changeset`, `oembed_cache`, `user_request`, `wp_block`, `action`, `author`, `order`, `theme`.
 
 ### `$args` (extracto)
 - Valores por defecto inteligentes: `public: true`, `supports: ['title','editor','thumbnail']` si no defines `supports` y proporcionas `singular/plural`.
-- Si pasas `$metaDefault`, se aade `custom-fields` a `supports` si hiciera falta.
+- Si pasas `$metaDefault`, se añade `custom-fields` a `supports` si hiciera falta.
 
 ### `$singular`/`$plural`
-- Si ambos existen y no defines `labels`, se generan etiquetas completas en espaol (dominio `glory`).
+- Si ambos existen y no defines `labels`, se generan etiquetas completas en español (dominio `glory`).
 
 ### `$metaDefault`
-- Metadatos que se aaden automticamente al crear una nueva entrada del CPT (no en updates).
+- Metadatos que se añaden automáticamente al crear una nueva entrada del CPT (no en updates).
 
-## Ejemplo mnimo
+## Ejemplo mínimo
 
 ```php
 use Glory\Manager\PostTypeManager;
@@ -66,7 +66,7 @@ PostTypeManager::define(
 ```
 
 ## Metadatos por defecto
-- Enganche automtico al `save_post_{slug}` para entradas nuevas.
+- Enganche automático al `save_post_{slug}` para entradas nuevas.
 - Usa `add_post_meta($unique=true)`; no sobrescribe si ya existe.
 
 ```php
@@ -79,7 +79,7 @@ PostTypeManager::define(
 );
 ```
 
-## Integracin con DefaultContentManager
+## Integración con DefaultContentManager
 
 ```php
 use Glory\Manager\DefaultContentManager;
@@ -93,12 +93,12 @@ DefaultContentManager::define('libro', [
 ]);
 ```
 
-## Inicializacin desde el tema
+## Inicialización desde el tema
 - Define tus CPTs en `App/Content/postType.php`.
-- El core registra los managers si las features estn activas en `App/Config/control.php`.
-- Si cambias slugs/reescrituras, ejecuta `PostTypeManager::limpiarReglasReescritura()` una vez (por ejemplo, en activacin del tema/plugin).
+- El core registra los managers si las features están activas en `App/Config/control.php`.
+- Si cambias slugs/reescrituras, ejecuta `PostTypeManager::limpiarReglasReescritura()` una vez (por ejemplo, en activación del tema/plugin).
 
 ## Errores frecuentes
-- Slug invlido o reservado.
+- Slug inválido o reservado.
 - `supports` no es array.
 - Esperar que `$metaDefault` actualice entradas existentes (solo aplica en nuevas).

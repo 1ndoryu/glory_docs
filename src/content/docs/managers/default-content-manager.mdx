@@ -1,19 +1,19 @@
 ---
 title: DefaultContentManager
-description: "Define y sincroniza contenido por defecto para CPTs desde cdigo"
+description: "Define y sincroniza contenido por defecto para CPTs desde código"
 ---
 
-`DefaultContentManager` es una fachada agnstica que permite declarar contenido por defecto (posts/pginas) desde cdigo y sincronizarlo con la base de datos. La lgica reside en `DefaultContentRegistry` (almacenamiento en memoria) y `DefaultContentSynchronizer` (sincronizacin real).
+`DefaultContentManager` es una fachada agnóstica que permite declarar contenido por defecto (posts/páginas) desde código y sincronizarlo con la base de datos. La lógica reside en `DefaultContentRegistry` (almacenamiento en memoria) y `DefaultContentSynchronizer` (sincronización real).
 
 ## Resumen
-- **Para qu sirve**: asegurar que cierto contenido exista y se mantenga segn definiciones versionadas.
-- **Dnde va**: en el tema (`/App`), por ejemplo `App/Content/defaultContent.php`. Glory sigue siendo agnstico.
+- **Para qué sirve**: asegurar que cierto contenido exista y se mantenga según definiciones versionadas.
+- **Dónde va**: en el tema (`/App`), por ejemplo `App/Content/defaultContent.php`. Glory sigue siendo agnóstico.
 
-## Cundo usarlo
-- Semillas de contenido inicial (home, polticas, landing demo).
+## Cuándo usarlo
+- Semillas de contenido inicial (home, políticas, landing demo).
 - Contenido de sistema que no debe faltar.
 
-## API bsica
+## API básica
 
 ```php
 <?php
@@ -28,21 +28,21 @@ use Glory\Manager\DefaultContentManager;
  */
 DefaultContentManager::define(string $tipoPost, array $posts, string $modo = 'smart', bool $eliminar = false): void;
 
-/** Registra hooks ('init' y deteccin de ediciones). */
+/** Registra hooks ('init' y detección de ediciones). */
 DefaultContentManager::register(): void;
 ```
 
-### Estructura de cada definicin (array $posts)
-- **slugDefault**: string requerido y nico por CPT.
-- **titulo**: ttulo del post.
+### Estructura de cada definición (array $posts)
+- **slugDefault**: string requerido y único por CPT.
+- **titulo**: título del post.
 - **contenido**: HTML seguro.
 - **extracto**: string (opcional).
 - **estado**: 'publish' (def), 'draft', etc.
-- **metaEntrada**: array asociativo de metadatos. Si una clave coincide con una taxonoma del CPT, se asigna como trmino.
+- **metaEntrada**: array asociativo de metadatos. Si una clave coincide con una taxonomía del CPT, se asigna como término.
 - **imagenDestacadaAsset**: referencia `alias::archivo.ext` o `random::alias`.
 - **galeriaAssets**: array de referencias de assets (opcional).
 
-## Ejemplo mnimo (tema)
+## Ejemplo mínimo (tema)
 
 ```php
 // App/Content/defaultContent.php
@@ -52,15 +52,15 @@ DefaultContentManager::define('libro', [
     [
         'slugDefault' => 'el-principito',
         'titulo'      => 'El Principito',
-        'contenido'   => 'Una novela potica...',
+        'contenido'   => 'Una novela poética...',
         'imagenDestacadaAsset' => 'elements::libros/principito.jpeg',
     ],
 ]);
 ```
 
-## Parmetros y modos
+## Parámetros y modos
 - **modo**: 'none' (no actualiza), 'force' (sobrescribe siempre), 'smart' (actualiza solo si no fue editado manualmente y hay cambios).
-- **eliminar**: si `true`, borra entradas gestionadas cuyo `slugDefault` ya no est en cdigo.
+- **eliminar**: si `true`, borra entradas gestionadas cuyo `slugDefault` ya no está en código.
 
 ## API avanzada
 
@@ -69,20 +69,20 @@ DefaultContentManager::define('libro', [
 DefaultContentManager::buildSamplePosts(array $titles, array $paragraphs, array $options = []): array;
 ```
 
-### Options de buildSamplePosts
+### Opciones de buildSamplePosts
 - **aliasImagenes**: alias de AssetsUtility (def: 'colors').
-- **minBytes**: filtro de tamao mnimo (bytes).
+- **minBytes**: filtro de tamaño mínimo (bytes).
 
-## Modo Dev/Local vs Produccin
-- La sincronizacin no corre automticamente en front. Se ejecuta desde el panel (SyncManager) o CLI.
+## Modo Dev/Local vs Producción
+- La sincronización no corre automáticamente en front. Se ejecuta desde el panel (SyncManager) o CLI.
 - Activa `defaultContentManager` y `syncManager` en `App/Config/control.php`.
-- Recomendacin: usar `smart` en prod; `force` solo en despliegues controlados. Evitar `eliminar` en prod salvo certeza.
+- Recomendación: usar `smart` en prod; `force` solo en despliegues controlados. Evitar `eliminar` en prod salvo certeza.
 
 ## Errores frecuentes
 - Falta `slugDefault` o CPT no existe al sincronizar.
 - Assets inexistentes en `imagenDestacadaAsset`/`galeriaAssets`.
-- Taxonomas declaradas en `metaEntrada` que no existen para el CPT.
+- Taxonomías declaradas en `metaEntrada` que no existen para el CPT.
 
-## Integracin con el tema
+## Integración con el tema
 - Define el contenido en `App/Content/defaultContent.php` (tema).
-- La registracin de hooks la realiza el core si la feature `defaultContentManager` est activa.
+- El registro de hooks lo realiza el core si la feature `defaultContentManager` está activa.

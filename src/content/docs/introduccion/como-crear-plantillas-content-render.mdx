@@ -1,0 +1,157 @@
+---
+title: Cómo crear plantillas para Glory Content Render
+description: Guía agnóstica y, al final, integración detallada con Avada
+---
+
+## Resumen
+Crea plantillas reutilizables para listar contenidos con `ContentRender`. Primero verás la API agnóstica (sin builder), y al final cómo integrarlas y controlarlas desde Avada.
+
+## Cuándo usarlo
+- Listados reutilizables de posts/CPT con una presentación consistente.
+- Necesidad de controlar layout/tipografía/imagen por instancia (sin CSS global).
+
+## API básica (agnóstica)
+
+### Registrar una plantilla
+```php
+use Glory\Utility\TemplateRegistry;
+
+TemplateRegistry::register(
+  'mi_plantilla',           // ID único
+  'Mi Plantilla',           // Etiqueta
+  function(\WP_Post $post, string $itemClass) { // Firma recomendada
+    $img = has_post_thumbnail($post) ? get_the_post_thumbnail_url($post, 'medium') : '';
+    ?>
+    <div class="<?php echo esc_attr($itemClass); ?>">
+      <a href="<?php echo esc_url(get_permalink($post)); ?>">
+        <div class="glory-cr__stack">
+          <h3 class="glory-cr__title"><?php echo esc_html(get_the_title($post)); ?></h3>
+          <?php if ($img): ?>
+            <img class="glory-cr__image" src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr(get_the_title($post)); ?>">
+          <?php endif; ?>
+        </div>
+      </a>
+      <div class="glory-cr__content"><?php echo esc_html(get_the_excerpt($post)); ?></div>
+    </div>
+    <?php
+  },
+  ['post'],                 // appliesTo (vacío = todos)
+  [ 'toggle' => true ]      // supports (flags u opciones por plantilla)
+);
+```
+
+- `itemClass`: combínala con tus clases propias si necesitas estilos de plantilla. Ej.: `trim($itemClass . ' mi-plantilla-item')`.
+- Clases clave para estilos por instancia: `glory-cr__title`, `glory-cr__image`, `glory-cr__stack`, `glory-cr__content`.
+
+### Usar la plantilla (agnóstico)
+```php
+use Glory\Components\ContentRender;
+
+ContentRender::print('post', [
+  'publicacionesPorPagina' => 6,
+  'claseContenedor' => 'glory-content-list',
+  'claseItem' => 'glory-content-item',
+  'plantillaCallback' => function(\WP_Post $post, string $itemClass){
+    // O usa TemplateRegistry::get('mi_plantilla')
+    mi_plantilla($post, $itemClass);
+  },
+  'argumentosConsulta' => [ 'orderby' => 'date', 'order' => 'DESC' ],
+]);
+```
+
+## Reglas de clases y layout por instancia
+- `ContentRender` añade una clase única por instancia: `glory-cr-XXXX` al contenedor y `glory-cr-XXXX__item` a cada ítem.
+- El CSS inline por instancia se aplica contra esas clases, por lo que no colisiona entre instancias.
+- Para layouts internos (grid/flex dentro del item), usa un contenedor `.glory-cr__internal` si vas a exponer controles “internos” por instancia.
+
+## Buenas prácticas de plantillas
+- Siempre envolver título e imagen en `.glory-cr__stack` para que `title_position` funcione.
+- Usar `glory-cr__title` y `glory-cr__image` exactos para que el CSS por instancia afecte correctamente.
+- No fijar `width/height` inline salvo que sea imprescindible; el CSS por instancia controla dimensiones responsive.
+
+---
+
+## Integración con Avada (detallada)
+La integración provee el elemento/shortcode `glory_content_render` con controles por instancia, inyecta CSS y JS aislados, y respeta las plantillas registradas.
+
+### Parámetros principales del elemento
+- Contenido: `post_type`, `template_id`, `publicaciones_por_pagina`, `paginacion`, `orden` (`fecha|random|meta` + `meta_key`, `meta_order`).
+- Interacción: `interaccion_modo` (`normal|carousel|toggle`), `carousel_speed`, `toggle_separator`, `toggle_separator_color`, `toggle_auto_open`, `toggle_default_state`.
+- Layout contenedor: `display_mode` (`flex|grid|block`), `flex_direction`, `flex_wrap`, `gap`, `align_items`, `justify_content`, `grid_min_width`, `grid_auto_fit` (`auto-fit|auto-fill`), `grid_columns_mode` (`fixed|auto`) con columnas mín./máx. responsive.
+- Imagen: `img_show`, `img_aspect_ratio`, `img_object_fit`, `img_size`, anchos/altos (desktop/tablet/móvil), `img_optimize`, `img_quality`.
+- Título: `title_show`, tipografía (familia/variant/size/line/letter), `title_text_transform`, `title_min/width/max`, `title_show_on_hover`, `title_position` (`top|bottom`), `title_color` responsive.
+- Contenido interno: `internal_*` (display, flex/grid, tipografía), y ancho de `.glory-cr__content` (`content_*` y `servicio_contenido_*`).
+- Enlace y UX: `link_enabled`, `enable_horizontal_drag` (arrastre horizontal en modo normal).
+
+Breakpoints usados por el CSS de instancia:
+- Tablet: `@media (min-width: 768px) and (max-width: 979px)`
+- Móvil: `@media (max-width: 767px)`
+
+### Flujo de clases por instancia
+- Se genera `glory-cr-XXXXXXXX` (hash) y se agrega a `clase_contenedor`; a cada ítem, `glory-cr-XXXXXXXX__item`.
+- Tu plantilla recibe `itemClass` con esa clase ya incluida; combina la tuya si hace falta.
+
+### Usar tu plantilla con Avada
+- Asegúrate de registrar la plantilla vía `TemplateRegistry::register(...)`.
+- Selecciónala en el control `Content Template` (`template_id`).
+- Si tu plantilla soporta “toggle”, declara `'supports' => ['toggle' => true]`; si no, el elemento fuerza `normal`.
+
+### Opciones dinámicas específicas de plantilla
+Puedes inyectar controles propios cuando se selecciona tu plantilla añadiendo un array `options` en `supports`:
+```php
+TemplateRegistry::register(
+  'plantilla_portafolio',
+  'Plantilla de Portafolio',
+  function(\WP_Post $post, string $itemClass){ /* ... */ },
+  ['portfolio'],
+  [
+    'toggle' => true,
+    'options' => [
+      [
+        'type' => 'radio_button_set',
+        'heading' => __('Mostrar categorías', 'glory-ab'),
+        'param_name' => 'portafolio_mostrar_categorias',
+        'default' => 'no',
+        'value' => [ 'yes' => __('Sí','glory-ab'), 'no' => __('No','glory-ab') ],
+        'group' => __('General', 'glory-ab'),
+      ],
+    ],
+  ]
+);
+```
+- Estos controles se mostrarán sólo cuando `template_id` sea tu plantilla.
+- En ejecución, la integración los propaga como opciones actuales accesibles en la plantilla con:
+```php
+$mostrar = (bool) \Glory\Components\ContentRender::getCurrentOption('portafolioMostrarCategorias', false);
+```
+- Si necesitas marcar un flag por clase en el ítem, puedes concatenarlo en `claseItem` desde la integración (y detectarlo en `$itemClass`).
+
+### Ejemplo mínimo de plantilla compatible con Avada
+```php
+<?php
+function plantillaEjemplo(\WP_Post $post, string $itemClass): void {
+  $img = has_post_thumbnail($post) ? get_the_post_thumbnail_url($post, 'medium') : '';
+  $item = trim($itemClass . ' mi-plantilla-item');
+?>
+  <div class="<?php echo esc_attr($item); ?>">
+    <a href="<?php echo esc_url(get_permalink($post)); ?>">
+      <div class="glory-cr__stack">
+        <h3 class="glory-cr__title"><?php echo esc_html(get_the_title($post)); ?></h3>
+        <?php if ($img): ?>
+          <img class="glory-cr__image" src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr(get_the_title($post)); ?>">
+        <?php endif; ?>
+      </div>
+    </a>
+    <div class="glory-cr__content"><?php echo wp_kses_post(get_the_excerpt($post)); ?></div>
+  </div>
+<?php }
+```
+
+## Notas/edge cases
+- Si activas “Mostrar título sólo en hover”, cualquier elemento con clase `glory-cr__title` se oculta hasta hover; usa otra clase para metadatos.
+- En `carousel`, el contenedor usa `flex` sin wrap; cada ítem tiene `flex: 0 0 auto`.
+- Con `toggle`, si tu plantilla no lo soporta, el elemento volverá a `normal`.
+
+## Recomendaciones
+- Define tus plantillas en el tema y mantenlas agnósticas. Usa `TemplateRegistry` y las clases `glory-cr__*` para máxima compatibilidad.
+- Si expones layout interno, usa `.glory-cr__internal` y opciones `internal_*` para evitar CSS global.

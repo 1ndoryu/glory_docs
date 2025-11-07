@@ -20,7 +20,8 @@ export default defineConfig({
                         'introduccion/como-crear-paginas',
                         'introduccion/como-usar-componentes',
                         'introduccion/como-crear-componentes',
-                        'introduccion/como-crear-contenido-por-defecto-y-post-types'
+                        'introduccion/como-crear-contenido-por-defecto-y-post-types',
+                        'introduccion/como-crear-plantillas-content-render'
                     ]
                 },
                 {

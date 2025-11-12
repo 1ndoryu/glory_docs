@@ -3,39 +3,187 @@ title: OpcionManager
 description: Registro, resolución y sincronización de opciones del tema con OpcionManager
 ---
 
-## ¿Qué es OpcionManager?
+## Resumen
 
-OpcionManager gestiona opciones del tema con validación, sanitización y UI automática. Permite registrar opciones desde código y acceder a sus valores.
+Gestiona el ciclo de vida completo de las opciones del tema: registro desde código, almacenamiento en base de datos, sincronización automática y obtención de valores con prioridades según modo dev/producción. Actúa como Fachada (Facade) para `OpcionRegistry` (definiciones) y `OpcionRepository` (persistencia).
 
-## Uso básico
+## Cuándo usarlo
 
-**Uso mínimo** - Registrar y usar opción:
+- Cuando necesites opciones configurables desde el panel de administración del tema.
+- Cuando quieras vincular opciones a features (`GloryFeatures`) para control desde código.
+- Cuando requieras sincronización automática entre valores por defecto del código y valores guardados en el panel.
+- No lo uses para opciones transitorias o temporales: usa `set_transient`/`get_transient` de WordPress.
+
+## API básica
+
+```php
+// register(key, configuracion)
+OpcionManager::register(
+    'mi_opcion',              // key: identificador único (camelCase o snake_case)
+    [
+        'valorDefault'        => '',                    // valor por defecto si no existe en BD
+        'tipo'                => 'text',                // 'text'|'textarea'|'select'|'checkbox'|'imagen'|'richText'
+        'etiqueta'            => 'Mi Opción',           // etiqueta para el panel (auto-generada si se omite)
+        'descripcion'         => '',                    // descripción/ayuda en el panel
+        'seccion'             => 'general',             // sección del panel (agrupa opciones)
+        'subSeccion'          => 'general',             // subsección dentro de la sección
+        'etiquetaSeccion'     => 'General',            // etiqueta de la sección (auto-generada si se omite)
+        'comportamientoEscape' => true,                 // aplicar esc_html() automáticamente (true por defecto en 'text')
+        'forzarDefaultAlRegistrar' => false,           // forzar valor por defecto al registrar (ignora BD)
+        'hideInProd'          => false,                // ocultar en panel cuando no es modo dev
+        'lockInProd'          => false,                // forzar valor seguro en producción (pensado para toggles críticos)
+        'featureKey'           => null,                 // clave de feature vinculada (GloryFeatures)
+        'opciones'            => [],                   // array de opciones para tipo 'select' (key => label)
+    ]
+);
+
+// get(key, valorPorDefecto)
+$valor = OpcionManager::get(
+    'mi_opcion',              // key: identificador de la opción
+    null                      // valorPorDefecto: valor alternativo si no existe (opcional)
+);
+```
+
+Parámetros complejos:
+
+- **featureKey**: vincula la opción a una feature de `GloryFeatures`. En modo DEV, si `GloryFeatures::isEnabled(featureKey)` retorna `true`/`false`, ese valor tiene máxima prioridad. En producción, el valor del código actúa como default y el panel tiene prioridad.
+- **lockInProd**: cuando es `true` y no estamos en modo dev, `get()` retorna siempre `true` (valor seguro) ignorando BD y panel. Útil para toggles críticos que deben estar activos en producción.
+- **hideInProd**: oculta la opción en el panel cuando no es modo dev. Útil para opciones de desarrollo que no deben aparecer en producción.
+- **forzarDefaultAlRegistrar**: si es `true`, al sincronizar sobrescribe el valor en BD con el `valorDefault` si difiere. Útil para opciones que deben resetearse cuando cambia el código.
+
+## Ejemplo mínimo
+
 ```php
 use Glory\Manager\OpcionManager;
 
-// Registrar opción
+// Registrar opción simple
 OpcionManager::register('color_primario', [
     'valorDefault' => '#0073aa',
     'tipo' => 'text',
-    'etiqueta' => 'Color Primario'
+    'etiqueta' => 'Color Primario',
+    'seccion' => 'apariencia',
 ]);
 
 // Obtener valor
 $color = OpcionManager::get('color_primario');
+echo esc_attr($color); // Ya viene escapado si comportamientoEscape es true
 ```
 
-**Uso avanzado** - Opción ligada a feature:
+## Ejemplo avanzado
+
 ```php
-OpcionManager::register('mi_feature_activada', [
+use Glory\Manager\OpcionManager;
+
+// Opción vinculada a feature con control de producción
+OpcionManager::register('modo_avanzado', [
     'valorDefault' => false,
     'tipo' => 'checkbox',
-    'etiqueta' => 'Activar Mi Feature',
-    'featureKey' => 'miFeature',
-    'seccion' => 'avanzado'
+    'etiqueta' => 'Modo Avanzado',
+    'descripcion' => 'Activa funcionalidades experimentales',
+    'seccion' => 'avanzado',
+    'etiquetaSeccion' => 'Configuración Avanzada',
+    'featureKey' => 'modoAvanzado',  // Vinculado a GloryFeatures
+    'hideInProd' => true,            // Solo visible en dev
 ]);
+
+// Opción select con opciones predefinidas
+OpcionManager::register('logo_mode', [
+    'valorDefault' => 'image',
+    'tipo' => 'select',
+    'etiqueta' => 'Modo de Logo',
+    'opciones' => [
+        'image' => 'Imagen',
+        'text' => 'Texto',
+        'none' => 'Sin Logo',
+    ],
+    'seccion' => 'header',
+    'subSeccion' => 'logo_configuration',
+]);
+
+// Obtener valores
+$modoAvanzado = OpcionManager::get('modo_avanzado'); // bool
+$logoMode = OpcionManager::get('logo_mode');         // string
 ```
 
-¡OpcionManager simplifica la gestión de opciones en WordPress!
+Notas del ejemplo:
+- `featureKey` permite controlar la opción desde código con `GloryFeatures::enable('modoAvanzado')` o `disable()`.
+- En modo DEV, si `GloryFeatures::isEnabled('modoAvanzado')` retorna `true`/`false`, ese valor tiene prioridad sobre BD y panel.
+- En producción, el valor del código actúa como default y el panel tiene prioridad.
+- `hideInProd` oculta la opción en el panel cuando no es modo dev.
 
----
+## API avanzada
 
+```php
+// Métodos auxiliares por tipo (retornan tipos específicos)
+OpcionManager::texto('mi_opcion', 'default');        // string (escapado si corresponde)
+OpcionManager::richText('mi_opcion', 'default');     // string (wp_kses_post aplicado)
+OpcionManager::imagen('mi_opcion', 'default');       // string (URL de imagen)
+OpcionManager::menu('mi_opcion', []);                // array (validado como array)
+
+// Limpiar caché en memoria (útil tras guardar desde el panel)
+OpcionManager::clearCache();
+
+// Sincronización manual (normalmente automática en 'init')
+OpcionManager::sincronizarTodasLasOpciones();
+```
+
+Nota: La sincronización automática está desactivada por defecto (método `init()` comentado). Se puede activar manualmente llamando `sincronizarTodasLasOpciones()` o descomentando el hook en `init()`.
+
+## Recomendaciones de uso
+
+- Define todas las opciones del tema en `App/Config/opcionesTema.php` agrupadas por sección.
+- Usa `camelCase` o `snake_case` consistente para las claves (preferencia del proyecto: `camelCase`).
+- Agrupa opciones relacionadas con `seccion` y `subSeccion` para mejor organización en el panel.
+- Para opciones críticas que deben estar activas en producción, usa `lockInProd => true`.
+- Para opciones de desarrollo, usa `hideInProd => true` para ocultarlas en producción.
+- Vincula opciones a features con `featureKey` cuando necesites control desde código.
+- Usa los métodos auxiliares (`texto()`, `richText()`, etc.) para obtener tipos específicos sin casting manual.
+
+## Notas y límites
+
+- Las opciones se almacenan en la base de datos con el prefijo `glory_opcion_` (manejado internamente por `OpcionRepository`).
+- Si intentas obtener una opción no registrada, `get()` retorna `null` (o `valorPorDefecto` si lo proporcionas) y registra un warning en el log.
+- El escape automático (`comportamientoEscape`) solo aplica a strings. Para otros tipos, retorna el valor sin modificar.
+- La caché en memoria solo se usa en producción (no en modo dev) para mejorar rendimiento.
+- Los metadatos del panel (`_is_panel_value`, `_code_hash_on_save`) se usan para detectar valores guardados desde el panel y sincronizar con cambios en el código.
+
+## Modo Dev/Local
+
+- Activación: `App/Config/environment.php` lee `.env` (`DEV` y `LOCAL`). `DEV=true` activa el modo desarrollo. También se considera `WP_DEBUG` como indicador de modo dev.
+- Efectos en desarrollo (DEV o `WP_DEBUG` activos):
+  - No se usa caché en memoria: cada llamada a `get()` consulta BD y resuelve prioridades.
+  - Opciones con `featureKey`: si `GloryFeatures::isEnabled()` retorna `true`/`false`, ese valor tiene máxima prioridad (ignora BD y panel).
+  - Opciones con `hideInProd`: se muestran en el panel.
+  - Opciones con `lockInProd`: se respeta el valor de BD/panel (no se fuerza el valor seguro).
+- Efectos en producción (DEV=false):
+  - Se usa caché en memoria: valores resueltos se cachean para evitar consultas repetidas a BD.
+  - Opciones con `featureKey`: el valor del código (`GloryFeatures::isEnabled()`) actúa como default; el panel tiene prioridad.
+  - Opciones con `hideInProd`: se ocultan en el panel.
+  - Opciones con `lockInProd`: siempre retornan `true` (valor seguro) ignorando BD y panel.
+- Limpieza de caché: tras guardar desde el panel, llama `OpcionManager::clearCache()` para invalidar la caché.
+
+## Integración con el tema
+
+- Define todas las opciones del tema en `App/Config/opcionesTema.php` durante la inicialización del tema.
+- Usa `OpcionManager::get()` en tus templates y funciones del tema para obtener valores.
+- Para opciones vinculadas a features, controla su estado desde código con `GloryFeatures::enable()`/`disable()` en `App/Config/control.php`.
+- El panel de administración se genera automáticamente desde las definiciones registradas (requiere `AdminPageManager` y el panel de opciones activo).
+
+## Diferencias: opciones del tema vs opciones de Glory
+
+- Tema (`/App`):
+  - Se definen en `App/Config/opcionesTema.php` con `OpcionManager::register()`.
+  - Son específicas del proyecto/tema.
+  - Se usan en templates y funciones del tema con `OpcionManager::get()`.
+- Glory (`/Glory`):
+  - Las opciones del núcleo de Glory son agnósticas y se definen internamente si es necesario.
+  - No deben definirse desde el tema; si necesitas opciones del core, consulta la documentación específica.
+
+## Errores frecuentes (rápido)
+
+- Intentar obtener una opción no registrada (registra warning y retorna `null`).
+- Olvidar registrar la opción antes de usarla (debe estar en `App/Config/opcionesTema.php`).
+- Esperar que `lockInProd` funcione en modo dev (solo aplica en producción).
+- Confundir `featureKey` con la clave de la opción (son diferentes: `featureKey` es la clave de `GloryFeatures`).
+- No limpiar caché tras guardar desde el panel (usa `clearCache()` si los cambios no se reflejan).
+- Usar `get()` sin considerar el escape automático (ya viene escapado si `comportamientoEscape` es `true`).

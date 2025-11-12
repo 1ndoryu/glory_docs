@@ -1,52 +1,154 @@
 ---
 title: GloryAjax
-description: Utilidad AJAX centralizada del framework Glory (cliente y buenas prácticas)
+description: Utilidad AJAX centralizada del framework Glory para peticiones HTTP asíncronas
 ---
 
-## ¿Qué es `gloryAjax`?
+## Resumen
 
-`gloryAjax` es la utilidad recomendada para todas las llamadas AJAX en Glory. Maneja automáticamente JSON, archivos y errores.
+`gloryAjax` es la función JavaScript centralizada de Glory para realizar peticiones AJAX a WordPress. Maneja automáticamente JSON, archivos binarios (blobs), FormData y errores de red, proporcionando una API unificada para todas las comunicaciones cliente-servidor.
 
-## Uso básico
+## Cuándo usarlo
 
-**Uso mínimo** - Petición simple:
+Usa `gloryAjax` para:
+- Peticiones AJAX estándar que devuelven JSON
+- Envío de formularios con archivos (FormData)
+- Descarga de archivos binarios (CSV, PDF, imágenes)
+- Cualquier comunicación asíncrona con el servidor WordPress
+
+No uses `gloryAjax` para:
+- Peticiones a APIs externas (usa `fetch` directamente)
+- WebSockets o conexiones persistentes (usa `gloryRealtime`)
+
+## API básica
+
 ```javascript
-const resp = await gloryAjax('mi_accion', { id: 123 });
-if (resp.success) {
-    console.log(resp.data);
+// Firma principal
+async function gloryAjax(action = '', data = {})
+
+// Parámetros:
+// - action: string - Nombre de la acción WordPress AJAX (requerido)
+// - data: object|FormData - Datos a enviar. Si es FormData, se envía multipart/form-data; si es objeto, se envía como application/x-www-form-urlencoded
+
+// Retorna: Promise<object>
+// - success: boolean - Indica si la petición fue exitosa
+// - data: any - Datos de respuesta (si es JSON)
+// - blob: Blob - Archivo binario (si la respuesta es un archivo)
+// - filename: string - Nombre del archivo descargado (si aplica)
+// - message: string - Mensaje de error o información
+```
+
+## Funcionamiento interno
+
+`gloryAjax` detecta automáticamente el tipo de datos:
+- **FormData**: Envía como `multipart/form-data` y añade `action` al FormData
+- **Objeto plano**: Convierte a `URLSearchParams` y envía como `application/x-www-form-urlencoded`
+
+Para respuestas del servidor:
+- **JSON**: Parsea automáticamente y retorna `{ success, data }`
+- **Archivos binarios**: Detecta por `Content-Type` (application/octet-stream, text/csv, application/vnd.*) o `Content-Disposition: attachment`, retorna `{ success: true, blob, filename }`
+- **Errores HTTP**: Captura y retorna `{ success: false, message }`
+
+**Modo fb-edit**: Si la URL contiene `fb-edit=1` (modo edición de Fusion Builder), cancela automáticamente la petición para evitar conflictos.
+
+## Ejemplo mínimo
+
+```javascript
+// Petición simple con datos JSON
+const respuesta = await gloryAjax('mi_accion', { 
+    id: 123, 
+    nombre: 'Ejemplo' 
+});
+
+if (respuesta.success) {
+    console.log('Datos recibidos:', respuesta.data);
+} else {
+    console.error('Error:', respuesta.message);
 }
 ```
 
-**Uso avanzado** - Con archivos:
-```javascript
-const form = new FormData();
-form.append('archivo', input.files[0]);
-form.append('datos', 'valor');
+## Ejemplo con archivos
 
-const resp = await gloryAjax('subir_archivo', form);
-if (resp.success && resp.blob) {
-    // Manejar descarga de archivo
+```javascript
+// Envío de formulario con archivo
+const formData = new FormData();
+formData.append('archivo', input.files[0]);
+formData.append('descripcion', 'Mi archivo');
+
+const respuesta = await gloryAjax('subir_archivo', formData);
+
+if (respuesta.success) {
+    if (respuesta.blob) {
+        // Manejar descarga de archivo
+        const url = URL.createObjectURL(respuesta.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = respuesta.filename || 'archivo';
+        a.click();
+    } else {
+        console.log('Archivo subido:', respuesta.data);
+    }
 }
 ```
 
-## Handler en servidor
+## Crear handlers en el servidor
+
+Los handlers AJAX en WordPress siguen el patrón estándar:
 
 ```php
+// Registrar acción para usuarios autenticados
 add_action('wp_ajax_mi_accion', 'mi_handler');
+
+// Registrar acción para usuarios no autenticados (opcional)
+add_action('wp_ajax_nopriv_mi_accion', 'mi_handler');
+
 function mi_handler() {
-    check_ajax_referer('mi_nonce');
-    $id = intval($_POST['id']);
+    // Verificar nonce (recomendado)
+    check_ajax_referer('mi_nonce', 'nonce');
+    
+    // Obtener y sanitizar datos
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $nombre = isset($_POST['nombre']) ? sanitize_text_field($_POST['nombre']) : '';
+    
+    // Validar
+    if ($id <= 0) {
+        wp_send_json_error(['message' => 'ID inválido']);
+        return;
+    }
+    
     // Procesar...
-    wp_send_json_success(['resultado' => 'OK']);
+    $resultado = procesarDatos($id, $nombre);
+    
+    // Enviar respuesta JSON exitosa
+    wp_send_json_success(['resultado' => $resultado]);
 }
 ```
 
-## Localizar datos
+**Para descargar archivos binarios:**
+
+```php
+function mi_handler_descarga() {
+    check_ajax_referer('mi_nonce', 'nonce');
+    
+    // Generar archivo
+    $contenido = generarCSV();
+    
+    // Enviar como archivo descargable
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="datos.csv"');
+    echo $contenido;
+    exit;
+}
+```
+
+## Localizar datos (nonce y URL)
+
+Para pasar datos del servidor al cliente (nonce, URL AJAX), usa `localize` en `AssetManager`:
 
 ```php
 AssetManager::define('script', 'mi-script', '/assets/js/script.js', [
     'localize' => [
-        'ajax_params' => [
+        'nombreObjeto' => 'ajax_params',  // Nombre del objeto JavaScript
+        'datos' => [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('mi_nonce')
         ]
@@ -54,6 +156,167 @@ AssetManager::define('script', 'mi-script', '/assets/js/script.js', [
 ]);
 ```
 
-¡Usa `gloryAjax` para todas tus peticiones AJAX!
+En JavaScript, los datos estarán disponibles como `ajax_params`:
 
----
+```javascript
+// Usar URL personalizada si está disponible
+const url = (typeof ajax_params !== 'undefined' && ajax_params.ajax_url) 
+    ? ajax_params.ajax_url 
+    : '/wp-admin/admin-ajax.php';
+
+// Usar nonce en la petición
+const respuesta = await gloryAjax('mi_accion', {
+    nonce: ajax_params.nonce,
+    id: 123
+});
+```
+
+**Nota**: `gloryAjax` usa automáticamente `ajax_params.ajax_url` si existe, o `/wp-admin/admin-ajax.php` por defecto.
+
+## Funciones auxiliares
+
+`gloryAjax.js` expone funciones auxiliares globales:
+
+### `gloryRefresh(opts)`
+
+Refresca el HTML de un post o lista de contenido.
+
+```javascript
+// Refrescar un post específico
+await gloryRefresh({ 
+    postId: 123, 
+    tipo: 'tarea',
+    targetSelector: '.contenedor-post'  // Opcional: dónde insertar
+});
+
+// Refrescar una lista
+await gloryRefresh({ 
+    lista: true, 
+    filtro: 'activos',
+    args: { categoria: 'importante' }
+});
+```
+
+**Parámetros**:
+- `postId`: number - ID del post a refrescar
+- `tipo`: string - Tipo de post (default: 'tarea')
+- `lista`: boolean - Si es true, refresca lista en lugar de post
+- `filtro`: string - Filtro para la lista
+- `args`: object - Argumentos adicionales
+- `targetSelector`: string - Selector CSS donde insertar el HTML
+- `raw`: boolean - Si es true, retorna el objeto completo en lugar del HTML
+
+### `reiniciarPost(id, tipo)`
+
+Alias simplificado para refrescar un post.
+
+```javascript
+await reiniciarPost(123, 'tarea');
+```
+
+### `reiniciarContenido(opts)`
+
+Refresca listas de contenido renderizadas por `ContentRender`.
+
+```javascript
+await reiniciarContenido({
+    postType: 'post',
+    plantilla: 'mi-plantilla',
+    publicacionesPorPagina: 10,
+    argumentosConsulta: { categoria: 'noticias' },
+    claseContenedor: 'lista-contenido',
+    claseItem: 'item-contenido',
+    targetSelector: '.contenedor',  // Opcional
+    replace: true  // true = reemplazar, false = añadir al final
+});
+```
+
+**Parámetros**:
+- `postType`: string - Tipo de post a listar
+- `plantilla`: string|null - Callback de plantilla
+- `publicacionesPorPagina`: number - Cantidad por página
+- `argumentosConsulta`: object - Argumentos para WP_Query
+- `claseContenedor`: string|null - Clase CSS del contenedor
+- `claseItem`: string|null - Clase CSS de cada item
+- `targetSelector`: string|null - Selector donde insertar
+- `replace`: boolean - Si reemplazar contenido o añadir
+
+### `enviarAjax(action, data)`
+
+Alias de `gloryAjax` para compatibilidad.
+
+```javascript
+await enviarAjax('mi_accion', { id: 123 });
+```
+
+## Registro y carga
+
+`gloryAjax.js` se registra automáticamente en `Glory/Config/scriptSetup.php`:
+
+```php
+AssetManager::define('script', 'glory-ajax', '/Glory/assets/js/genericAjax/gloryAjax.js', [
+    'deps'      => ['jquery'],
+    'in_footer' => false,      // Carga en <head>
+    'defer'     => false,      // Ejecuta inmediatamente
+    'area'      => 'both',     // Frontend y admin
+    'feature'   => 'gloryAjax' // Feature flag
+]);
+```
+
+Se carga automáticamente en frontend y admin. Si necesitas desactivarlo, usa `GloryFeatures::disable('gloryAjax')`.
+
+## Errores frecuentes
+
+**"La respuesta del servidor no es un JSON válido"**
+- El handler no está usando `wp_send_json_success()` o `wp_send_json_error()`
+- Hay salida antes del JSON (echo, var_dump, etc.)
+- El handler está enviando un archivo binario sin los headers correctos
+
+**"Error HTTP 400/403"**
+- Falta verificar el nonce con `check_ajax_referer()`
+- La acción no está registrada con `add_action('wp_ajax_...')`
+- El usuario no tiene permisos (falta `wp_ajax_nopriv_...` para usuarios no autenticados)
+
+**"Petición cancelada en modo edición FB"**
+- Normal en modo edición de Fusion Builder. Las peticiones se cancelan automáticamente.
+
+**Archivo no se descarga**
+- Verifica que el handler envía `Content-Disposition: attachment` y el `Content-Type` correcto
+- Asegúrate de usar `exit` después de enviar el archivo
+
+## Recomendaciones
+
+- **Siempre verifica nonces**: Usa `check_ajax_referer()` en todos los handlers para seguridad
+- **Sanitiza datos**: Usa `sanitize_text_field()`, `intval()`, `absint()` según el tipo
+- **Maneja errores**: Siempre verifica `respuesta.success` antes de usar los datos
+- **Usa tipos específicos**: Para formularios complejos, considera usar `FormHandler` de Glory
+- **Logging**: Los handlers de Glory usan `GloryLogger` para depuración; considera añadirlo también
+
+## Integración con tema
+
+`gloryAjax` es parte del núcleo de Glory y está disponible globalmente. Los handlers específicos del tema deben registrarse en `App/Handlers/`:
+
+```php
+// App/Handlers/MiAjaxHandler.php
+namespace App\Handlers;
+
+class MiAjaxHandler
+{
+    public static function register(): void
+    {
+        add_action('wp_ajax_mi_accion', [self::class, 'handle']);
+        add_action('wp_ajax_nopriv_mi_accion', [self::class, 'handle']);
+    }
+    
+    public static function handle(): void
+    {
+        // Lógica del handler
+    }
+}
+```
+
+Registra el handler en `App/Config/control.php`:
+
+```php
+\App\Handlers\MiAjaxHandler::register();
+```

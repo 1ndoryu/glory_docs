@@ -34,7 +34,7 @@ IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA 
 - [x] `managers/default-content-manager.mdx` 
 - [x] `managers/post-type-manager.mdx` 
 - [x] `managers/admin-page-manager.mdx` 
-- [ ] `managers/menu-manager.mdx` 
+- [x] `managers/menu-manager.mdx` 
 
 ### AJAX y Formularios
 - [ ] `ajax-formularios/sistema-formularios.mdx` 

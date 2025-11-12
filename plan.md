@@ -29,7 +29,7 @@ IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA 
 
 ### Managers
 - [x] `managers/asset-manager.mdx` (REVISADA POR EL USUARIO; TENER DE REFERENCIA PRINCIPAL)
-- [ ] `managers/opcion-manager.mdx` 
+- [x] `managers/opcion-manager.mdx` 
 - [x] `managers/page-manager.mdx` (REVISADA POR EL USUARIO; TENER DE SEGUNDA REFERENCIA)
 - [x] `managers/default-content-manager.mdx` 
 - [x] `managers/post-type-manager.mdx` 

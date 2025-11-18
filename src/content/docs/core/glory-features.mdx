@@ -1,90 +1,115 @@
 ---
 title: GloryFeatures
-description: Control de features y overrides en Glory
+description: Control programático de funcionalidades y gestión de overrides en Glory Framework.
+sidebar:
+  order: 1
 ---
 
-`GloryFeatures` centraliza el control de funcionalidades (features) que pueden activarse/desactivarse
-mediante código o mediante opciones en el panel. Esta página documenta la API pública, la precedencia
-entre overrides por código y opciones de la base de datos, y patrones de uso recomendados.
+`GloryFeatures` es la clase central para gestionar la activación y desactivación de funcionalidades (features) en el framework. Permite definir estados por defecto desde el código y respeta la configuración del usuario almacenada en base de datos, con comportamientos específicos para entornos de desarrollo y producción.
 
-## Concepto
+## Cuándo usarlo
 
-- Una *feature* es una funcionalidad opcional del framework (p. ej. `gloryRealtime`, `cssCritico`).
-- Glory permite controlar el estado de una feature desde dos fuentes principales:
-  1. **Override por código**: el desarrollador puede forzar la activación/desactivación en tiempo de ejecución.
-  2. **Opción en la base de datos**: una opción gestionada por `OpcionManager` que el administrador puede cambiar desde el panel.
+- Para activar o desactivar módulos del framework condicionalmente.
+- Para definir el estado por defecto de una funcionalidad que luego podrá ser gestionada desde el panel de administración.
+- Para comprobar si una funcionalidad está activa antes de registrar assets, hooks o servicios.
 
-## API principal
+## API Básica
 
-- `GloryFeatures::enable(string $feature): void` — Activa permanentemente la feature en el runtime.
-- `GloryFeatures::disable(string $feature): void` — Desactiva permanentemente la feature en el runtime.
-- `GloryFeatures::isEnabled(string $feature): ?bool` — Devuelve el override por código: `true`, `false` o `null` si no hay override.
-- `GloryFeatures::isActive(string $feature, ?string $optionKey = null, bool $default = true): bool` — Decide si la feature está activa combinando override y opción en BD.
-
-> Nota: `isActive` es la llamada que normalmente debes usar cuando registras assets, hooks o funcionalidades dependientes de la configuración.
-
-## Precedencia y comportamiento (explicación muy sencilla)
-
-- `isEnabled('feature')` — pregunta si el desarrollador **forzó** la feature en el código.
-  - Devuelve `true` = forzó activarla.
-  - Devuelve `false` = forzó desactivarla.
-  - Devuelve `null` = no hay override por código.
-
-- `isActive('feature', $optionKey, $default)` — devuelve si la feature está realmente activa en el sitio. Reglas simples:
-  1. Si `isEnabled` devuelve `true` o `false`, `isActive` devuelve ese valor (el override por código manda).
-  2. Si `isEnabled` devuelve `null`, `isActive` mira la opción en la base de datos (`optionKey`):
-     - Si la opción existe en BD, devuelve ese valor (lo que configuró el cliente final / administrador del sitio desde el panel).
-     - Si la opción no existe, devuelve `default` (valor por defecto que tú pases).
-
-Ejemplos rápidos:
-
-- Caso 1: el dev hizo `isEnabled('X') === true` → `isActive('X')` devuelve `true`.
-- Caso 2: `isEnabled('X') === null`, en BD `optionKey` = `false` → `isActive` devuelve `false`.
-- Caso 3: `isEnabled('X') === null`, en BD no existe la opción → `isActive` devuelve `default`.
-
-Pseudocódigo sencillo:
-
-```php
-$override = GloryFeatures::isEnabled('X'); // true | false | null
-if ($override !== null) return $override;
-if (option_exists('optionKey')) return get_option('optionKey');
-return $default;
-```
-
-## Ejemplos de uso
-
-**Uso mínimo** - Activar/desactivar feature:
 ```php
 use Glory\Core\GloryFeatures;
 
-// Activar feature
-GloryFeatures::enable('miFeature');
+// Activar una funcionalidad (override por código)
+GloryFeatures::enable('nombreFeature');
 
-// Verificar si está activa
-if (GloryFeatures::isActive('miFeature')) {
-    // Código aquí
+// Desactivar una funcionalidad (override por código)
+GloryFeatures::disable('nombreFeature');
+
+// Comprobar si una funcionalidad está activa (resolución final)
+if (GloryFeatures::isActive('nombreFeature')) {
+    // Lógica de la feature...
 }
 ```
 
-**Uso avanzado** - Con opción de BD:
+### Parámetros Complejos: `isActive`
+
+El método `isActive` es el más importante y realiza una resolución en cascada para determinar el estado final.
+
+`public static function isActive(string $feature, ?string $optionKey = null, bool $defaultOption = true): bool`
+
+- **$feature**: Nombre de la funcionalidad (se normaliza automáticamente a camelCase).
+- **$optionKey**: (Opcional) Clave específica de la opción en base de datos. Si es `null`, el sistema buscará automáticamente claves siguiendo convenciones (ver abajo).
+- **$defaultOption**: Valor de retorno si no hay override por código ni opción en base de datos.
+
+## Resolución de Estado (Dev vs Prod)
+
+El comportamiento de `isActive` cambia según el entorno para facilitar el desarrollo sin afectar la producción accidentalmente.
+
+### Modo Desarrollo (`WP_DEBUG` o `AssetManager::isGlobalDevMode()`)
+El **código manda**.
+1. Si se llamó a `enable('feature')`, devuelve `true`.
+2. Si se llamó a `disable('feature')`, devuelve `false`.
+3. Si no hay override por código, busca la opción en BD o usa el default.
+
+### Modo Producción
+El **panel de administración (BD) manda**.
+1. Si existe una opción guardada en la base de datos para esta feature, se usa ese valor.
+2. Si **NO** existe opción en BD, se usa el estado definido por código (`enable`/`disable`) como valor por defecto.
+3. Si no hay ni opción en BD ni override por código, se usa el argumento `$defaultOption`.
+
+> **Importante:** En producción, `GloryFeatures::enable('foo')` no fuerza la activación si el usuario la ha desactivado explícitamente en el panel. Simplemente establece que "por defecto debería estar activa".
+
+## Resolución de Claves de Opción
+
+Si no se especifica `$optionKey`, `isActive` buscará opciones en `OpcionManager` siguiendo este orden de prioridad (usando el nombre de la feature convertido a `snake_case`):
+
+1. `glory_componente_{feature}_activado` (Convención principal)
+2. `glory_{feature}_activado` (Convención legacy)
+3. `glory_{sufijo}_service_activado` (Si la feature empieza por `glory_`)
+
+## Ejemplo Mínimo
+
 ```php
-// Verificar con opción personalizada y valor por defecto
-if (GloryFeatures::isActive('miFeature', 'mi_opcion_personalizada', false)) {
-    AssetManager::define('script', 'mi-script', '/assets/js/script.js');
+use Glory\Core\GloryFeatures;
+
+// 1. Definir estado por defecto (opcional, idealmente en un ServiceProvider o functions.php)
+GloryFeatures::enable('sistemaComentarios');
+
+// 2. Usar la feature
+if (GloryFeatures::isActive('sistemaComentarios')) {
+    // Esta lógica se ejecutará salvo que se desactive explícitamente en el panel (en Prod)
+    add_action('init', 'iniciar_comentarios');
 }
 ```
 
-## Integración con AssetManager
+## API Avanzada
 
-AssetManager soporta `'feature'` para cargar assets condicionalmente:
+Métodos para inspección directa del estado en código, sin consultar base de datos.
 
 ```php
-AssetManager::define('script', 'mi-script', '/assets/js/script.js', [
-    'feature' => 'miFeature' // Solo carga si la feature está activa
-]);
+// Comprueba si se ha definido un override por código (true/false) o no (null)
+$estadoCodigo = GloryFeatures::isEnabled('miFeature'); 
+
+// Comprueba si se ha seteado algún valor (true o false)
+$estaSeteado = GloryFeatures::isSet('miFeature');
 ```
 
-¡Usa GloryFeatures para controlar funcionalidades dinámicamente!
+### Normalización y Alias
+El sistema normaliza las claves a `camelCase`.
+- `schedule-manager` -> `scheduleManager`
+- `mi_feature` -> `miFeature`
 
+Existen alias históricos para compatibilidad:
+- `schedulemanager`, `schedule_manager` -> `scheduler`
+- `gestionarpreviews` -> `previews`
 
+## Recomendaciones
 
+- **Nombres de Features**: Usa `camelCase` para consistencia (`miFeatureNueva`).
+- **Ubicación**: Las llamadas a `enable`/`disable` deben hacerse temprano en la carga (ej. `after_setup_theme` o en el constructor de un servicio) para asegurar que estén disponibles cuando otros componentes verifiquen `isActive`.
+- **Opciones**: Si creas una nueva feature que requiere opción en panel, asegúrate de registrar la opción en `OpcionManager` con la clave `glory_componente_{feature_snake}_activado` para que la resolución automática funcione.
+
+## Errores Frecuentes
+
+- **Asumir que `enable()` siempre activa en Producción**: Recordar que en producción la base de datos tiene prioridad.
+- **Usar claves inconsistentes**: Aunque el sistema normaliza, es mejor usar siempre el mismo formato (camelCase) para evitar confusiones.
+- **Confusión con Alias**: Si usas `schedule-manager`, internamente se guarda como `scheduler`. Si buscas la opción manual `glory_componente_schedule_manager_activado` fallará; buscará `glory_componente_scheduler_activado`.

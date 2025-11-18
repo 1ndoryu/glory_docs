@@ -22,8 +22,8 @@ IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA 
 - [x] `introduccion/como-crear-plantillas-content-render.mdx`
 
 ### Core Framework
-- [ ] `core/glory-features.mdx` 
-- [ ] `core/glory-ajax.mdx` 
+- [x] `core/glory-features.mdx` 
+- [x] `core/glory-ajax.mdx` 
 - [ ] `core/features/glory-realtime.mdx` 
 - [ ] `core/features/available-features.mdx` 
 

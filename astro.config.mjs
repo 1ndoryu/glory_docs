@@ -137,6 +137,13 @@ export default defineConfig({
                     ]
                 },
                 {
+                    label: 'Plugins',
+                    items: [
+                        'plugins/amazon-product',
+                        'plugins/amazon-data-api'
+                    ]
+                },
+                {
                     label: 'Administración',
                     items: [
                         'administracion/sync-manager',

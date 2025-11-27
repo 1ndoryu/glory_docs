@@ -113,6 +113,10 @@ IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA 
 - [ ] `administracion/seo-metabox.mdx` 
 - [ ] `administracion/page-content-mode-metabox.mdx` 
 
+### Plugins
+- [x] `plugins/amazon-product.mdx` 
+- [x] `plugins/amazon-data-api.mdx` 
+
 ### Desarrollo
 - [ ] `desarrollo/eventos-hooks.mdx` 
 - [ ] `desarrollo/extensibilidad.mdx` 

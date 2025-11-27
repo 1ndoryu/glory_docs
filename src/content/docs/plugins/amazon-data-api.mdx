@@ -1,0 +1,113 @@
+---
+title: Amazon Data API Reference
+description: Documentación técnica de la API externa de Amazon Data utilizada por el plugin.
+sidebar:
+  label: Amazon Data API
+  order: 20
+---
+
+Esta referencia documenta la API externa **Amazon Data API** (RapidAPI) que utiliza el plugin para obtener información de productos.
+
+> **Nota**: Esta es la documentación del servicio externo, no del plugin de Glory. El plugin abstrae estas llamadas a través de `AmazonApiService`.
+
+## Autenticación
+
+La API utiliza autenticación mediante headers HTTP. El plugin maneja esto automáticamente usando las credenciales configuradas en el admin.
+
+*   `x-rapidapi-host`: `amazon-data.p.rapidapi.com`
+*   `x-rapidapi-key`: Tu clave de API.
+
+## Endpoints
+
+### 1. Lookup Product by ASIN Code
+
+Obtiene información detallada de un producto específico utilizando su código ASIN.
+
+**Método:** `GET`
+**URL:** `https://amazon-data.p.rapidapi.com/asin.php`
+
+**Parámetros:**
+
+| Parámetro | Tipo   | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| `asin`    | string | Sí        | El código ASIN del producto (ej. `B07FZ8S74R`). |
+| `region`  | string | Sí        | La región de Amazon (ej. `us`). |
+
+**Ejemplo de Respuesta:**
+
+```json
+{
+  "asin": "B000B5MI3Q",
+  "asin_name": "Seiko Men's Automatic Analogue Watch...",
+  "asin_price": 374.96,
+  "asin_images": [
+    "https://images-na.ssl-images-amazon.com/images/I/81NnTOfWgpL.jpg"
+  ],
+  "is_prime": false,
+  "total_review": 1507,
+  "total_start": 4.3
+}
+```
+
+### 2. Search Products By Keywords
+
+Busca productos en Amazon utilizando palabras clave.
+
+**Método:** `GET`
+**URL:** `https://amazon-data.p.rapidapi.com/search.php`
+
+**Parámetros:**
+
+| Parámetro | Tipo   | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| `keyword` | string | Sí        | Palabras clave para la búsqueda (ej. `echo dot`). |
+| `region`  | string | Sí        | La región de Amazon (ej. `us`). |
+| `page`    | number | No        | Número de página para los resultados (ej. `1`). |
+
+**Ejemplo de Respuesta:**
+
+```json
+[
+  {
+    "asin": "B07FZ8S74R",
+    "asin_name": "Echo Dot (3rd Gen) - Smart speaker with Alexa - Charcoal",
+    "asin_price": 43.59,
+    "is_prime": true,
+    "image_url": "https://images-na.ssl-images-amazon.com/images/I/71OynVYSSCL.jpg"
+  }
+]
+```
+
+### 3. Get Deals and Offers
+
+Recupera una lista de ofertas y promociones actuales de Amazon.
+
+**Endpoint:** `GET https://amazon-data.p.rapidapi.com/deal.php`
+
+**Parámetros:**
+
+| Parámetro | Tipo   | Requerido | Descripción                                      |
+| :-------- | :----- | :------- | :----------------------------------------------- |
+| `region`  | string | Sí       | La región de donde obtener ofertas (ej. `us`).   |
+| `page`    | integer| Sí       | El número de página de resultados (ej. `1`).     |
+
+### 4. UPC To ASIN
+
+Convierte un código UPC (Universal Product Code) a un ASIN de Amazon y recupera detalles del producto.
+
+**Endpoint:** `GET https://amazon-data.p.rapidapi.com/upc.php`
+
+**Parámetros:**
+
+| Parámetro | Tipo   | Requerido | Descripción                                      |
+| :-------- | :----- | :------- | :----------------------------------------------- |
+| `upc`     | string | Sí       | El código UPC a convertir (ej. `841667180021`).  |
+
+## Manejo de Errores
+
+| Código | Descripción |
+| :--- | :--- |
+| `200` | OK - La solicitud fue exitosa. |
+| `401` | Unauthorized - Clave API inválida o faltante. |
+| `429` | Too Many Requests - Límite de tasa excedido. |
+| `500` | Internal Server Error - Algo salió mal en el lado del servidor. |

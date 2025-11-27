@@ -1,0 +1,161 @@
+---
+title: Amazon Product Plugin
+description: Plugin integrado para importar, gestionar y mostrar productos de Amazon con afiliación.
+sidebar:
+  label: Amazon Product
+  order: 10
+---
+
+El **Amazon Product Plugin** permite buscar, importar y mostrar productos de Amazon en tu sitio Glory. Incluye integración con la API de Amazon Data, soporte para afiliados, personalización de diseño y actualizaciones automáticas.
+
+## 🚀 Cuándo usarlo
+
+Úsalo cuando necesites:
+- **Monetizar** tu contenido con enlaces de afiliados de Amazon.
+- **Mostrar grids de productos** con precios, valoraciones y estado Prime actualizados.
+- **Importar datos** de productos (título, imagen, ASIN) rápidamente desde el admin.
+- **Filtrar y ordenar** productos en el frontend sin recargar la página (AJAX).
+
+No lo uses si:
+- Necesitas un sistema de e-commerce completo con carrito de compras (usa WooCommerce).
+- Vendes productos propios y no de Amazon.
+
+## 🛠️ Configuración
+
+Antes de usar el plugin, debes configurarlo en **Productos Amazon > Settings > API Settings**.
+
+### Parámetros de Configuración
+
+| Opción | Descripción | Ejemplo |
+| :--- | :--- | :--- |
+| **RapidAPI Key** | Tu clave de API para Amazon Data. | `a1b2c3d4...` |
+| **RapidAPI Host** | El host de la API (generalmente fijo). | `amazon-data.p.rapidapi.com` |
+| **Region** | La región de Amazon para los datos y enlaces. | `Spain (ES)`, `United States (US)` |
+| **Affiliate Tag** | Tu ID de afiliado de Amazon. Se añade a todos los enlaces. | `myaffiliate-21` |
+| **Sync Frequency** | Frecuencia de actualización automática de precios. | `Daily`, `Weekly`, `Off` |
+| **Plugin Language** | Idioma de la interfaz del frontend. | `Español`, `English` |
+
+## 💻 Uso Básico (Shortcode)
+
+La forma principal de mostrar productos es mediante el shortcode `[amazon_products]`.
+
+```php
+// Ejemplo básico en editor o PHP
+echo do_shortcode('[amazon_products limit="12" orderby="date"]');
+```
+
+### Atributos del Shortcode
+
+| Atributo | Tipo | Default | Descripción |
+| :--- | :--- | :--- | :--- |
+| `limit` | `int` | `12` | Número de productos por página. |
+| `min_price` | `float` | `''` | Filtro inicial de precio mínimo. |
+| `max_price` | `float` | `''` | Filtro inicial de precio máximo. |
+| `only_prime` | `bool` | `''` | `1` para mostrar solo productos Prime. |
+| `orderby` | `string` | `'date'` | Ordenar por: `date`, `price`, `rating`. |
+| `order` | `string` | `'DESC'` | Dirección: `ASC` o `DESC`. |
+
+## 🎨 Personalización de Diseño
+
+Puedes ajustar la apariencia en **Productos Amazon > Settings > Design**.
+
+- **Button Text**: Texto del botón de compra (ej: "Ver en Amazon").
+- **Button Background**: Color de fondo del botón.
+- **Button Text Color**: Color del texto del botón.
+- **Price Color**: Color del precio del producto.
+
+El plugin inyecta CSS dinámico basado en estas configuraciones, por lo que no necesitas editar archivos CSS manualmente para cambios simples.
+
+## 🔧 API Reference (PHP)
+
+La clase `Glory\Plugins\AmazonProduct\Service\AmazonApiService` maneja todas las interacciones con la API de Amazon Data.
+
+### `getDomain(string $region): string`
+Retorna el dominio de Amazon correspondiente a un código de región.
+
+**Parámetros:**
+- `$region` (string): Código de región (ej: 'us', 'es', 'uk').
+
+**Retorno:**
+- (string): Dominio (ej: 'amazon.es'). Retorna 'amazon.com' por defecto.
+
+```php
+use Glory\Plugins\AmazonProduct\Service\AmazonApiService;
+$domain = AmazonApiService::getDomain('es'); // 'amazon.es'
+```
+
+### `getProductByAsin(string $asin): array`
+Obtiene los detalles de un producto por su ASIN. Utiliza caché (transient) de 1 día.
+
+**Parámetros:**
+- `$asin` (string): El código ASIN del producto.
+
+**Retorno:**
+- (array): Datos del producto o array vacío si falla.
+
+```php
+$service = new AmazonApiService();
+$product = $service->getProductByAsin('B08L5XHFWW');
+
+if (!empty($product)) {
+    echo $product['asin_name']; // Título
+    echo $product['asin_price']; // Precio
+    echo $product['asin_images'][0]; // URL Imagen
+}
+```
+
+### `searchProducts(string $keyword, int $page = 1): array`
+Busca productos por palabra clave. Utiliza caché (transient) de 1 hora.
+
+**Parámetros:**
+- `$keyword` (string): Término de búsqueda.
+- `$page` (int): Número de página (default: 1).
+
+**Retorno:**
+- (array): Lista de productos encontrados.
+
+```php
+$results = $service->searchProducts('iphone 13', 1);
+foreach ($results as $item) {
+    echo $item['asin_name'];
+}
+```
+
+### Metadatos del Post (`amazon_product`)
+Además de la API, puedes acceder a los datos guardados en cada producto:
+
+```php
+$asin = get_post_meta($post_id, 'asin', true);
+$price = get_post_meta($post_id, 'price', true);
+$rating = get_post_meta($post_id, 'rating', true);
+$reviews = get_post_meta($post_id, 'reviews', true);
+$isPrime = get_post_meta($post_id, 'prime', true); // '1' o '0'
+$url = get_post_meta($post_id, 'product_url', true);
+```
+
+## 📦 Integración con el Tema
+
+El plugin está diseñado para ser agnóstico, pero se integra nativamente con Glory:
+
+- **Assets**: Carga CSS/JS solo cuando se usa el shortcode o en páginas relevantes.
+- **AJAX**: Utiliza `gloryAjax` y respeta la navegación del tema.
+- **Dark Mode**: Soporta nativamente el modo oscuro del tema mediante variables CSS (`--amazon-bg`, `--amazon-text`, etc.).
+
+### Estructura de Archivos
+- `Glory/src/Plugins/AmazonProduct/`
+  - `Controller/`: Lógica de admin y demo.
+  - `Renderer/`: Lógica de renderizado frontend.
+  - `Service/`: Comunicación con API externa.
+  - `assets/`: CSS y JS específicos.
+
+## ⚠️ Errores Frecuentes
+
+- **Los productos no se importan**: Verifica que tu `RapidAPI Key` sea válida y tengas cupo disponible. Revisa el log de errores de PHP.
+- **Los enlaces no llevan a mi región**: Asegúrate de haber configurado la **Region** correcta en los ajustes.
+- **El diseño se ve roto**: Verifica si algún plugin de caché/minificación está interfiriendo con `amazon-product.css`.
+- **No aparecen productos**: Asegúrate de haber importado productos en la pestaña **Import Products**.
+
+## 🔄 Modo Dev/Local
+
+- **Sincronización**: En entorno local (`WP_ENVIRONMENT_TYPE='local'`), el Cron de actualizaciones puede no ejecutarse automáticamente a menos que visites el sitio. Puedes forzar la sincronización manual desde la pestaña **Updates**.
+- **API**: Las llamadas a la API son reales incluso en local. Usa la caché (transients) para evitar agotar tu cuota durante el desarrollo.

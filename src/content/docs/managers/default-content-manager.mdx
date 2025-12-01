@@ -42,7 +42,7 @@ DefaultContentManager::register(): void;
 - **imagenDestacadaAsset**: referencia `alias::archivo.ext` o `random::alias`.
 - **galeriaAssets**: array de referencias de assets (opcional).
 
-## Ejemplo mínimo (tema)
+## Ejemplo mínimo (forma tradicional)
 
 ```php
 // App/Content/defaultContent.php
@@ -58,6 +58,92 @@ DefaultContentManager::define('libro', [
 ]);
 ```
 
+## Método build() (recomendado)
+
+El método `build()` simplifica la creación de contenido usando arrays simples y declarativos:
+
+```php
+DefaultContentManager::build(array $items, array $config = []): array
+```
+
+### Configuración de build()
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `alias` | string | 'images' | Alias de imágenes para AssetsUtility |
+| `parrafos` | array | [] | Párrafos para generar el contenido HTML |
+| `extracto` | string | '' | Extracto por defecto |
+| `estado` | string | 'publish' | Estado de publicación |
+| `contenido` | callable\|int | null | Callback o índice del item para contenido |
+| `extractoIndice` | int | null | Índice del item para usar como extracto |
+| `meta` | callable | null | `fn($item, $index) => array` para metaEntrada |
+| `galeria` | callable | null | `fn($item, $index) => array` para galeriaAssets |
+
+### Ejemplo simple
+
+```php
+// [titulo, imagen]
+DefaultContentManager::define('libro', DefaultContentManager::build([
+    ['El Principito', 'elements::libros/principito.jpeg'],
+    ['Las 48 Leyes del Poder', 'elements::libros/48leyes.png'],
+], [
+    'extracto' => 'Libro recomendado.',
+]));
+```
+
+### Ejemplo con contenido desde el array
+
+```php
+// [titulo, imagen, descripcion]
+DefaultContentManager::define('services', DefaultContentManager::build([
+    ['Principal Designer', 'service1.jpg', 'We provide structured leadership...'],
+    ['Developers', 'service2.jpg', 'We align design quality with commercial viability...'],
+    ['Architectural Design', 'service3.jpg', 'We provide a full architectural service...'],
+], [
+    'alias' => 'images',
+    'contenido' => 2, // Usar posición 2 como contenido
+]));
+```
+
+### Ejemplo con meta personalizado
+
+```php
+// [titulo, imagen, categorías, tiene_pagina]
+DefaultContentManager::define('portfolio', DefaultContentManager::build([
+    ['Sample Project 1', 'project1.jpg', ['Residencial', 'Hospitality'], true],
+    ['Sample Project 2', 'project2.jpg', ['Commercial', 'Installations'], true],
+    ['Sample Project 3', 'project3.jpg', ['Hospitality'], false],
+], [
+    'alias' => 'images',
+    'extracto' => 'Initial sample portfolio entry.',
+    'parrafos' => [
+        'This is sample portfolio content.',
+        'Replace this text with your project description.',
+    ],
+    'meta' => fn($item) => [
+        'category' => $item[2] ?? [],
+        'portfolio_has_page' => ($item[3] ?? false) ? 'yes' : 'no',
+    ],
+]));
+```
+
+### Ejemplo con galería
+
+```php
+$galeriaPool = ['a1.jpg', 'a2.jpg', 'a3.jpg', 'a4.jpg', 'a5.jpg'];
+
+DefaultContentManager::define('portfolio', DefaultContentManager::build([
+    ['Project 1', 'p1.jpg'],
+    ['Project 2', 'p2.jpg'],
+], [
+    'alias' => 'images',
+    'galeria' => function($item, $index) use ($galeriaPool) {
+        $seleccion = array_slice($galeriaPool, 0, 5);
+        return array_map(fn($img) => "images::{$img}", $seleccion);
+    },
+]));
+```
+
 ## Parámetros y modos
 - **modo**: 'none' (no actualiza), 'force' (sobrescribe siempre), 'smart' (actualiza solo si no fue editado manualmente y hay cambios).
 - **eliminar**: si `true`, borra entradas gestionadas cuyo `slugDefault` ya no está en código.
@@ -65,7 +151,10 @@ DefaultContentManager::define('libro', [
 ## API avanzada
 
 ```php
-/** Genera posts de ejemplo con slugs y contenido deterministas. */
+/** Construye posts desde arrays simples (recomendado). */
+DefaultContentManager::build(array $items, array $config = []): array;
+
+/** Genera posts de ejemplo con contenido aleatorio determinista. */
 DefaultContentManager::buildSamplePosts(array $titles, array $paragraphs, array $options = []): array;
 ```
 

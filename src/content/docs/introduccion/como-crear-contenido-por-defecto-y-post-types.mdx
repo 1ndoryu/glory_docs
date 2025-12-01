@@ -34,6 +34,19 @@ PostTypeManager::define(
 // App/Content/defaultContent.php
 use Glory\Manager\DefaultContentManager;
 
+// Forma simple con build() (recomendada)
+DefaultContentManager::define('libro', DefaultContentManager::build([
+  // [titulo, imagen, descripcion]
+  ['El Principito', 'elements::libros/principito.jpeg', 'Una novela poética...'],
+  ['Las 48 Leyes', 'elements::libros/48leyes.png', 'Un libro sobre poder...'],
+], [
+  'contenido' => 2, // Usar posición 2 como contenido
+]));
+```
+
+### Forma tradicional (más verbosa)
+
+```php
 DefaultContentManager::define('libro', [
   [
     'slugDefault' => 'el-principito',

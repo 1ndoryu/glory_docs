@@ -31,47 +31,44 @@ Relacionado: ver `introduccion/como-crear-plantillas-content-render.mdx` para cr
 ```php
 use Glory\Components\ContentRender;
 
-/**
- * Renderiza una lista de contenidos.
- *
- * @param string $postType  Tipo de post a consultar (ej: 'post', 'page', 'libro').
- * @param array  $opciones  Configuración:
- *  - publicacionesPorPagina (int)    Por defecto 10.
- *  - claseContenedor (string)        Clase del contenedor. Por defecto 'glory-content-list'.
- *  - claseItem (string)              Clase por item. Por defecto 'glory-content-item'.
- *  - paginacion (bool)               Habilita paginación y estructura lista para AJAX. Por defecto false.
- *  - plantillaCallback (callable)    Callback por item. Por defecto [ContentRender::class, 'defaultTemplate'].
- *  - argumentosConsulta (array)      Merge a WP_Query (meta_query, tax_query, paged, etc.). Por defecto [].
- *  - orden (string)                  'fecha' | 'random' | 'meta'. Por defecto 'fecha'.
- *  - metaKey (string|null)           Clave meta si orden='meta'. Por defecto null.
- *  - minPaginas (int)                Fuerza mínimo de páginas visibles. Por defecto 1.
- *  - tiempoCache (int)               Segundos de caché. Por defecto HOUR_IN_SECONDS.
- *  - forzarSinCache (bool)           Ignora caché para este render. Por defecto false.
- *  - acciones (array)                Acciones declarativas (ej: ['eliminar']). Por defecto [].
- *  - submenu (bool)                  Marca para UI de submenú. Por defecto false.
- *  - eventoAccion (string)           'click' | 'dblclick' | 'longpress'. Por defecto 'dblclick'.
- *  - selectorItem (string)           Selector para identificar el item. Por defecto '[id^="post-"]'.
- *  - idsPreferidos (int[])           IDs que deben aparecer primero, en ese orden. Por defecto [].
- */
-ContentRender::print('post', []);
+// Forma simple con callback
+ContentRender::print('post', [
+    'publicacionesPorPagina' => 6,
+    'plantillaCallback' => [MiClase::class, 'miPlantilla'],
+]);
+
+// Forma con plantilla registrada (recomendada)
+ContentRender::print('post', [
+    'publicacionesPorPagina' => 6,
+    'plantilla' => 'miPlantillaId', // Se resuelve via TemplateRegistry o TemplateManager
+]);
 ```
 
-## Configuración Completa
-
-### Opciones Principales
+### Opciones principales
 
 | Opción | Tipo | Default | Descripción |
 |--------|------|---------|-------------|
-| `publicacionesPorPagina` | int | 10 | Número de elementos por página |
-| `claseContenedor` | string | 'glory-content-list' | Clase CSS del contenedor principal |
-| `claseItem` | string | 'glory-content-item' | Clase CSS de cada elemento |
-| `paginacion` | bool | false | Activar paginación y estructura lista para AJAX |
-| `plantillaCallback` | callable | `[self::class, 'defaultTemplate']` | Función para renderizar cada item |
-| `argumentosConsulta` | array | [] | Argumentos adicionales para WP_Query |
-| `orden` | string | 'fecha' | Orden: 'fecha', 'random', 'meta' |
-| `metaKey` | string\|null | null | Clave meta para ordenamiento |
-| `tiempoCache` | int | HOUR_IN_SECONDS | Duración de la caché en segundos |
-| `forzarSinCache` | bool | false | Forzar renderizado sin caché |
+| `plantilla` | string | null | ID de plantilla registrada (alternativa a plantillaCallback) |
+| `plantillaCallback` | callable | defaultTemplate | Callback para renderizar cada item |
+| `publicacionesPorPagina` | int | 10 | Elementos por página |
+| `paginacion` | bool | false | Activar paginación AJAX |
+| `orden` | string | 'fecha' | 'fecha', 'random', 'meta' |
+| `tiempoCache` | int | HOUR_IN_SECONDS | Segundos de caché |
+| `forzarSinCache` | bool | false | Ignorar caché |
+
+## Configuración Completa
+
+### Opciones de Consulta y Caché
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `publicacionesPorPagina` | int | 10 | Elementos por página |
+| `claseContenedor` | string | 'glory-content-list' | Clase CSS del contenedor |
+| `claseItem` | string | 'glory-content-item' | Clase CSS por item |
+| `argumentosConsulta` | array | [] | Args adicionales para WP_Query |
+| `orden` | string | 'fecha' | 'fecha', 'random', 'meta' |
+| `metaKey` | string\|null | null | Clave meta si orden='meta' |
+| `tiempoCache` | int | HOUR_IN_SECONDS | Segundos de caché |
 
 ### Opciones UI Agnósticas
 
@@ -83,13 +80,53 @@ ContentRender::print('post', []);
 | `selectorItem` | string | '[id^="post-"]' | Selector CSS para identificar items |
 | `idsPreferidos` | array | [] | IDs que aparecerán primero en el orden |
 
+### Opciones de Layout
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `display_mode` | string | 'flex' | Modo de visualización: 'block', 'flex', 'grid' |
+| `gap` | string | '20px' | Espaciado entre items (solo flex/grid) |
+| `flex_direction` | string | 'row' | Dirección flex: 'row', 'column' |
+| `flex_wrap` | string | 'wrap' | Envolver items: 'nowrap', 'wrap' |
+| `justify_content` | string | 'flex-start' | Justificación: 'flex-start', 'center', 'flex-end', 'space-between', 'space-around' |
+| `align_items` | string | 'stretch' | Alineación: 'stretch', 'flex-start', 'center', 'flex-end' |
+| `grid_columns` | int | 3 | Columnas en modo grid |
+| `grid_min_width` | string | '250px' | Ancho mínimo por item en grid |
+
 ### Opciones de Imágenes
 
 | Opción | Tipo | Default | Descripción |
 |--------|------|---------|-------------|
+| `img_show` | bool | true | Mostrar imagen destacada |
+| `img_size` | string | 'medium' | Tamaño: 'thumbnail', 'medium', 'large', 'full' |
+| `img_aspect_ratio` | string | null | Aspect ratio (ej: '16/9', '4/3', '1/1') |
+| `img_object_fit` | string | 'cover' | Ajuste: 'cover', 'contain' |
 | `imgOptimize` | bool | true | Usar optimización de imágenes |
 | `imgQuality` | int | 60 | Calidad de compresión (1-100) |
-| `imgSize` | string | 'medium' | Tamaño de imagen de WordPress |
+
+### Opciones de Título
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `title_show` | bool | true | Mostrar título |
+| `title_font_size` | string | null | Tamaño de fuente (ej: '18px', '1.2rem') |
+| `title_color` | string | null | Color del título |
+| `title_position` | string | 'top' | Posición: 'top', 'bottom' |
+| `title_show_on_hover` | bool | false | Mostrar solo al pasar el mouse |
+
+### Opciones de Interacción
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `interaccion_modo` | string | 'normal' | Modo: 'normal', 'carousel', 'toggle' |
+
+### Filtro por Categorías
+
+| Opción | Tipo | Default | Descripción |
+|--------|------|---------|-------------|
+| `categoryFilter` | array | `['enabled' => false]` | Configuración del filtro |
+| `categoryFilter.enabled` | bool | false | Activar filtro por categorías |
+| `categoryFilter.allLabel` | string | 'All' | Etiqueta para el botón "Todos" |
 
 ## Parámetros complejos
 Breve guía de claves menos obvias:
@@ -104,11 +141,30 @@ use Glory\Components\ContentRender;
 
 ContentRender::print('post', [
     'publicacionesPorPagina' => 6,
-    'plantillaCallback' => [Glory\Components\ContentRender::class, 'defaultTemplate'],
+    'plantilla' => 'miPlantilla',
 ]);
 ```
 
-## Ejemplo avanzado (opcional)
+## Ejemplo con layout y filtros
+
+```php
+ContentRender::print('portfolio', [
+    'publicacionesPorPagina' => 12,
+    'plantilla' => 'cardPortfolio',
+    'display_mode' => 'grid',
+    'grid_columns' => 3,
+    'gap' => '24px',
+    'img_show' => true,
+    'img_aspect_ratio' => '16/9',
+    'title_position' => 'bottom',
+    'categoryFilter' => [
+        'enabled' => true,
+        'allLabel' => 'Todos',
+    ],
+]);
+```
+
+## Ejemplo avanzado
 
 ```php
 // Orden aleatorio estable y priorización de IDs

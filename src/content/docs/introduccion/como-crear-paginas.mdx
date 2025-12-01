@@ -43,17 +43,34 @@ La API completa y casos avanzados están en [PageManager](/managers/page-manager
 <?php
 use Glory\Manager\PageManager;
 
-PageManager::define('demo', 'demoRender');
+PageManager::define('demo', 'demo');
 ```
 
-2) Crea la función de render (p. ej. en `functions.php` del tema):
+2) Crea el archivo de la página en `App/Templates/pages/demo.php`:
 
 ```php
 <?php
-function demoRender() {
-    echo '<main id="main"><h1>Página demo</h1><p>Contenido mínimo.</p></main>';
+
+function demo()
+{
+?>
+    <section class="hero">
+        <h1>Bienvenido</h1>
+        <p>Esta es una página de ejemplo.</p>
+    </section>
+
+    <section class="contenido">
+        <h2>Sección de contenido</h2>
+        <p>Aquí va el contenido de tu página.</p>
+    </section>
+<?php
 }
 ```
+
+**Importante:**
+- No uses `<main>` en tu función, ya lo incluye el header del tema.
+- No uses `echo` para el HTML, abre y cierra PHP para escribir HTML directamente.
+- Los estilos de la página deben ir en `App/Assets/css/`, no inline en la función.
 
 Notas:
 - `TemplateGlory.php` (incluido en el tema) llama a `PageManager::getFuncionParaRenderizar()` y ejecuta la función.
@@ -61,8 +78,9 @@ Notas:
 
 ## Integración con el tema
 
-- Ubicación sugerida de definiciones: `App/Config/pages.php`.
-- Handlers por función: en `functions.php` u otro archivo cargado por el tema.
+- Ubicación de definiciones: `App/Config/pages.php`.
+- Ubicación de páginas: `App/Templates/pages/`.
+- Estilos de páginas: `App/Assets/css/`.
 - Evita lógica de negocio en `Glory/` (núcleo agnóstico); mantenla en `App/`.
 
 ## Modo Dev/Local

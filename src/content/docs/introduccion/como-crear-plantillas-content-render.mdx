@@ -12,7 +12,9 @@ Crea plantillas reutilizables para listar contenidos con `ContentRender`. Primer
 
 ## API básica (agnóstica)
 
-### Registrar una plantilla
+Hay dos formas de crear plantillas para ContentRender:
+
+### Opción 1: Registrar via TemplateRegistry (recomendado)
 ```php
 use Glory\Utility\TemplateRegistry;
 
@@ -40,22 +42,58 @@ TemplateRegistry::register(
 );
 ```
 
+### Opción 2: Crear archivo en App/Templates (TemplateManager)
+Crea un archivo PHP en `App/Templates/` con el nombre de la función como nombre del archivo:
+
+```php
+// App/Templates/plantillaPortfolio.php
+
+function plantillaPortfolio(\WP_Post $post, string $itemClass): void {
+  $img = has_post_thumbnail($post) ? get_the_post_thumbnail_url($post, 'medium') : '';
+  ?>
+  <div class="<?php echo esc_attr($itemClass); ?>">
+    <a href="<?php echo esc_url(get_permalink($post)); ?>">
+      <div class="glory-cr__stack">
+        <h3 class="glory-cr__title"><?php echo esc_html(get_the_title($post)); ?></h3>
+        <?php if ($img): ?>
+          <img class="glory-cr__image" src="<?php echo esc_url($img); ?>" alt="">
+        <?php endif; ?>
+      </div>
+    </a>
+  </div>
+  <?php
+}
+```
+
+Luego úsala con `'plantilla' => 'plantillaPortfolio'`. El `TemplateManager` escanea `App/Templates/` automáticamente.
+
+### Orden de resolución
+Cuando usas `'plantilla' => 'miId'`, ContentRender busca en este orden:
+1. **TemplateRegistry** (registro por código)
+2. **TemplateManager** (archivos en `App/Templates/`)
+3. **Función global** (si el ID es callable directamente)
+
+### Notas sobre clases
 - `itemClass`: combínala con tus clases propias si necesitas estilos de plantilla. Ej.: `trim($itemClass . ' mi-plantilla-item')`.
 - Clases clave para estilos por instancia: `glory-cr__title`, `glory-cr__image`, `glory-cr__stack`, `glory-cr__content`.
 
 ### Usar la plantilla (agnóstico)
+
+**Forma recomendada** - usando `plantilla` (resolución automática):
 ```php
 use Glory\Components\ContentRender;
 
 ContentRender::print('post', [
   'publicacionesPorPagina' => 6,
-  'claseContenedor' => 'glory-content-list',
-  'claseItem' => 'glory-content-item',
-  'plantillaCallback' => function(\WP_Post $post, string $itemClass){
-    // O usa TemplateRegistry::get('mi_plantilla')
-    mi_plantilla($post, $itemClass);
-  },
-  'argumentosConsulta' => [ 'orderby' => 'date', 'order' => 'DESC' ],
+  'plantilla' => 'mi_plantilla', // Se resuelve via TemplateRegistry o TemplateManager
+]);
+```
+
+**Forma directa** - usando `plantillaCallback`:
+```php
+ContentRender::print('post', [
+  'publicacionesPorPagina' => 6,
+  'plantillaCallback' => [MiClase::class, 'miMetodo'], // O una función/closure
 ]);
 ```
 
@@ -63,6 +101,44 @@ ContentRender::print('post', [
 - `ContentRender` añade una clase única por instancia: `glory-cr-XXXX` al contenedor y `glory-cr-XXXX__item` a cada ítem.
 - El CSS inline por instancia se aplica contra esas clases, por lo que no colisiona entre instancias.
 - Para layouts internos (grid/flex dentro del item), usa un contenedor `.glory-cr__internal` si vas a exponer controles “internos” por instancia.
+
+## Acceder a datos durante el render
+
+Dentro de tu plantilla puedes acceder a datos del contexto actual:
+
+### getCurrentOption
+```php
+use Glory\Components\ContentRender;
+
+// Índice del item actual (1-based)
+$indice = ContentRender::getCurrentOption('indiceItem', 0);
+$esPar = $indice % 2 === 0;
+
+// Categorías del post actual (disponible si categoryFilter está activo)
+$categorias = ContentRender::getCurrentOption('currentCategories', []);
+// $categorias es un array de ['slug' => 'mi-categoria', 'label' => 'Mi Categoría']
+
+// Cualquier opción de configuración del render
+$mostrarImagen = ContentRender::getCurrentOption('img_show', true);
+$modoDisplay = ContentRender::getCurrentOption('display_mode', 'flex');
+```
+
+### setCurrentOption
+Para compartir datos entre tu lógica y la plantilla:
+```php
+// Desde tu código antes de llamar a print()
+ContentRender::setCurrentOption('miDatoCustom', $valor);
+
+// Desde tu plantilla
+$dato = ContentRender::getCurrentOption('miDatoCustom');
+```
+
+### Opciones disponibles durante el render
+| Opción | Descripción |
+|--------|-------------|
+| `indiceItem` | Índice del item actual (1-based) |
+| `currentCategories` | Array de categorías del item (si categoryFilter está activo) |
+| `img_show`, `title_show`, etc. | Todas las opciones de configuración pasadas a `print()` |
 
 ## Buenas prácticas de plantillas
 - Siempre envolver título e imagen en `.glory-cr__stack` para que `title_position` funcione.

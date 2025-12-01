@@ -67,7 +67,7 @@ IMPORTANTE; SUPER IMPORTANTE: SIMPLEMENTE ES MEJOR BORRAR LA DOCUMENTACON VIEJA 
 
 ### Componentes Renderers
 - [ ] `componentes/renderers/autenticacion-renderer.mdx` 
-- [ ] `componentes/renderers/content-render.mdx` 
+- [x] `componentes/renderers/content-render.mdx` 
 - [ ] `componentes/renderers/header-renderer.mdx` 
 - [ ] `componentes/renderers/term-render.mdx` 
 - [ ] `componentes/renderers/busqueda-renderer.mdx` 

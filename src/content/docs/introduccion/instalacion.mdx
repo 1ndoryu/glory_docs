@@ -5,28 +5,39 @@ description: Guía completa para instalar y configurar Glory Framework en tu pro
 
 ## Resumen
 
-Instala el tema, ejecuta Composer y crea un `.env` con `LOCAL`/`DEV`. Activa el tema y, en desarrollo, se sincronizará automáticamente el contenido gestionado por código.
+Glory consta de dos partes: un **template base** (el tema WordPress) y el **framework Glory** que va dentro del tema.
 
-## Requisitos (confirmados)
+## Requisitos
 
 - WordPress activo.
-- PHP >= 5.6 (según `composer.json`).
+- PHP >= 5.6.
 - Composer.
-- Git (opcional, si clonas el tema).
+- Git.
 - WP‑CLI (opcional, para utilidades de desarrollo).
-
-## Preparación
-
-Coloca el tema en `wp-content/themes/glory/` (clonando el repositorio o copiando la carpeta del tema).
 
 ## Instalación
 
-```bash
-# En la carpeta del tema
-env | grep DONT_RUN_THIS > /dev/null 2>&1 # placeholder inocuo
-cd wp-content/themes/glory
+### Paso 1: Instalar el template base
 
-# Instalar dependencias PHP del tema
+Clona el template en tu carpeta de temas de WordPress:
+
+```bash
+cd wp-content/themes
+git clone https://github.com/1ndoryu/glorytemplate glory
+```
+
+### Paso 2: Instalar el framework Glory
+
+Dentro del tema que acabas de clonar, instala Glory:
+
+```bash
+cd glory
+git clone https://github.com/1ndoryu/Glory
+```
+
+### Paso 3: Instalar dependencias
+
+```bash
 composer install
 ```
 
